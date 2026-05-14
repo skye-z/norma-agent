@@ -87,6 +87,7 @@ const INITIAL_MESSAGES = [
         totalChunks: 8,
         toolCallCount: 0,
       },
+      custom: { model: 'Norma Local' },
     },
   },
   {
@@ -111,6 +112,7 @@ const INITIAL_MESSAGES = [
         totalChunks: 12,
         toolCallCount: 1,
       },
+      custom: { model: 'Norma Local' },
     },
   },
   {
@@ -141,6 +143,7 @@ const INITIAL_MESSAGES = [
         totalChunks: 15,
         toolCallCount: 2,
       },
+      custom: { model: 'Norma Local' },
     },
   },
 ];
@@ -231,10 +234,13 @@ const ExecuteActionTool = makeAssistantToolUI({
 
 const MessageTimingDisplay: React.FC = () => {
   const timing = useMessageTiming();
+  const message = useMessage();
+  const model = (message as any).metadata?.custom?.model;
   if (!timing?.totalStreamTime) return null;
   const formatMs = (ms: number) => ms < 1000 ? `${Math.round(ms)}ms` : `${(ms / 1000).toFixed(1)}s`;
   return (
     <span className="text-[9px] text-norma-textDim font-mono">
+      {model && <span className="text-norma-textMuted mr-1">{model}</span>}
       {formatMs(timing.totalStreamTime)}
       {timing.tokensPerSecond ? ` · ${Math.round(timing.tokensPerSecond)} tok/s` : ''}
       {timing.toolCallCount ? ` · ${timing.toolCallCount} 工具` : ''}
