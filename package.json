@@ -34,6 +34,7 @@
   "dependencies": {
     "@ai-sdk/openai": "^3.0.63",
     "@assistant-ui/react": "^0.14.5",
+    "@assistant-ui/react-markdown": "^0.14.0",
     "@mastra/core": "^1.33.1",
     "clsx": "^2.1.1",
     "dotenv": "^17.4.2",
@@ -41,8 +42,9 @@
     "lucide-react": "^1.14.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
+    "remark-gfm": "^4.0.1",
     "tailwind-merge": "^3.6.0",
-    "zod": "^3.23.8"
+    "zod": "^4.4.3"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
