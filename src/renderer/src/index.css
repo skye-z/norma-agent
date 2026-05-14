@@ -1,0 +1,31 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-transparent text-norma-text font-sans antialiased overflow-hidden m-0 p-0;
+  }
+  
+  /* Assistant UI Theme Overrides for Glassmorphism */
+  :root {
+    --aui-color-bg: transparent;
+    --aui-color-panel: rgba(30, 30, 35, 0.5);
+    --aui-color-text: rgba(255, 255, 255, 0.9);
+    --aui-color-text-muted: rgba(255, 255, 255, 0.4);
+    --aui-color-border: rgba(255, 255, 255, 0.1);
+    --aui-color-primary: hsl(210, 100%, 70%);
+  }
+}
+
+@layer utilities {
+  .glass-panel {
+    @apply bg-norma-panel backdrop-blur-[20px] border border-norma-border rounded-2xl shadow-xl;
+  }
+}
+
+html, body, #root {
+  height: 100vh;
+  width: 100vw;
+  background-color: transparent !important;
+}

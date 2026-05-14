@@ -8,10 +8,10 @@
   - [x] 集成 Electron 42 框架，实现最基础的 Hello World 主窗口显示。
   - [x] 配置基本的开发脚本 (start, build)。
 
-- [ ] **v0.2 - 核心 UI 接入 (UI Shell)**
-  - [ ] 在渲染进程中接入 AssistantUI 框架。
-  - [ ] 实现基础的聊天气泡、输入框交互界面。
-  - [ ] 构建主进程 (Main) 与渲染进程 (Renderer) 的 IPC (进程间通信) 桥梁。
+- [x] **v0.2 - 核心 UI 接入 (UI Shell)**
+  - [x] 在渲染进程中接入 AssistantUI 框架。
+  - [x] 实现基础的聊天气泡、输入框交互界面。
+  - [x] 构建主进程 (Main) 与渲染进程 (Renderer) 的 IPC (进程间通信) 桥梁。
 
 - [ ] **v0.3 - 大脑接入 (Mastra Base)**
   - [ ] 在主进程中集成 Mastra 框架。
