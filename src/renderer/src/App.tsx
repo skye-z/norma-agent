@@ -745,8 +745,8 @@ const ChatAreaInner: React.FC = () => {
             </ThreadPrimitive.ScrollToBottom>
           </ThreadPrimitive.Viewport>
 
-          <div className="flex-none px-5 pb-3 pt-1">
-            <div className="flex items-end gap-2 max-w-[620px] mx-auto">
+          <div className="flex-none px-5 pb-3 pt-1 flex justify-center">
+            <div className="flex items-end gap-2 w-full max-w-[620px]">
               <ModelSelector />
               <ComposerPill />
               <ComposerPrimitive.AddAttachment
