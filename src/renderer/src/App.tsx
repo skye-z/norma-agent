@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
   useLocalRuntime,
@@ -20,6 +20,8 @@ import {
   useMessagePartImage,
   useThreadViewportAutoScroll,
   WebSpeechDictationAdapter,
+  unstable_useSlashCommandAdapter,
+  unstable_useMentionAdapter,
   ErrorPrimitive,
   SuggestionPrimitive,
 } from '@assistant-ui/react';
@@ -327,80 +329,73 @@ const ContextDisplay: React.FC = () => {
   );
 };
 
-const SlashCommandMenu: React.FC = () => {
-  const [open, setOpen] = useState(false);
-  const [filter, setFilter] = useState('');
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const menuRef = useRef<HTMLDivElement>(null);
+const AGENTS = [
+  { id: 'norma', type: 'agent', label: 'Norma', description: '通用助手' },
+  { id: 'coder', type: 'agent', label: 'Coder', description: '代码专家' },
+  { id: 'screen', type: 'agent', label: 'Screen', description: '屏幕感知' },
+];
 
-  const filtered = useMemo(() =>
-    SLASH_COMMANDS.filter(c => c.command.toLowerCase().includes(filter.toLowerCase())),
-    [filter]
-  );
-
-  useEffect(() => { setSelectedIndex(0); }, [filtered.length]);
-
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowDown') { e.preventDefault(); setSelectedIndex(i => Math.min(i + 1, filtered.length - 1)); }
-      else if (e.key === 'ArrowUp') { e.preventDefault(); setSelectedIndex(i => Math.max(i - 1, 0)); }
-      else if (e.key === 'Enter' && filtered[selectedIndex]) {
-        e.preventDefault();
-        setOpen(false);
-        setFilter('');
-      } else if (e.key === 'Escape') { setOpen(false); }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [open, filtered, selectedIndex]);
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setOpen(false);
-    };
-    if (open) document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [open]);
+const SlashCommandTrigger: React.FC = () => {
+  const slash = unstable_useSlashCommandAdapter({
+    commands: SLASH_COMMANDS.map(cmd => ({
+      id: cmd.command,
+      label: cmd.command,
+      description: cmd.description,
+      execute: () => {},
+    })),
+  });
 
   return (
-    <div ref={menuRef} className="relative flex-none">
-      <button
-        onClick={() => setOpen(!open)}
-        className="p-2 rounded-full text-norma-textDim hover:text-norma-textMuted hover:bg-white/[0.06] transition-colors"
-        title="斜杠命令"
-      >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 20 16 4"/></svg>
-      </button>
-      {open && (
-        <div className="glass-popover absolute bottom-full left-0 mb-2 w-56 overflow-hidden">
-          <div className="px-3 py-2 border-b border-white/[0.08]">
-            <input
-              autoFocus
-              value={filter}
-              onChange={e => setFilter(e.target.value)}
-              placeholder="搜索命令..."
-              className="w-full bg-transparent text-[11px] text-norma-text placeholder-norma-textMuted outline-none"
-            />
-          </div>
-          <div className="max-h-48 overflow-y-auto py-1">
-            {filtered.length === 0 && (
-              <div className="px-3 py-2 text-[10px] text-norma-textDim">无匹配命令</div>
-            )}
-            {filtered.map((cmd, i) => (
-              <button
-                key={cmd.command}
-                onClick={() => { setOpen(false); setFilter(''); }}
-                className={`w-full flex items-center gap-2 px-3 py-1.5 text-[11px] transition-colors ${i === selectedIndex ? 'bg-white/[0.08] text-norma-text' : 'text-norma-textMuted hover:bg-white/[0.06]'}`}
+    <ComposerPrimitive.Unstable_TriggerPopover char="/" adapter={slash.adapter}>
+      <ComposerPrimitive.Unstable_TriggerPopover.Action onExecute={slash.action.onExecute} />
+      <ComposerPrimitive.Unstable_TriggerPopoverItems>
+        {(items) => (
+          <div className="glass-popover flex flex-col py-1">
+            {items.map((item, i) => (
+              <ComposerPrimitive.Unstable_TriggerPopoverItem
+                key={item.id}
+                item={item}
+                index={i}
+                className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-norma-textMuted hover:bg-white/[0.06] data-[highlighted]:bg-white/[0.08] data-[highlighted]:text-norma-text transition-colors text-left"
               >
-                <span className="font-mono text-norma-accent">{cmd.command}</span>
-                <span className="flex-1 text-left text-norma-textDim">{cmd.description}</span>
-              </button>
+                <span className="font-mono text-norma-accent">{item.label}</span>
+                <span className="flex-1 text-norma-textDim">{item.description}</span>
+              </ComposerPrimitive.Unstable_TriggerPopoverItem>
             ))}
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </ComposerPrimitive.Unstable_TriggerPopoverItems>
+    </ComposerPrimitive.Unstable_TriggerPopover>
+  );
+};
+
+const MentionTrigger: React.FC = () => {
+  const mention = unstable_useMentionAdapter({
+    items: AGENTS,
+  });
+
+  return (
+    <ComposerPrimitive.Unstable_TriggerPopover char="@" adapter={mention.adapter}>
+      <ComposerPrimitive.Unstable_TriggerPopover.Directive formatter={mention.directive.formatter} />
+      <ComposerPrimitive.Unstable_TriggerPopoverItems>
+        {(items) => (
+          <div className="glass-popover flex flex-col py-1">
+            {items.map((item, i) => (
+              <ComposerPrimitive.Unstable_TriggerPopoverItem
+                key={item.id}
+                item={item}
+                index={i}
+                className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-norma-textMuted hover:bg-white/[0.06] data-[highlighted]:bg-white/[0.08] data-[highlighted]:text-norma-text transition-colors text-left"
+              >
+                <span className="w-4 h-4 rounded-full bg-norma-accentMuted flex items-center justify-center text-[8px] text-norma-accent font-bold">{(item.label as string)[0]}</span>
+                <span className="font-medium text-norma-text">{item.label}</span>
+                <span className="flex-1 text-norma-textDim">{item.description}</span>
+              </ComposerPrimitive.Unstable_TriggerPopoverItem>
+            ))}
+          </div>
+        )}
+      </ComposerPrimitive.Unstable_TriggerPopoverItems>
+    </ComposerPrimitive.Unstable_TriggerPopover>
   );
 };
 
@@ -628,35 +623,39 @@ const ComposerPill: React.FC = () => {
             </div>
           </ComposerPrimitive.If>
 
-          <div className="flex items-end gap-1.5">
-            <ComposerPrimitive.Input
-              placeholder="让 Norma 帮你做点什么..."
-              rows={1}
-              className="flex-1 bg-transparent text-[12px] text-norma-text placeholder-norma-textMuted
-                         outline-none resize-none leading-relaxed min-h-[20px] max-h-[120px] py-0.5"
-            />
+          <ComposerPrimitive.Unstable_TriggerPopoverRoot>
+            <SlashCommandTrigger />
+            <MentionTrigger />
+            <div className="flex items-end gap-1.5">
+              <ComposerPrimitive.Input
+                placeholder="让 Norma 帮你做点什么...  输入 / 命令  @ 指定智能体"
+                rows={1}
+                className="flex-1 bg-transparent text-[12px] text-norma-text placeholder-norma-textMuted
+                           outline-none resize-none leading-relaxed min-h-[20px] max-h-[120px] py-0.5"
+              />
 
-            <VoiceButton />
+              <VoiceButton />
 
-            <AuiIf condition={(s: any) => !s.thread.isRunning}>
-              <ComposerPrimitive.Send
-                className="flex-none p-1.5 rounded-full transition-all duration-200
-                           bg-norma-accent text-white hover:opacity-90
-                           disabled:bg-white/[0.05] disabled:text-norma-textDim disabled:cursor-not-allowed"
-                title="发送"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></svg>
-              </ComposerPrimitive.Send>
-            </AuiIf>
-            <AuiIf condition={(s: any) => s.thread.isRunning}>
-              <ComposerPrimitive.Cancel
-                className="flex-none p-1.5 rounded-full bg-norma-accent text-white hover:opacity-90 transition-all duration-200"
-                title="停止生成"
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
-              </ComposerPrimitive.Cancel>
-            </AuiIf>
-          </div>
+              <AuiIf condition={(s: any) => !s.thread.isRunning}>
+                <ComposerPrimitive.Send
+                  className="flex-none p-1.5 rounded-full transition-all duration-200
+                             bg-norma-accent text-white hover:opacity-90
+                             disabled:bg-white/[0.05] disabled:text-norma-textDim disabled:cursor-not-allowed"
+                  title="发送"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></svg>
+                </ComposerPrimitive.Send>
+              </AuiIf>
+              <AuiIf condition={(s: any) => s.thread.isRunning}>
+                <ComposerPrimitive.Cancel
+                  className="flex-none p-1.5 rounded-full bg-norma-accent text-white hover:opacity-90 transition-all duration-200"
+                  title="停止生成"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+                </ComposerPrimitive.Cancel>
+              </AuiIf>
+            </div>
+          </ComposerPrimitive.Unstable_TriggerPopoverRoot>
         </div>
       </ComposerPrimitive.AttachmentDropzone>
     </ComposerPrimitive.Root>
@@ -749,7 +748,6 @@ const ChatAreaInner: React.FC = () => {
           <div className="flex-none px-5 pb-3 pt-1">
             <div className="flex items-end gap-2 max-w-[620px] mx-auto">
               <ModelSelector />
-              <SlashCommandMenu />
               <ComposerPill />
               <ComposerPrimitive.AddAttachment
                 className="flex-none p-2 rounded-full text-norma-textDim hover:text-norma-textMuted hover:bg-white/[0.06] transition-colors"
