@@ -16,7 +16,6 @@ import {
   makeAssistantToolUI,
   useMessage,
   useThreadModelContext,
-  useMessageQuote,
   useMessagePartFile,
   useMessagePartImage,
   useThreadViewportAutoScroll,
@@ -125,7 +124,6 @@ const INITIAL_MESSAGES = [
     role: 'assistant' as const,
     content: [
       { type: 'reasoning' as const, text: '用户想要切换到 VS Code 并打开特定文件。我看到用户还附了一个 TypeScript 文件。我需要：\n1. 激活 VS Code 窗口\n2. 使用快捷键打开文件搜索\n3. 搜索并打开 main.ts' },
-      { type: 'quote' as const, quote: '帮我把 VS Code 打开并切换到 main.ts 文件' },
       { type: 'tool-call' as const, toolCallId: 'tc_init_2', toolName: 'execute_action', args: { action: 'activate_window', app: 'VS Code' }, argsText: '{"action":"activate_window","app":"VS Code"}', result: { success: true, description: 'VS Code 已激活' } },
       { type: 'tool-call' as const, toolCallId: 'tc_init_3', toolName: 'execute_action', args: { action: 'open_file', filename: 'main.ts' }, argsText: '{"action":"open_file","filename":"main.ts"}', result: { success: true, description: '已打开 src/main/index.ts' } },
       { type: 'text' as const, text: '\n\n搞定了！我已经：\n\n1. 激活了 VS Code 窗口\n2. 打开了 `src/main/index.ts` 文件\n\n你现在已经可以看到该文件的内容了。需要我对文件做什么修改吗？' },
@@ -310,16 +308,6 @@ const ImagePartView: React.FC = () => {
         alt="图片"
         className={`max-w-full transition-all duration-200 ${expanded ? 'max-w-[300px]' : 'max-w-[160px] max-h-[120px]'} object-cover`}
       />
-    </div>
-  );
-};
-
-const QuotePartView: React.FC<{ quote: string }> = ({ quote }) => {
-  const { quotedMessage } = useMessageQuote();
-  return (
-    <div className="flex items-start gap-2 px-2.5 py-1.5 rounded-lg bg-white/[0.03] border-l-2 border-norma-accent/40 text-[10px] text-norma-textMuted mb-1.5">
-      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="flex-none mt-0.5 text-norma-accent/60"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"/><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"/></svg>
-      <span className="truncate">{quotedMessage || quote}</span>
     </div>
   );
 };
@@ -542,7 +530,6 @@ const AssistantMessage: React.FC = () => {
               ),
               File: () => <FilePartView />,
               Image: () => <ImagePartView />,
-              Quote: ({ quote }: any) => <QuotePartView quote={quote} />,
             }}
           />
           <MessagePrimitive.Error>
