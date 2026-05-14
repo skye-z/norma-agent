@@ -492,8 +492,8 @@ const AssistantMessage: React.FC = () => {
   const [toolsCollapsed, setToolsCollapsed] = useState(false);
 
   return (
-    <MessagePrimitive.Root className="flex justify-start">
-      <div className="max-w-[75%]">
+    <MessagePrimitive.Root className="flex justify-start group">
+      <div className="max-w-[75%] relative">
         <div className="bubble bubble-assistant">
           {toolCallCount > 1 && (
             <button
@@ -539,7 +539,7 @@ const AssistantMessage: React.FC = () => {
             </div>
           </MessagePrimitive.Error>
         </div>
-        <div className="flex items-center gap-1 mt-1 px-1 opacity-0 hover:opacity-100 transition-opacity duration-200">
+        <div className="flex items-center gap-1 absolute -bottom-5 left-0 right-0 px-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none group-hover:pointer-events-auto">
           <MessageTimingDisplay />
           <div className="flex-1" />
           <BranchPickerPrimitive.Root hideWhenSingleBranch className="inline-flex items-center gap-0.5 text-norma-textDim text-[10px]">
