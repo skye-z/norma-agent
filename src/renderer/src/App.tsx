@@ -1,8 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { motion } from 'framer-motion';
 import { Send, Bot, TerminalSquare } from 'lucide-react';
 import './index.css';
+
+// Declare electronAPI for TypeScript
+declare global {
+  interface Window {
+    electronAPI: {
+      sendMessage: (channel: string, data: any) => void;
+      onMessage: (channel: string, callback: (data: any) => void) => () => void;
+    };
+  }
+}
 
 // Mock AssistantUI for MVP v0.2 layout structure
 // We'll fully wire @assistant-ui/react hooks in v0.3 when Mastra is integrated
@@ -11,15 +21,49 @@ const App = () => {
   const [messages, setMessages] = useState([
     { role: 'assistant', text: 'Hello, I am Norma. Your local intelligent agent.' }
   ]);
+  const [isStreaming, setIsStreaming] = useState(false);
+
+  useEffect(() => {
+    const unsubChunk = window.electronAPI.onMessage('chat:chunk', (chunk: string) => {
+      setMessages(prev => {
+        const last = prev[prev.length - 1];
+        if (last && last.role === 'assistant' && isStreaming) {
+          const newMessages = [...prev];
+          newMessages[newMessages.length - 1] = { ...last, text: last.text + chunk };
+          return newMessages;
+        } else {
+          return [...prev, { role: 'assistant', text: chunk }];
+        }
+      });
+    });
+
+    const unsubDone = window.electronAPI.onMessage('chat:done', () => {
+      setIsStreaming(false);
+    });
+
+    const unsubError = window.electronAPI.onMessage('chat:error', (error: string) => {
+      setMessages(prev => [...prev, { role: 'assistant', text: `Error: ${error}` }]);
+      setIsStreaming(false);
+    });
+
+    return () => {
+      unsubChunk();
+      unsubDone();
+      unsubError();
+    };
+  }, [isStreaming]);
 
   const handleSend = () => {
-    if (!input.trim()) return;
-    setMessages([...messages, { role: 'user', text: input }]);
+    if (!input.trim() || isStreaming) return;
+    const userMessage = input.trim();
+    setMessages(prev => [...prev, { role: 'user', text: userMessage }]);
     setInput('');
-    // Mock response
-    setTimeout(() => {
-      setMessages(prev => [...prev, { role: 'assistant', text: 'I am ready to help.' }]);
-    }, 500);
+    setIsStreaming(true);
+    
+    // Add empty assistant message to append chunks to
+    setMessages(prev => [...prev, { role: 'assistant', text: '' }]);
+    
+    window.electronAPI.sendMessage('chat:send', userMessage);
   };
 
   return (

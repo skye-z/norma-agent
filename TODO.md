@@ -13,10 +13,10 @@
   - [x] 实现基础的聊天气泡、输入框交互界面。
   - [x] 构建主进程 (Main) 与渲染进程 (Renderer) 的 IPC (进程间通信) 桥梁。
 
-- [ ] **v0.3 - 大脑接入 (Mastra Base)**
-  - [ ] 在主进程中集成 Mastra 框架。
-  - [ ] 实例化一个基础的 Router Agent，接入 LLM (如 OpenAI/Anthropic 接口)。
-  - [ ] 实现用户在前端发送消息 -> IPC 转发 -> Mastra Agent 处理 -> 流式返回 UI 的完整链路。
+- [x] **v0.3 - 大脑接入 (Mastra Base)**
+  - [x] 在主进程中集成 Mastra 框架。
+  - [x] 实例化一个基础的 Router Agent，接入 LLM (如 OpenAI/Anthropic 接口)。
+  - [x] 实现用户在前端发送消息 -> IPC 转发 -> Mastra Agent 处理 -> 流式返回 UI 的完整链路。
 
 - [ ] **v0.4 - 双模态 UI (Command Bar)**
   - [ ] 开发全局唤出命令栏的独立透明窗口。
