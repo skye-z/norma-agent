@@ -361,17 +361,17 @@ const SlashCommandMenu: React.FC = () => {
   }, [open]);
 
   return (
-    <div ref={menuRef} className="relative">
+    <div ref={menuRef} className="relative flex-none">
       <button
         onClick={() => setOpen(!open)}
-        className="p-1 rounded text-norma-textDim hover:text-norma-textMuted hover:bg-white/[0.06] transition-colors"
+        className="p-2 rounded-full text-norma-textDim hover:text-norma-textMuted hover:bg-white/[0.06] transition-colors"
         title="斜杠命令"
       >
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 20 16 4"/></svg>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 20 16 4"/></svg>
       </button>
       {open && (
-        <div className="absolute bottom-full left-0 mb-2 w-52 rounded-xl bg-norma-panel border border-norma-border shadow-glass z-50 overflow-hidden">
-          <div className="px-3 py-2 border-b border-white/[0.04]">
+        <div className="glass-popover absolute bottom-full left-0 mb-2 w-56 overflow-hidden">
+          <div className="px-3 py-2 border-b border-white/[0.08]">
             <input
               autoFocus
               value={filter}
@@ -388,7 +388,7 @@ const SlashCommandMenu: React.FC = () => {
               <button
                 key={cmd.command}
                 onClick={() => { setOpen(false); setFilter(''); }}
-                className={`w-full flex items-center gap-2 px-3 py-1.5 text-[11px] transition-colors ${i === selectedIndex ? 'bg-white/[0.06] text-norma-text' : 'text-norma-textMuted hover:bg-white/[0.04]'}`}
+                className={`w-full flex items-center gap-2 px-3 py-1.5 text-[11px] transition-colors ${i === selectedIndex ? 'bg-white/[0.08] text-norma-text' : 'text-norma-textMuted hover:bg-white/[0.06]'}`}
               >
                 <span className="font-mono text-norma-accent">{cmd.command}</span>
                 <span className="flex-1 text-left text-norma-textDim">{cmd.description}</span>
@@ -420,22 +420,23 @@ const ModelSelector: React.FC = () => {
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState(MODELS[0]);
   return (
-    <div className="relative">
+    <div className="relative flex-none">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.06] text-[10px] text-norma-textMuted hover:text-norma-text hover:border-white/[0.1] transition-colors"
+        className="flex items-center gap-1 px-2 py-1 rounded-full text-[10px] text-norma-textDim hover:text-norma-textMuted hover:bg-white/[0.06] transition-colors"
+        title="选择模型"
       >
         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
         <span>{selected.name}</span>
         <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`transition-transform ${open ? 'rotate-180' : ''}`}><path d="m6 9 6 6 6-6"/></svg>
       </button>
       {open && (
-        <div className="absolute top-full left-0 mt-1 w-40 rounded-xl bg-norma-panel border border-norma-border shadow-glass z-50 overflow-hidden">
+        <div className="glass-popover absolute bottom-full left-0 mb-2 w-44 overflow-hidden">
           {MODELS.map(model => (
             <button
               key={model.id}
               onClick={() => { setSelected(model); setOpen(false); }}
-              className={`w-full flex items-center gap-2 px-3 py-2 text-[11px] hover:bg-white/[0.06] transition-colors ${selected.id === model.id ? 'text-norma-accent' : 'text-norma-textMuted'}`}
+              className={`w-full flex items-center gap-2 px-3 py-2 text-[11px] hover:bg-white/[0.08] transition-colors ${selected.id === model.id ? 'text-norma-accent' : 'text-norma-textMuted'}`}
             >
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
               <div className="flex-1 text-left">
@@ -604,7 +605,7 @@ const ComposerAttachmentItem: React.FC = () => {
 
 const ComposerPill: React.FC = () => {
   return (
-    <ComposerPrimitive.Root className="composer-pill w-full max-w-[560px] mx-auto">
+    <ComposerPrimitive.Root className="composer-pill flex-1 min-w-0">
       <ComposerPrimitive.AttachmentDropzone
         asChild
         className="transition-all duration-200"
@@ -625,14 +626,6 @@ const ComposerPill: React.FC = () => {
           </ComposerPrimitive.If>
 
           <div className="flex items-end gap-1.5">
-            <SlashCommandMenu />
-            <ComposerPrimitive.AddAttachment
-              className="flex-none p-1.5 rounded-full text-norma-textDim hover:text-norma-textMuted hover:bg-white/[0.06] transition-colors"
-              title="添加附件"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
-            </ComposerPrimitive.AddAttachment>
-
             <ComposerPrimitive.Input
               placeholder="让 Norma 帮你做点什么..."
               rows={1}
@@ -719,7 +712,6 @@ const ChatAreaInner: React.FC = () => {
               <h1 className="text-[12px] font-semibold text-norma-text leading-none">Norma</h1>
               <p className="text-[9px] text-norma-textMuted font-mono mt-0.5">智能助手 · 就绪</p>
             </div>
-            <ModelSelector />
           </div>
           <WindowControls />
         </div>
@@ -752,7 +744,17 @@ const ChatAreaInner: React.FC = () => {
           </ThreadPrimitive.Viewport>
 
           <div className="flex-none px-5 pb-3 pt-1">
-            <ComposerPill />
+            <div className="flex items-end gap-2 max-w-[620px] mx-auto">
+              <ModelSelector />
+              <SlashCommandMenu />
+              <ComposerPill />
+              <ComposerPrimitive.AddAttachment
+                className="flex-none p-2 rounded-full text-norma-textDim hover:text-norma-textMuted hover:bg-white/[0.06] transition-colors"
+                title="添加附件"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+              </ComposerPrimitive.AddAttachment>
+            </div>
           </div>
         </ThreadPrimitive.Root>
       </div>
