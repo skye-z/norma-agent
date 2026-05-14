@@ -1,0 +1,36 @@
+{
+  "name": "norma-agent",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/main/index.js",
+  "scripts": {
+    "dev:main": "cross-env NODE_ENV=development tsup --watch --onSuccess \"electron .\"",
+    "dev:renderer": "vite",
+    "dev": "concurrently \"pnpm dev:renderer\" \"pnpm dev:main\"",
+    "build:main": "tsup",
+    "build:renderer": "vite build",
+    "build": "pnpm build:renderer && pnpm build:main",
+    "start": "electron ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.22.0",
+  "devDependencies": {
+    "@types/node": "^25.7.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^4.7.0",
+    "concurrently": "^9.2.1",
+    "cross-env": "^10.1.0",
+    "electron": "^42.0.1",
+    "tsup": "^8.5.1",
+    "typescript": "^6.0.3",
+    "vite": "^5.4.21"
+  },
+  "dependencies": {
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "zod": "^4.4.3"
+  }
+}

@@ -2,11 +2,11 @@
 
 基于 PRD 设计，MVP (Minimum Viable Product) 划分为 10 个可运行的版本迭代。每个版本都保证项目能够正常启动，逐步叠加核心能力。
 
-- [ ] **v0.1 - 骨架搭建 (Project Init)**
-  - [ ] 初始化 Node.js 24 + pnpm 项目。
-  - [ ] 配置 TypeScript 环境。
-  - [ ] 集成 Electron 42 框架，实现最基础的 Hello World 主窗口显示。
-  - [ ] 配置基本的开发脚本 (start, build)。
+- [x] **v0.1 - 骨架搭建 (Project Init)**
+  - [x] 初始化 Node.js 24 + pnpm 项目。
+  - [x] 配置 TypeScript 环境。
+  - [x] 集成 Electron 42 框架，实现最基础的 Hello World 主窗口显示。
+  - [x] 配置基本的开发脚本 (start, build)。
 
 - [ ] **v0.2 - 核心 UI 接入 (UI Shell)**
   - [ ] 在渲染进程中接入 AssistantUI 框架。
