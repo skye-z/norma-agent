@@ -1,6 +1,10 @@
-import { app, BrowserWindow, Tray, Menu, nativeImage } from 'electron';
-import * as path from 'path';
-import { setupIpc } from './ipc';
+import { app, BrowserWindow, Tray, Menu, nativeImage } from "electron";
+import * as path from "path";
+import { setupIpc } from "./ipc";
+
+app.commandLine.appendSwitch("enable-features", "CSSBackdropFilter");
+app.commandLine.appendSwitch("enable-gpu-rasterization");
+app.commandLine.appendSwitch("enable-zero-copy");
 
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
@@ -10,7 +14,7 @@ const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
   app.quit();
 } else {
-  app.on('second-instance', () => {
+  app.on("second-instance", () => {
     showWindow();
   });
 
@@ -24,13 +28,20 @@ if (!gotTheLock) {
 function createTray() {
   const icon = nativeImage.createEmpty();
   tray = new Tray(icon);
-  tray.setToolTip('Norma Agent');
-  tray.setContextMenu(Menu.buildFromTemplate([
-    { label: 'Show Window', click: showWindow },
-    { type: 'separator' },
-    { label: 'Quit', click: () => { app.quit(); } },
-  ]));
-  tray.on('double-click', showWindow);
+  tray.setToolTip("Norma Agent");
+  tray.setContextMenu(
+    Menu.buildFromTemplate([
+      { label: "Show Window", click: showWindow },
+      { type: "separator" },
+      {
+        label: "Quit",
+        click: () => {
+          app.quit();
+        },
+      },
+    ]),
+  );
+  tray.on("double-click", showWindow);
 }
 
 function showWindow() {
@@ -45,7 +56,7 @@ function showWindow() {
 }
 
 function createWindow() {
-  const isMac = process.platform === 'darwin';
+  const isMac = process.platform === "darwin";
 
   mainWindow = new BrowserWindow({
     width: 1100,
@@ -53,49 +64,49 @@ function createWindow() {
     minWidth: 800,
     minHeight: 520,
     transparent: true,
+    vibrancy: "sidebar",
+    visualEffectState: "active",
+
     frame: false,
-    titleBarStyle: isMac ? 'hidden' : undefined,
+    titleBarStyle: isMac ? "hidden" : undefined,
     trafficLightPosition: isMac ? { x: 14, y: 12 } : undefined,
-    vibrancy: isMac ? 'hud-window' : undefined,
-    visualEffectState: isMac ? 'active' : undefined,
     hasShadow: false,
     skipTaskbar: false,
     show: false,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
+      preload: path.join(__dirname, "preload.js"),
       nodeIntegration: false,
       contextIsolation: true,
     },
   });
 
-  mainWindow.on('close', (e) => {
+  mainWindow.on("close", (e) => {
     e.preventDefault();
     mainWindow?.hide();
   });
 
-  mainWindow.on('closed', () => {
+  mainWindow.on("closed", () => {
     mainWindow = null;
   });
 
-  if (process.env.NODE_ENV === 'development') {
-    mainWindow.loadURL('http://localhost:5173');
+  if (process.env.NODE_ENV === "development") {
+    mainWindow.loadURL("http://localhost:5173");
     mainWindow.webContents.openDevTools();
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
+    mainWindow.loadFile(path.join(__dirname, "../renderer/index.html"));
   }
 
-  mainWindow.once('ready-to-show', () => {
+  mainWindow.once("ready-to-show", () => {
     mainWindow?.show();
   });
 }
 
-app.on('activate', function () {
+app.on("activate", function () {
   showWindow();
 });
 
-app.on('before-quit', () => {
-  mainWindow?.removeAllListeners('close');
+app.on("before-quit", () => {
+  mainWindow?.removeAllListeners("close");
 });
 
-app.on('window-all-closed', function () {
-});
+app.on("window-all-closed", function () {});
