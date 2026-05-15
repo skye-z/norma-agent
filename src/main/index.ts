@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Tray, Menu, nativeImage, globalShortcut } from "electron";
+import { app, BrowserWindow, Tray, Menu, nativeImage, globalShortcut, screen } from "electron";
 import * as path from "path";
 import { setupIpc } from "./ipc";
 
@@ -39,10 +39,10 @@ function createTray() {
   tray.setToolTip("Norma Agent");
   tray.setContextMenu(
     Menu.buildFromTemplate([
-      { label: "Show Window", click: showWindow },
+      { label: "显示窗口", click: showWindow },
       { type: "separator" },
       {
-        label: "Quit",
+        label: "退出",
         click: () => {
           app.quit();
         },
@@ -125,17 +125,25 @@ function createWindow() {
 
 function createCommandBarWindow() {
   const isMac = process.platform === "darwin";
+  const primaryDisplay = screen.getPrimaryDisplay();
+  const { width: screenWidth } = primaryDisplay.workAreaSize;
+  const winWidth = 680;
+  const winHeight = 56;
+  const x = Math.round((screenWidth - winWidth) / 2);
+  const y = Math.round(primaryDisplay.workAreaSize.height * 0.15);
 
   commandBarWindow = new BrowserWindow({
-    width: 700,
-    height: 60,
+    width: winWidth,
+    height: winHeight,
+    x,
+    y,
     transparent: true,
     vibrancy: "hud",
     visualEffectState: "active",
     frame: false,
     hasShadow: true,
     resizable: false,
-    movable: true,
+    movable: false,
     alwaysOnTop: true,
     skipTaskbar: true,
     show: false,

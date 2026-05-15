@@ -20,5 +20,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   quitApp: () => {
     ipcRenderer.send('window:quit');
   },
+  resizeWindow: (width: number, height: number) => {
+    ipcRenderer.send('window:resize', { width, height });
+  },
   platform: process.platform,
 });

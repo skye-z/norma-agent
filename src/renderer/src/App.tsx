@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import {
   useLocalRuntime,
@@ -39,6 +39,7 @@ declare global {
       hideWindow: () => void;
       minimizeWindow: () => void;
       quitApp: () => void;
+      resizeWindow: (width: number, height: number) => void;
       platform: string;
     };
   }
@@ -1304,9 +1305,27 @@ const ChatAreaInner: React.FC = () => {
 };
 
 const CommandBarInner: React.FC = () => {
+  const [expanded, setExpanded] = useState(false);
+  const isRunning = useAuiState((s: any) => s.thread.isRunning);
+  const isEmpty = useAuiState((s: any) => s.thread.isEmpty);
+
+  useEffect(() => {
+    if (expanded && isEmpty && !isRunning) {
+      setExpanded(false);
+      window.electronAPI?.resizeWindow?.(680, 56);
+    }
+  }, [isEmpty, isRunning, expanded]);
+
+  useEffect(() => {
+    if (isRunning && !expanded) {
+      setExpanded(true);
+      window.electronAPI?.resizeWindow?.(680, 320);
+    }
+  }, [isRunning, expanded]);
+
   return (
-    <div className="w-full h-full flex items-center p-1.5 overflow-hidden">
-      <div className="w-full h-full flex items-center gap-3 bg-white/[0.05] border border-white/[0.1] rounded-2xl px-4 shadow-2xl backdrop-blur-3xl">
+    <div className="w-full h-full flex flex-col overflow-hidden">
+      <div className="flex-none flex items-center gap-3 h-[52px] px-4 border-b border-white/[0.06]">
         <ContextRing />
         <ComposerPrimitive.Root className="flex-1 min-w-0 h-full flex items-center">
           <ComposerPrimitive.Unstable_TriggerPopoverRoot>
@@ -1317,7 +1336,7 @@ const CommandBarInner: React.FC = () => {
               rows={1}
               autoFocus
               className="flex-1 w-full bg-transparent text-[15px] text-norma-text placeholder-norma-textMuted outline-none resize-none leading-none py-0"
-              onKeyDown={(e) => {
+              onKeyDown={(e: any) => {
                 if (e.key === "Escape") {
                   window.electronAPI?.hideWindow?.();
                 }
@@ -1326,6 +1345,14 @@ const CommandBarInner: React.FC = () => {
           </ComposerPrimitive.Unstable_TriggerPopoverRoot>
         </ComposerPrimitive.Root>
       </div>
+
+      {expanded && (
+        <div className="flex-1 overflow-y-auto px-4 py-3 min-h-0 scroll-smooth">
+          <ThreadPrimitive.Messages>
+            {() => <ThreadMessage />}
+          </ThreadPrimitive.Messages>
+        </div>
+      )}
     </div>
   );
 };
@@ -1341,7 +1368,13 @@ const App = () => {
 
   return (
     <NormaRuntime>
-      {route === "#/command" ? <CommandBarInner /> : <ChatAreaInner />}
+      {route === "#/command" ? (
+        <div className="command-bar-bg w-full h-full overflow-hidden">
+          <CommandBarInner />
+        </div>
+      ) : (
+        <ChatAreaInner />
+      )}
     </NormaRuntime>
   );
 };

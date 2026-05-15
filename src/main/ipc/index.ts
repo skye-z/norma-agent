@@ -2,7 +2,8 @@ import { ipcMain, BrowserWindow, app } from 'electron';
 
 export function setupIpc() {
   ipcMain.on('window:hide', () => {
-    BrowserWindow.getFocusedWindow()?.close();
+    const win = BrowserWindow.getFocusedWindow();
+    if (win) win.hide();
   });
 
   ipcMain.on('window:minimize', () => {
@@ -11,6 +12,11 @@ export function setupIpc() {
 
   ipcMain.on('window:quit', () => {
     app.quit();
+  });
+
+  ipcMain.on('window:resize', (_event, { width, height }: { width: number; height: number }) => {
+    const win = BrowserWindow.getFocusedWindow();
+    if (win) win.setSize(width, height);
   });
 
   ipcMain.on('chat:send', async (event, message: string) => {
