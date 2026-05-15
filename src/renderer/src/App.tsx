@@ -1104,53 +1104,61 @@ const ComposerPill: React.FC = () => {
           <ComposerPrimitive.Unstable_TriggerPopoverRoot>
             <SlashCommandTrigger />
             <MentionTrigger />
-            <div className="flex items-center gap-2 relative w-full">
-              <ContextRing />
+            <div className="flex items-end gap-2 relative w-full">
+              <div className="mb-[3px]">
+                <ContextRing />
+              </div>
               <ComposerPrimitive.Input
                 placeholder="让 Norma 帮你做点什么...  输入 / 命令  @ 指定智能体"
                 rows={1}
                 className="flex-1 min-w-0 break-words bg-transparent text-[12px] text-norma-text placeholder-norma-textMuted
-                           outline-none resize-none leading-relaxed min-h-[20px] max-h-[120px] py-0.5"
+                           outline-none resize-none leading-relaxed min-h-[20px] max-h-[120px] py-1"
               />
 
-              <VoiceButton />
+              <div className="mb-px">
+                <VoiceButton />
+              </div>
 
               <AuiIf condition={(s: any) => !s.thread.isRunning}>
-                <ComposerPrimitive.Send
-                  className="flex-none p-1.5 rounded-full transition-all duration-200
-                             bg-norma-accent text-white hover:opacity-90
-                             disabled:bg-white/[0.05] disabled:text-norma-textDim disabled:cursor-not-allowed"
-                  title="发送"
-                >
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
+                <div className="mb-px">
+                  <ComposerPrimitive.Send
+                    className="flex-none p-1.5 rounded-full transition-all duration-200
+                               bg-norma-accent text-white hover:opacity-90
+                               disabled:bg-white/[0.05] disabled:text-norma-textDim disabled:cursor-not-allowed"
+                    title="发送"
                   >
-                    <path d="m5 12 7-7 7 7" />
-                    <path d="M12 19V5" />
-                  </svg>
-                </ComposerPrimitive.Send>
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="m5 12 7-7 7 7" />
+                      <path d="M12 19V5" />
+                    </svg>
+                  </ComposerPrimitive.Send>
+                </div>
               </AuiIf>
               <AuiIf condition={(s: any) => s.thread.isRunning}>
-                <ComposerPrimitive.Cancel
-                  className="flex-none p-1.5 rounded-full bg-norma-accent text-white hover:opacity-90 transition-all duration-200"
-                  title="停止生成"
-                >
-                  <svg
-                    width="12"
-                    height="12"
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
+                <div className="mb-px">
+                  <ComposerPrimitive.Cancel
+                    className="flex-none p-1.5 rounded-full bg-norma-accent text-white hover:opacity-90 transition-all duration-200"
+                    title="停止生成"
                   >
-                    <rect x="6" y="6" width="12" height="12" rx="2" />
-                  </svg>
-                </ComposerPrimitive.Cancel>
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                    >
+                      <rect x="6" y="6" width="12" height="12" rx="2" />
+                    </svg>
+                  </ComposerPrimitive.Cancel>
+                </div>
               </AuiIf>
             </div>
           </ComposerPrimitive.Unstable_TriggerPopoverRoot>
@@ -1260,31 +1268,34 @@ const ChatAreaInner: React.FC = () => {
             </ThreadPrimitive.ScrollToBottom>
           </ThreadPrimitive.Viewport>
 
-          <div className="flex-none px-5 pb-3 pt-1 flex justify-center relative w-full">
-            <div className="absolute left-5 bottom-3.5">
+          <div className="flex-none px-5 pb-3 pt-1 grid grid-cols-[120px_1fr_120px] items-end w-full">
+            <div className="flex justify-start mb-2">
               <ModelSelector />
             </div>
-            <div className="flex items-center gap-2 w-full max-w-[620px]">
-              <ComposerPill />
-              <ComposerPrimitive.AddAttachment
-                className="flex-none p-2 rounded-full text-norma-textDim hover:text-norma-textMuted hover:bg-white/[0.06] transition-colors"
-                title="添加附件"
-              >
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
+            <div className="flex justify-center w-full">
+              <div className="flex items-end gap-2 w-full max-w-[620px]">
+                <ComposerPill />
+                <ComposerPrimitive.AddAttachment
+                  className="flex-none p-2 mb-1 rounded-full text-norma-textDim hover:text-norma-textMuted hover:bg-white/[0.06] transition-colors"
+                  title="添加附件"
                 >
-                  <path d="M5 12h14" />
-                  <path d="M12 5v14" />
-                </svg>
-              </ComposerPrimitive.AddAttachment>
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M5 12h14" />
+                    <path d="M12 5v14" />
+                  </svg>
+                </ComposerPrimitive.AddAttachment>
+              </div>
             </div>
+            <div />
           </div>
         </ThreadPrimitive.Root>
       </div>
