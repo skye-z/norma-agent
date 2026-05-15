@@ -25,7 +25,9 @@ if (!gotTheLock) {
     createWindow();
     createCommandBarWindow();
 
-    globalShortcut.register('CommandOrControl+Shift+Space', () => {
+    const isMac = process.platform === "darwin";
+    const shortcut = isMac ? "Option+Space" : "Alt+Space";
+    globalShortcut.register(shortcut, () => {
       toggleCommandBar();
     });
   });
