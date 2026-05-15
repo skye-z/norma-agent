@@ -1303,10 +1303,45 @@ const ChatAreaInner: React.FC = () => {
   );
 };
 
+const CommandBarInner: React.FC = () => {
+  return (
+    <div className="w-full h-full flex items-center p-1.5 overflow-hidden">
+      <div className="w-full h-full flex items-center gap-3 bg-white/[0.05] border border-white/[0.1] rounded-2xl px-4 shadow-2xl backdrop-blur-3xl">
+        <ContextRing />
+        <ComposerPrimitive.Root className="flex-1 min-w-0 h-full flex items-center">
+          <ComposerPrimitive.Unstable_TriggerPopoverRoot>
+            <SlashCommandTrigger />
+            <MentionTrigger />
+            <ComposerPrimitive.Input
+              placeholder="让 Norma 帮你做点什么...  输入 / 命令  @ 指定智能体"
+              rows={1}
+              autoFocus
+              className="flex-1 w-full bg-transparent text-[15px] text-norma-text placeholder-norma-textMuted outline-none resize-none leading-none py-0"
+              onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  window.electronAPI?.hideWindow?.();
+                }
+              }}
+            />
+          </ComposerPrimitive.Unstable_TriggerPopoverRoot>
+        </ComposerPrimitive.Root>
+      </div>
+    </div>
+  );
+};
+
 const App = () => {
+  const [route, setRoute] = React.useState(window.location.hash);
+
+  React.useEffect(() => {
+    const handleHashChange = () => setRoute(window.location.hash);
+    window.addEventListener("hashchange", handleHashChange);
+    return () => window.removeEventListener("hashchange", handleHashChange);
+  }, []);
+
   return (
     <NormaRuntime>
-      <ChatAreaInner />
+      {route === "#/command" ? <CommandBarInner /> : <ChatAreaInner />}
     </NormaRuntime>
   );
 };

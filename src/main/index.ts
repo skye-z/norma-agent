@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Tray, Menu, nativeImage } from "electron";
+import { app, BrowserWindow, Tray, Menu, nativeImage, globalShortcut } from "electron";
 import * as path from "path";
 import { setupIpc } from "./ipc";
 
@@ -7,6 +7,7 @@ app.commandLine.appendSwitch("enable-gpu-rasterization");
 app.commandLine.appendSwitch("enable-zero-copy");
 
 let mainWindow: BrowserWindow | null = null;
+let commandBarWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 
 const gotTheLock = app.requestSingleInstanceLock();
@@ -22,6 +23,11 @@ if (!gotTheLock) {
     setupIpc();
     createTray();
     createWindow();
+    createCommandBarWindow();
+
+    globalShortcut.register('CommandOrControl+Shift+Space', () => {
+      toggleCommandBar();
+    });
   });
 }
 
@@ -52,6 +58,20 @@ function showWindow() {
     if (mainWindow.isMinimized()) mainWindow.restore();
     mainWindow.show();
     mainWindow.focus();
+  }
+}
+
+function toggleCommandBar() {
+  if (!commandBarWindow) {
+    createCommandBarWindow();
+  }
+  if (commandBarWindow) {
+    if (commandBarWindow.isVisible()) {
+      commandBarWindow.hide();
+    } else {
+      commandBarWindow.show();
+      commandBarWindow.focus();
+    }
   }
 }
 
@@ -101,12 +121,51 @@ function createWindow() {
   });
 }
 
+function createCommandBarWindow() {
+  const isMac = process.platform === "darwin";
+
+  commandBarWindow = new BrowserWindow({
+    width: 700,
+    height: 60,
+    transparent: true,
+    vibrancy: "hud",
+    visualEffectState: "active",
+    frame: false,
+    hasShadow: true,
+    resizable: false,
+    movable: true,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    show: false,
+    webPreferences: {
+      preload: path.join(__dirname, "preload.js"),
+      nodeIntegration: false,
+      contextIsolation: true,
+    },
+  });
+
+  commandBarWindow.on("blur", () => {
+    commandBarWindow?.hide();
+  });
+
+  commandBarWindow.on("closed", () => {
+    commandBarWindow = null;
+  });
+
+  if (process.env.NODE_ENV === "development") {
+    commandBarWindow.loadURL("http://localhost:5173/#/command");
+  } else {
+    commandBarWindow.loadURL(`file://${path.join(__dirname, "../renderer/index.html")}#/command`);
+  }
+}
+
 app.on("activate", function () {
   showWindow();
 });
 
 app.on("before-quit", () => {
   mainWindow?.removeAllListeners("close");
+  globalShortcut.unregisterAll();
 });
 
 app.on("window-all-closed", function () {});
