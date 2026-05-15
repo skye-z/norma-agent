@@ -186,8 +186,8 @@
         @apply relative flex items-end bg-norma-pill
            border border-norma-pillBorder rounded-pill
            transition-all duration-200 ease-smooth;
-        backdrop-filter: blur(16px) saturate(140%);
-        -webkit-backdrop-filter: blur(16px) saturate(140%);
+        backdrop-filter: blur(20px) saturate(180%);
+        -webkit-backdrop-filter: blur(20px) saturate(180%);
         box-shadow:
             0 2px 16px rgba(0, 0, 0, 0.3),
             inset 0 1px 0 rgba(255, 255, 255, 0.04);
@@ -202,8 +202,8 @@
 
     .composer-pill {
         background: rgba(35, 35, 42, 0.7);
-        backdrop-filter: blur(16px) saturate(140%);
-        -webkit-backdrop-filter: blur(16px) saturate(140%);
+        backdrop-filter: blur(20px) saturate(180%);
+        -webkit-backdrop-filter: blur(20px) saturate(180%);
         border: 1px solid rgba(255, 255, 255, 0.1);
         border-radius: 24px;
         padding: 6px 12px;
