@@ -1,9 +1,15 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
-import * as robot from '@jitsi/robotjs';
 
-robot.setMouseDelay(50);
-robot.setKeyboardDelay(20);
+let _robot: typeof import('@jitsi/robotjs') | null = null;
+async function getRobot() {
+  if (!_robot) {
+    _robot = await import('@jitsi/robotjs');
+    _robot.setMouseDelay(50);
+    _robot.setKeyboardDelay(20);
+  }
+  return _robot;
+}
 
 const MouseActionSchema = z.object({
   type: z.literal('mouse'),
@@ -45,15 +51,25 @@ Always use read_screen first to see the screen, then calculate coordinates, then
   inputSchema: z.object({
     actions: z.array(ActionSchema).min(1).describe('Array of actions to execute sequentially'),
   }),
+  outputSchema: z.object({
+    success: z.boolean(),
+    results: z.array(z.object({
+      action: z.string(),
+      success: z.boolean(),
+      detail: z.string().optional(),
+      error: z.string().optional(),
+    })),
+  }),
   execute: async (input) => {
+    const robot = await getRobot();
     const results: Array<{ action: string; success: boolean; detail?: string; error?: string }> = [];
 
     for (const act of input.actions) {
       try {
         if (act.type === 'mouse') {
-          results.push(executeMouseAction(act));
+          results.push(executeMouseAction(act, robot));
         } else if (act.type === 'keyboard') {
-          results.push(executeKeyboardAction(act));
+          results.push(executeKeyboardAction(act, robot));
         } else if (act.type === 'get_mouse_pos') {
           const pos = robot.getMousePos();
           results.push({
@@ -78,7 +94,7 @@ Always use read_screen first to see the screen, then calculate coordinates, then
   },
 });
 
-function executeMouseAction(act: z.infer<typeof MouseActionSchema>) {
+function executeMouseAction(act: z.infer<typeof MouseActionSchema>, robot: NonNullable<Awaited<ReturnType<typeof getRobot>>>) {
   const screen = robot.getScreenSize();
 
   switch (act.action) {
@@ -137,7 +153,7 @@ function executeMouseAction(act: z.infer<typeof MouseActionSchema>) {
   }
 }
 
-function executeKeyboardAction(act: z.infer<typeof KeyboardActionSchema>) {
+function executeKeyboardAction(act: z.infer<typeof KeyboardActionSchema>, robot: NonNullable<Awaited<ReturnType<typeof getRobot>>>) {
   switch (act.action) {
     case 'type': {
       if (!act.text) return { action: 'keyboard/type', success: false, error: 'text required' };

@@ -1,5 +1,6 @@
 import { ipcMain, BrowserWindow, app } from 'electron';
 import { setupProviderIpc } from './provider';
+import { setupMemoryIpc } from './memory';
 
 export type StreamChunk =
   | { type: 'text-delta'; text: string }
@@ -11,6 +12,7 @@ export type StreamChunk =
 
 export function setupIpc() {
   setupProviderIpc();
+  setupMemoryIpc();
   ipcMain.on('window:hide', () => {
     const win = BrowserWindow.getFocusedWindow();
     if (win) win.hide();
@@ -29,8 +31,12 @@ export function setupIpc() {
     if (win) win.setSize(width, height);
   });
 
-  ipcMain.on('chat:send', async (event, message: string) => {
+  ipcMain.on('chat:send', async (event, payload: string | { message: string; threadId?: string }) => {
     try {
+      const { message, threadId } = typeof payload === 'string'
+        ? { message: payload, threadId: undefined }
+        : payload;
+
       if (!process.env.OPENAI_API_KEY) {
         event.sender.send('chat:chunk', JSON.stringify({ type: 'text-delta', text: "OPENAI_API_KEY is not configured.\n\n" }));
         event.sender.send('chat:chunk', JSON.stringify({ type: 'text-delta', text: "I received your message: \"" + message + "\"\n\n" }));
@@ -41,7 +47,16 @@ export function setupIpc() {
 
       const { getAgent } = await import('../agent');
       const agent = getAgent();
-      const response = await agent.stream(message);
+
+      const streamOptions: any = {};
+      if (threadId) {
+        streamOptions.memory = {
+          thread: threadId,
+          resource: 'norma-user',
+        };
+      }
+
+      const response = await agent.stream(message, streamOptions);
 
       for await (const chunk of response.fullStream) {
         if (chunk.type === 'text-delta') {

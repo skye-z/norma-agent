@@ -39,28 +39,37 @@ async function captureScreen(): Promise<string> {
 export const readScreenTool = createTool({
   id: 'read_screen',
   description:
-    'Capture a screenshot of the current screen. Returns a base64-encoded PNG image. Use this tool when you need to see what is currently displayed on the user\'s screen.',
+    'Capture a screenshot of the current screen. Returns the screenshot as an image. Use this tool when you need to see what is currently displayed on the user\'s screen.',
   inputSchema: z.object({
     reason: z
       .string()
       .optional()
       .describe('Why you are capturing the screen (for logging)'),
   }),
-  execute: async (input) => {
-    try {
-      const base64 = await captureScreen();
-      return {
-        success: true,
-        image_base64: base64,
-        timestamp: new Date().toISOString(),
-        message: 'Screen captured successfully',
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: String(error),
-        message: 'Failed to capture screen',
-      };
+  outputSchema: z.object({
+    success: z.boolean(),
+    timestamp: z.string(),
+    message: z.string(),
+  }),
+  execute: async () => {
+    const base64 = await captureScreen();
+    return {
+      success: true,
+      image_base64: base64,
+      timestamp: new Date().toISOString(),
+      message: 'Screen captured successfully',
+    };
+  },
+  toModelOutput: (output: any) => {
+    if (!output.success || !output.image_base64) {
+      return { type: 'text' as const, text: output.message || 'Failed to capture screen' };
     }
+    return {
+      type: 'content' as const,
+      value: [
+        { type: 'text' as const, text: `Screenshot captured at ${output.timestamp}. Analyze this image to understand what is on the user's screen.` },
+        { type: 'image-data' as const, data: output.image_base64, mimeType: 'image/png' },
+      ],
+    };
   },
 });

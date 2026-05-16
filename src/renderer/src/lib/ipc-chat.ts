@@ -17,7 +17,7 @@ type QueueItem =
   | { type: "done" }
   | { type: "error"; message: string };
 
-export function createIpcChatModel() {
+export function createIpcChatModel(getThreadId?: () => string | undefined) {
   return {
     async *run({
       messages,
@@ -85,7 +85,8 @@ export function createIpcChatModel() {
         },
       );
 
-      window.electronAPI.sendMessage("chat:send", text);
+      const threadId = getThreadId?.();
+      window.electronAPI.sendMessage("chat:send", threadId ? { message: text, threadId } : text);
 
       let fullText = "";
       let isFirstChunk = true;

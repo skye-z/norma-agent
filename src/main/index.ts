@@ -8,7 +8,11 @@ import {
   screen,
 } from "electron";
 import * as path from "path";
+import { fileURLToPath } from "url";
 import { setupIpc } from "./ipc";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 app.commandLine.appendSwitch("enable-features", "CSSBackdropFilter");
 app.commandLine.appendSwitch("enable-gpu-rasterization");
@@ -18,7 +22,8 @@ let mainWindow: BrowserWindow | null = null;
 let commandBarWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 
-const gotTheLock = app.requestSingleInstanceLock();
+const isTestMode = !!process.env.PLAYWRIGHT_TEST || !!process.env.NODE_ENV?.includes('test');
+const gotTheLock = isTestMode || app.requestSingleInstanceLock();
 
 if (!gotTheLock) {
   app.quit();
@@ -34,7 +39,7 @@ if (!gotTheLock) {
     createCommandBarWindow();
 
     const { initAgent } = await import('./agent');
-    initAgent().catch((err) => {
+    initAgent(app.getPath('userData')).catch((err) => {
       console.error('[Agent] Failed to initialize:', err);
     });
 
@@ -109,7 +114,7 @@ function createWindow() {
     skipTaskbar: false,
     show: false,
     webPreferences: {
-      preload: path.join(__dirname, "preload.js"),
+      preload: path.join(__dirname, "preload.cjs"),
       nodeIntegration: false,
       contextIsolation: true,
     },
@@ -161,7 +166,7 @@ function createCommandBarWindow() {
     skipTaskbar: true,
     show: false,
     webPreferences: {
-      preload: path.join(__dirname, "preload.js"),
+      preload: path.join(__dirname, "preload.cjs"),
       nodeIntegration: false,
       contextIsolation: true,
     },

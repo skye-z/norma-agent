@@ -36,6 +36,7 @@ export interface Session {
   preview: string;
   time: string;
   active: boolean;
+  threadId?: string;
 }
 
 interface LeftIslandProps {

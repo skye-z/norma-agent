@@ -48,10 +48,14 @@
   - [x] 编写代码支持连接一个本地的测试 MCP Server (例如读取本地文件系统的 MCP)。
   - [x] 让 Norma 能够通过 MCP 协议感知并调用 Server 提供的工具。
 
-- [ ] **v0.9 - 记忆系统初探 (Semantic Memory)**
-  - [ ] 集成本地 SQLite 数据库。
-  - [ ] 编写简单的 Memory Consolidation 逻辑：拦截对话，提取关键信息。
-  - [ ] 将提取的记忆在下一次对话的 System Prompt 中进行 Context 注入。
+- [x] **v0.9 - 记忆系统初探 (Semantic Memory)**
+  - [x] 集成 `@mastra/memory` + `@mastra/libsql` 本地 SQLite 存储。
+  - [x] 配置 Memory：LibSQLStore + LibSQLVector + OpenAI text-embedding-3-small 嵌入。
+  - [x] 启用 semanticRecall（语义召回）、workingMemory（工作记忆）、generateTitle（自动标题）。
+  - [x] 实现会话线程管理 IPC：创建/列出/获取/删除线程。
+  - [x] 更新 Chat IPC 支持 threadId，将 memory:{ thread, resource } 传递给 agent.stream()。
+  - [x] 前端会话系统与后端线程绑定：新建会话创建线程、删除会话删除线程、切换会话切换线程。
+  - [x] 跨会话持久化：Agent 记住用户偏好和过往对话上下文。
 
 - [ ] **v0.10 - 群聊与工作流 (SubAgent & UI Reveal)**
   - [ ] 利用 Mastra 创建至少两个专门的 SubAgent (例如 `ResearchAgent`, `SystemAgent`)。

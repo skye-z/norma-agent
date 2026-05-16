@@ -1,5 +1,8 @@
 import { Mastra } from '@mastra/core';
 import { Agent } from '@mastra/core/agent';
+import { Memory } from '@mastra/memory';
+import { LibSQLStore, LibSQLVector } from '@mastra/libsql';
+import { ModelRouterEmbeddingModel } from '@mastra/core/llm';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 import { readScreenTool } from '../tools/read-screen';
@@ -15,12 +18,49 @@ const baseTools = {
 
 let _agent: Agent | null = null;
 let _mastra: Mastra | null = null;
+let _memory: Memory | null = null;
 
-export async function initAgent() {
+export async function initAgent(dbDir?: string) {
   const mcpTools = await initMcpClient();
 
   const allTools = { ...baseTools, ...mcpTools };
   const mcpToolNames = Object.keys(mcpTools).map((n) => `  - ${n}`).join('\n');
+
+  const dbPath = dbDir
+    ? `file:${path.join(dbDir, 'norma-memory.db')}`
+    : 'file:norma-memory.db';
+
+  _memory = new Memory({
+    storage: new LibSQLStore({
+      id: 'norma-storage',
+      url: dbPath,
+    }),
+    vector: new LibSQLVector({
+      id: 'norma-vector',
+      url: dbPath,
+    }),
+    embedder: process.env.OPENAI_API_KEY 
+      ? new ModelRouterEmbeddingModel('openai/text-embedding-3-small') 
+      : ({ embed: async () => [] } as any),
+    options: {
+      lastMessages: 20,
+      semanticRecall: {
+        topK: 3,
+        messageRange: 2,
+        scope: 'resource',
+      },
+      workingMemory: {
+        enabled: true,
+        scope: 'resource',
+        template: `# User Profile
+- **Name**:
+- **Preferences**:
+- **Goals**:
+`,
+      },
+      generateTitle: true,
+    },
+  });
 
   _agent = new Agent({
     id: 'norma-router',
@@ -47,6 +87,7 @@ Use the Playwright MCP browser tools to navigate web pages, fill forms, extract 
 Be careful with coordinates. Screen origin (0,0) is top-left. Only execute actions the user has explicitly requested.`,
     model: 'openai/gpt-4o',
     tools: allTools,
+    memory: _memory,
   });
 
   _mastra = new Mastra({
@@ -64,4 +105,8 @@ export function getAgent(): Agent {
 export function getMastra(): Mastra {
   if (!_mastra) throw new Error('Mastra not initialized. Call initAgent() first.');
   return _mastra;
+}
+
+export function getMemory(): Memory | null {
+  return _memory;
 }

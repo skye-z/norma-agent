@@ -29,4 +29,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   testProviderConnectivity: (config: any) => ipcRenderer.invoke('provider:test', config),
   fetchProviderModels: (config: any) => ipcRenderer.invoke('provider:models', config),
   testModelAvailability: (config: any, modelId: string) => ipcRenderer.invoke('model:test', config, modelId),
+
+  createThread: (title?: string) => ipcRenderer.invoke('memory:createThread', title),
+  listThreads: () => ipcRenderer.invoke('memory:listThreads'),
+  getThread: (threadId: string) => ipcRenderer.invoke('memory:getThread', threadId),
+  deleteThread: (threadId: string) => ipcRenderer.invoke('memory:deleteThread', threadId),
+  getThreadMessages: (threadId: string) => ipcRenderer.invoke('memory:getThreadMessages', threadId),
 });
