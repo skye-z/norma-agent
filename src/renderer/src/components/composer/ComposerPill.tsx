@@ -1,9 +1,43 @@
-import React from "react";
-import { ComposerPrimitive, AuiIf } from "@assistant-ui/react";
+import React, { useRef } from "react";
+import { ComposerPrimitive, AuiIf, useThread } from "@assistant-ui/react";
 import { ComposerAttachmentItem, ContextRing, VoiceButton } from "./parts";
 import { SlashCommandTrigger, MentionTrigger } from "./SlashCommandTrigger";
+import { useMessageQueue } from "../../lib/queue";
 
 const ComposerPill: React.FC = () => {
+  const { enqueue } = useMessageQueue();
+  const thread = useThread();
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      if (thread.isRunning) {
+        e.preventDefault();
+        e.stopPropagation();
+        const val = e.currentTarget.value.trim();
+        if (val) {
+          enqueue(val);
+          // clear input
+          const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value")?.set;
+          setter?.call(e.currentTarget, "");
+          e.currentTarget.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+      }
+    }
+  };
+
+  const handleCustomSend = () => {
+    if (thread.isRunning) {
+      const val = inputRef.current?.value.trim();
+      if (val) {
+        enqueue(val);
+        const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value")?.set;
+        setter?.call(inputRef.current, "");
+        inputRef.current?.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+    }
+  };
+
   return (
     <ComposerPrimitive.Root className="composer-pill flex-1 min-w-0">
       <ComposerPrimitive.AttachmentDropzone
@@ -40,8 +74,12 @@ const ComposerPill: React.FC = () => {
                 <ContextRing />
               </div>
               <ComposerPrimitive.Input
+                ref={inputRef}
+                onKeyDown={handleKeyDown}
                 placeholder="让 Norma 帮你做点什么...  输入 / 命令  @ 指定智能体"
                 rows={1}
+                disabled={false}
+                autoFocus
                 className="flex-1 min-w-0 break-words bg-transparent text-[12px] text-norma-text placeholder-norma-textMuted
                            outline-none resize-none leading-relaxed min-h-[20px] max-h-[120px] py-1"
               />
@@ -58,16 +96,7 @@ const ComposerPill: React.FC = () => {
                                disabled:bg-white/[0.05] disabled:text-norma-textDim disabled:cursor-not-allowed"
                     title="发送"
                   >
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="m5 12 7-7 7 7" />
                       <path d="M12 19V5" />
                     </svg>
@@ -75,17 +104,21 @@ const ComposerPill: React.FC = () => {
                 </div>
               </AuiIf>
               <AuiIf condition={(s: any) => s.thread.isRunning}>
-                <div className="mb-px">
+                <div className="flex gap-1 mb-px">
+                  <button
+                    onClick={handleCustomSend}
+                    className="flex-none p-1.5 rounded-full bg-white/[0.1] text-norma-text hover:bg-white/[0.2] transition-all duration-200"
+                    title="加入排队"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 5v14M5 12h14" />
+                    </svg>
+                  </button>
                   <ComposerPrimitive.Cancel
                     className="flex-none p-1.5 rounded-full bg-norma-accent text-white hover:opacity-90 transition-all duration-200"
                     title="停止生成"
                   >
-                    <svg
-                      width="12"
-                      height="12"
-                      viewBox="0 0 24 24"
-                      fill="currentColor"
-                    >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                       <rect x="6" y="6" width="12" height="12" rx="2" />
                     </svg>
                   </ComposerPrimitive.Cancel>

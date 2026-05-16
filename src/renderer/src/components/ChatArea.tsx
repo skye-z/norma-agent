@@ -7,6 +7,7 @@ import { ExecuteActionTool } from "./tools/ExecuteActionTool";
 import { ContextDisplay, AutoScrollHelper, WelcomeSuggestions } from "./chat-helpers";
 import { ThreadMessage } from "./messages/ThreadMessage";
 import { ComposerPill } from "./composer/ComposerPill";
+import { QueueDisplay } from "./composer/QueueDisplay";
 import { ModelSelector } from "./composer/ModelSelector";
 import { AutomationPage } from "./pages/AutomationPage";
 import { CapabilitiesPage } from "./pages/CapabilitiesPage";
@@ -169,14 +170,20 @@ const ChatAreaInner: React.FC = () => {
                 </ThreadPrimitive.ScrollToBottom>
               </ThreadPrimitive.Viewport>
 
-              <div className="flex-none px-5 pb-3 pt-1 grid grid-cols-[120px_1fr_120px] items-end w-full">
-                <div className="flex justify-start mb-2">
-                  <ModelSelector />
-                </div>
+              <div className="flex-none px-5 pb-3 pt-1 flex flex-col w-full">
                 <div className="flex justify-center w-full">
-                  <div className="flex items-end gap-2 w-full max-w-[620px]">
-                    <ComposerPill />
-                    <ComposerPrimitive.AddAttachment
+                  <div className="w-full max-w-[620px]">
+                    <QueueDisplay />
+                  </div>
+                </div>
+                <div className="grid grid-cols-[120px_1fr_120px] items-end w-full">
+                  <div className="flex justify-start mb-2">
+                    <ModelSelector />
+                  </div>
+                  <div className="flex justify-center w-full">
+                    <div className="flex items-end gap-2 w-full max-w-[620px]">
+                      <ComposerPill />
+                      <ComposerPrimitive.AddAttachment
                       className="flex-none p-2 mb-1 rounded-full text-norma-textDim hover:text-norma-textMuted hover:bg-white/[0.06] transition-colors"
                       title="添加附件"
                     >
@@ -198,6 +205,7 @@ const ChatAreaInner: React.FC = () => {
                 </div>
                 <div />
               </div>
+            </div>
             </ThreadPrimitive.Root>
           </>
         ) : (

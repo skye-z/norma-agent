@@ -1,6 +1,8 @@
 import React from "react";
+import { PlanBlock } from "../components/messages/parts";
 
 export const MarkdownComponents = {
+  plan: ({ children }: any) => <PlanBlock>{children}</PlanBlock>,
   p: ({ children }: any) => <p className="mb-2 last:mb-0">{children}</p>,
   h1: ({ children }: any) => (
     <h1 className="text-sm font-bold mb-2 text-norma-text">{children}</h1>

@@ -92,6 +92,13 @@ You coordinate tasks using specialized agents.
 1. For screen reading or UI automation, delegate to systemAgent.
 2. For web browsing or gathering information, delegate to researchAgent.
 
+## Output Format
+Always wrap your step-by-step reasoning or plan inside <plan>...</plan> tags before delegating to subagents. For example:
+<plan>
+1. Use systemAgent to capture the screen.
+2. Based on the screen, use systemAgent to click the target button.
+</plan>
+
 Be concise and helpful. Remember to maintain a professional and empathetic tone.`,
     model: 'openai/gpt-4o',
     agents: { systemAgent, researchAgent },
