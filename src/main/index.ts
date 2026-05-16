@@ -1,4 +1,12 @@
-import { app, BrowserWindow, Tray, Menu, nativeImage, globalShortcut, screen } from "electron";
+import {
+  app,
+  BrowserWindow,
+  Tray,
+  Menu,
+  nativeImage,
+  globalShortcut,
+  screen,
+} from "electron";
 import * as path from "path";
 import { setupIpc } from "./ipc";
 
@@ -26,7 +34,7 @@ if (!gotTheLock) {
     createCommandBarWindow();
 
     const isMac = process.platform === "darwin";
-    const shortcut = isMac ? "Option+Space" : "Alt+Space";
+    const shortcut = isMac ? "Option+Space" : "Ctrl+Shift+Space";
     globalShortcut.register(shortcut, () => {
       toggleCommandBar();
     });
@@ -85,10 +93,10 @@ function createWindow() {
     height: 720,
     minWidth: 800,
     minHeight: 520,
-    transparent: true,
+    transparent: isMac,
     vibrancy: "sidebar",
     visualEffectState: "active",
-
+    backgroundMaterial: "acrylic",
     frame: false,
     titleBarStyle: isMac ? "hidden" : undefined,
     trafficLightPosition: isMac ? { x: 14, y: 12 } : undefined,
@@ -165,7 +173,9 @@ function createCommandBarWindow() {
   if (process.env.NODE_ENV === "development") {
     commandBarWindow.loadURL("http://localhost:5173/#/command");
   } else {
-    commandBarWindow.loadURL(`file://${path.join(__dirname, "../renderer/index.html")}#/command`);
+    commandBarWindow.loadURL(
+      `file://${path.join(__dirname, "../renderer/index.html")}#/command`,
+    );
   }
 }
 

@@ -27,8 +27,9 @@ import {
 } from "@assistant-ui/react";
 import { MarkdownTextPrimitive } from "@assistant-ui/react-markdown";
 import remarkGfm from "remark-gfm";
-import { LeftIsland } from "./components/LeftIsland";
+import { LeftIsland, type Session } from "./components/LeftIsland";
 import { WindowControls } from "./components/WindowControls";
+import { createIpcChatModel } from "./lib/ipc-chat";
 import "./index.css";
 
 declare global {
@@ -283,8 +284,24 @@ const MODELS = [
   { id: "claude-3.5", name: "Claude 3.5", desc: "Anthropic" },
 ];
 
+function IpcRuntime({ children }: { children: React.ReactNode }) {
+  const ipcModel = React.useMemo(() => createIpcChatModel(), []);
+  const runtime = useLocalRuntime(ipcModel, {
+    maxSteps: 3,
+    adapters: {
+      dictation: new WebSpeechDictationAdapter(),
+    },
+  });
+  return (
+    <AssistantRuntimeProvider runtime={runtime}>
+      {children}
+    </AssistantRuntimeProvider>
+  );
+}
+
 function NormaRuntime({ children }: { children: React.ReactNode }) {
-  const runtime = useLocalRuntime(MOCK_CHAT_MODEL, {
+  const ipcModel = React.useMemo(() => createIpcChatModel(), []);
+  const runtime = useLocalRuntime(ipcModel, {
     initialMessages: INITIAL_MESSAGES,
     maxSteps: 5,
     adapters: {
@@ -801,45 +818,45 @@ const AssistantMessage: React.FC = () => {
             <MessagePrimitive.Content
               components={{
                 Text: (props: any) => (
-                <div className="text-[12px] leading-relaxed">
-                  <MarkdownTextPrimitive
-                    {...props}
-                    components={MarkdownComponents}
-                    remarkPlugins={[remarkGfm]}
-                  />
-                </div>
-              ),
-              Reasoning: ({ text }) => <ReasoningBlock text={text} />,
-              ToolCall: ({ ...props }) => {
-                if (toolsCollapsed) return null;
-                if (props.toolUI) return props.toolUI;
-                return <ToolFallbackDisplay {...props} />;
-              },
-              Source: ({ url, title }) => (
-                <a
-                  href={url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-[10px] text-norma-accent hover:underline mt-1"
-                >
-                  <svg
-                    width="10"
-                    height="10"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
+                  <div className="text-[12px] leading-relaxed">
+                    <MarkdownTextPrimitive
+                      {...props}
+                      components={MarkdownComponents}
+                      remarkPlugins={[remarkGfm]}
+                    />
+                  </div>
+                ),
+                Reasoning: ({ text }) => <ReasoningBlock text={text} />,
+                ToolCall: ({ ...props }) => {
+                  if (toolsCollapsed) return null;
+                  if (props.toolUI) return props.toolUI;
+                  return <ToolFallbackDisplay {...props} />;
+                },
+                Source: ({ url, title }) => (
+                  <a
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-[10px] text-norma-accent hover:underline mt-1"
                   >
-                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-                  </svg>
-                  {title || url}
-                </a>
-              ),
-              File: () => <FilePartView />,
-              Image: () => <ImagePartView />,
-            }}
-          />
+                    <svg
+                      width="10"
+                      height="10"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                    </svg>
+                    {title || url}
+                  </a>
+                ),
+                File: () => <FilePartView />,
+                Image: () => <ImagePartView />,
+              }}
+            />
           </div>
           <MessagePrimitive.Error>
             <div className="mt-2 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-300 text-[11px]">
@@ -903,32 +920,87 @@ const AssistantMessage: React.FC = () => {
 const getCommandIcon = (cmd: string) => {
   switch (cmd) {
     case "/screen":
-      return <><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></>;
+      return (
+        <>
+          <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+          <line x1="8" y1="21" x2="16" y2="21" />
+          <line x1="12" y1="17" x2="12" y2="21" />
+        </>
+      );
     case "/action":
-      return <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>;
+      return <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />;
     case "/file":
-      return <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></>;
+      return (
+        <>
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
+          <line x1="16" y1="13" x2="8" y2="13" />
+          <line x1="16" y1="17" x2="8" y2="17" />
+          <polyline points="10 9 9 9 8 9" />
+        </>
+      );
     case "/search":
-      return <><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></>;
+      return (
+        <>
+          <circle cx="11" cy="11" r="8" />
+          <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        </>
+      );
     case "/code":
-      return <><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></>;
+      return (
+        <>
+          <polyline points="16 18 22 12 16 6" />
+          <polyline points="8 6 2 12 8 18" />
+        </>
+      );
     case "/help":
-      return <><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></>;
+      return (
+        <>
+          <circle cx="12" cy="12" r="10" />
+          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+          <line x1="12" y1="17" x2="12.01" y2="17" />
+        </>
+      );
     default:
-      return <><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></>;
+      return (
+        <>
+          <polyline points="4 17 10 11 4 5"></polyline>
+          <line x1="12" y1="19" x2="20" y2="19"></line>
+        </>
+      );
   }
 };
 
 const getAgentIcon = (agent: string) => {
   switch (agent.toLowerCase()) {
     case "@norma":
-      return <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>;
+      return (
+        <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
+      );
     case "@coder":
-      return <><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></>;
+      return (
+        <>
+          <polyline points="16 18 22 12 16 6" />
+          <polyline points="8 6 2 12 8 18" />
+        </>
+      );
     case "@screen":
-      return <><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></>;
+      return (
+        <>
+          <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+          <circle cx="12" cy="12" r="3" />
+        </>
+      );
     default:
-      return <><rect width="18" height="14" x="3" y="8" rx="2" /><path d="M12 5a3 3 0 1 0-3 3" /><line x1="9" x2="15" y1="15" y2="15" /><line x1="9" x2="9.01" y1="12" y2="12" /><line x1="15" x2="15.01" y1="12" y2="12" /></>;
+      return (
+        <>
+          <rect width="18" height="14" x="3" y="8" rx="2" />
+          <path d="M12 5a3 3 0 1 0-3 3" />
+          <line x1="9" x2="15" y1="15" y2="15" />
+          <line x1="9" x2="9.01" y1="12" y2="12" />
+          <line x1="15" x2="15.01" y1="12" y2="12" />
+        </>
+      );
   }
 };
 
@@ -940,53 +1012,73 @@ const UserMessage: React.FC = () => {
           <div className="flex flex-col gap-[5px] w-full min-w-0">
             <MessagePrimitive.Content
               components={{
-              Text: ({ text }) => {
-                // 渲染高亮的命令和提及
-                const renderHighlightedText = (content: string) => {
-                  const parts = content.split(
-                    /(\/[a-zA-Z0-9_-]+|@[a-zA-Z0-9_-]+)/g,
-                  );
-                  return parts.map((part, i) => {
-                    if (part.startsWith("/")) {
-                      return (
-                        <span
-                          key={i}
-                          className="inline-flex items-center px-1.5 py-0.5 rounded bg-black/20 text-white/90 font-mono text-[11px] align-bottom mx-0.5 border border-black/10 shadow-sm leading-none mt-0.5"
-                        >
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1 opacity-70">
-                            {getCommandIcon(part)}
-                          </svg>
-                          {part.slice(1)}
-                        </span>
-                      );
-                    }
-                    if (part.startsWith("@")) {
-                      return (
-                        <span
-                          key={i}
-                          className="inline-flex items-center px-1.5 py-0.5 rounded bg-white/20 text-white font-medium text-[11px] align-bottom mx-0.5 border border-white/20 shadow-sm leading-none mt-0.5"
-                        >
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1 opacity-70">
-                            {getAgentIcon(part)}
-                          </svg>
-                          {part.slice(1)}
-                        </span>
-                      );
-                    }
-                    return part;
-                  });
-                };
+                Text: ({ text }) => {
+                  // 渲染高亮的命令和提及
+                  const renderHighlightedText = (content: string) => {
+                    const parts = content.split(
+                      /(\/[a-zA-Z0-9_-]+|@[a-zA-Z0-9_-]+)/g,
+                    );
+                    return parts.map((part, i) => {
+                      if (part.startsWith("/")) {
+                        return (
+                          <span
+                            key={i}
+                            className="inline-flex items-center px-1.5 py-0.5 rounded bg-black/20 text-white/90 font-mono text-[11px] align-bottom mx-0.5 border border-black/10 shadow-sm leading-none mt-0.5"
+                          >
+                            <svg
+                              width="10"
+                              height="10"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              className="mr-1 opacity-70"
+                            >
+                              {getCommandIcon(part)}
+                            </svg>
+                            {part.slice(1)}
+                          </span>
+                        );
+                      }
+                      if (part.startsWith("@")) {
+                        return (
+                          <span
+                            key={i}
+                            className="inline-flex items-center px-1.5 py-0.5 rounded bg-white/20 text-white font-medium text-[11px] align-bottom mx-0.5 border border-white/20 shadow-sm leading-none mt-0.5"
+                          >
+                            <svg
+                              width="10"
+                              height="10"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              className="mr-1 opacity-70"
+                            >
+                              {getAgentIcon(part)}
+                            </svg>
+                            {part.slice(1)}
+                          </span>
+                        );
+                      }
+                      return part;
+                    });
+                  };
 
-                return (
-                  <span className="whitespace-pre-wrap text-[12px] leading-relaxed">
-                    {renderHighlightedText(text)}
-                  </span>
-                );
-              },
-              File: () => <FilePartView />,
-              Image: () => <ImagePartView />,
-            }}
-          />
+                  return (
+                    <span className="whitespace-pre-wrap text-[12px] leading-relaxed">
+                      {renderHighlightedText(text)}
+                    </span>
+                  );
+                },
+                File: () => <FilePartView />,
+                Image: () => <ImagePartView />,
+              }}
+            />
           </div>
         </div>
       </div>
@@ -1041,10 +1133,27 @@ const ContextRing: React.FC = () => {
   return (
     <div className="relative group flex items-center justify-center flex-none w-6 h-6 rounded-full hover:bg-white/[0.06] transition-colors cursor-pointer">
       <svg className="w-3.5 h-3.5 transform -rotate-90" viewBox="0 0 36 36">
-        <circle cx="18" cy="18" r="16" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="4" />
-        <circle cx="18" cy="18" r="16" fill="none" stroke="currentColor" strokeWidth="4" strokeDasharray="100 100" strokeDashoffset="58" className="text-emerald-400" />
+        <circle
+          cx="18"
+          cy="18"
+          r="16"
+          fill="none"
+          stroke="rgba(255,255,255,0.1)"
+          strokeWidth="4"
+        />
+        <circle
+          cx="18"
+          cy="18"
+          r="16"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="4"
+          strokeDasharray="100 100"
+          strokeDashoffset="58"
+          className="text-emerald-400"
+        />
       </svg>
-      
+
       <div className="absolute bottom-full left-0 mb-3 w-48 p-3 rounded-xl bg-norma-panel border border-norma-border shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
         <div className="flex items-center justify-between text-[11px] text-norma-text font-medium mb-2">
           <span>Usage</span>
@@ -1195,144 +1304,1126 @@ const SuggestionItem: React.FC = () => {
   );
 };
 
+interface Automation {
+  id: string;
+  name: string;
+  desc: string;
+  status: "active" | "paused";
+  trigger: string;
+  lastRun: string;
+}
+
+const AutomationPage: React.FC = () => {
+  const [automations, setAutomations] = useStoredState<Automation[]>(
+    "norma-automations",
+    [
+      {
+        id: "1",
+        name: "每日文件整理",
+        desc: "自动归类下载目录中的文件",
+        status: "active",
+        trigger: "每天 09:00",
+        lastRun: "2小时前",
+      },
+      {
+        id: "2",
+        name: "会议纪要生成",
+        desc: "监听日历事件，自动生成会议摘要",
+        status: "paused",
+        trigger: "日历事件",
+        lastRun: "3天前",
+      },
+      {
+        id: "3",
+        name: "代码审查提醒",
+        desc: "检测新 PR 并发送通知",
+        status: "active",
+        trigger: "GitHub Webhook",
+        lastRun: "30分钟前",
+      },
+    ],
+  );
+  const [showCreate, setShowCreate] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newDesc, setNewDesc] = useState("");
+  const [newTrigger, setNewTrigger] = useState("");
+
+  const addAutomation = () => {
+    if (!newName.trim()) return;
+    const auto: Automation = {
+      id: Date.now().toString(),
+      name: newName.trim(),
+      desc: newDesc.trim() || "新建自动化任务",
+      status: "active",
+      trigger: newTrigger.trim() || "手动触发",
+      lastRun: "从未",
+    };
+    setAutomations((prev) => [...prev, auto]);
+    setNewName("");
+    setNewDesc("");
+    setNewTrigger("");
+    setShowCreate(false);
+  };
+
+  const toggleStatus = (id: string) => {
+    setAutomations((prev) =>
+      prev.map((a) =>
+        a.id === id
+          ? {
+              ...a,
+              status:
+                a.status === "active"
+                  ? ("paused" as const)
+                  : ("active" as const),
+            }
+          : a,
+      ),
+    );
+  };
+
+  const deleteAutomation = (id: string) => {
+    setAutomations((prev) => prev.filter((a) => a.id !== id));
+  };
+
+  return (
+    <div className="flex-1 flex flex-col h-full overflow-hidden">
+      <div className="flex-1 overflow-y-auto px-5 py-4">
+        <div className="flex items-center justify-between mb-4">
+          <button
+            onClick={() => setShowCreate(true)}
+            className="px-3 py-1.5 rounded-lg bg-norma-accent text-white text-[11px] hover:opacity-90 transition-opacity"
+          >
+            + 新建自动化
+          </button>
+          <span className="text-[11px] text-norma-textMuted">
+            已启用 {automations.filter((a) => a.status === "active").length} /{" "}
+            {automations.length} 个自动化
+          </span>
+        </div>
+
+        {showCreate && (
+          <div className="mb-4 p-4 rounded-xl bg-white/[0.04] border border-white/[0.08] space-y-2">
+            <input
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              placeholder="任务名称"
+              className="w-full bg-white/[0.04] border border-white/[0.06] rounded-lg px-3 py-1.5 text-[11px] text-norma-text placeholder-norma-textDim outline-none focus:border-norma-accent/40"
+            />
+            <input
+              value={newDesc}
+              onChange={(e) => setNewDesc(e.target.value)}
+              placeholder="任务描述"
+              className="w-full bg-white/[0.04] border border-white/[0.06] rounded-lg px-3 py-1.5 text-[11px] text-norma-text placeholder-norma-textDim outline-none focus:border-norma-accent/40"
+            />
+            <input
+              value={newTrigger}
+              onChange={(e) => setNewTrigger(e.target.value)}
+              placeholder="触发条件 (如: 每天 09:00)"
+              className="w-full bg-white/[0.04] border border-white/[0.06] rounded-lg px-3 py-1.5 text-[11px] text-norma-text placeholder-norma-textDim outline-none focus:border-norma-accent/40"
+            />
+            <div className="flex items-center gap-2 pt-1">
+              <button
+                onClick={addAutomation}
+                className="px-3 py-1 rounded-lg bg-norma-accent text-white text-[11px] hover:opacity-90"
+              >
+                创建
+              </button>
+              <button
+                onClick={() => setShowCreate(false)}
+                className="px-3 py-1 rounded-lg bg-white/[0.06] text-norma-textMuted text-[11px] hover:bg-white/[0.1]"
+              >
+                取消
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div className="flex flex-col gap-2">
+          {automations.map((auto) => (
+            <div
+              key={auto.id}
+              className="rounded-xl bg-white/[0.03] border border-white/[0.06] px-4 py-3 hover:border-white/[0.1] transition-colors group"
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <button
+                  onClick={() => toggleStatus(auto.id)}
+                  className={`w-1.5 h-1.5 rounded-full cursor-pointer ${auto.status === "active" ? "bg-emerald-400" : "bg-norma-textDim"}`}
+                  title={auto.status === "active" ? "点击停用" : "点击启用"}
+                />
+                <span className="text-[12px] font-medium text-norma-text">
+                  {auto.name}
+                </span>
+                <span className="ml-auto text-[9px] text-norma-textDim font-mono">
+                  {auto.lastRun}
+                </span>
+              </div>
+              <div className="text-[10px] text-norma-textMuted mb-2">
+                {auto.desc}
+              </div>
+              <div className="flex items-center gap-3 text-[9px] text-norma-textDim">
+                <span className="px-1.5 py-0.5 rounded bg-white/[0.04] border border-white/[0.06]">
+                  触发: {auto.trigger}
+                </span>
+                <span
+                  className={
+                    auto.status === "active"
+                      ? "text-emerald-400"
+                      : "text-norma-textDim"
+                  }
+                >
+                  {auto.status === "active" ? "运行中" : "已暂停"}
+                </span>
+                <button
+                  onClick={() => deleteAutomation(auto.id)}
+                  className="ml-auto p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-white/[0.08] text-norma-textDim hover:text-red-400 transition-all"
+                  title="删除"
+                >
+                  <svg
+                    width="10"
+                    height="10"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path d="M3 6h18" />
+                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+interface Capability {
+  id: string;
+  name: string;
+  desc: string;
+  icon: React.ReactNode;
+  status: "ready" | "coming";
+  category: string;
+}
+
+const CAPABILITIES: Capability[] = [
+  {
+    id: "read_screen",
+    name: "屏幕感知",
+    desc: "读取并分析当前屏幕内容",
+    icon: (
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+      >
+        <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+        <line x1="8" y1="21" x2="16" y2="21" />
+        <line x1="12" y1="17" x2="12" y2="21" />
+      </svg>
+    ),
+    status: "ready",
+    category: "感知",
+  },
+  {
+    id: "execute_action",
+    name: "系统操控",
+    desc: "模拟鼠标键盘操作",
+    icon: (
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+      >
+        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+      </svg>
+    ),
+    status: "ready",
+    category: "控制",
+  },
+  {
+    id: "file_manager",
+    name: "文件管理",
+    desc: "文件搜索、读取、整理",
+    icon: (
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+      >
+        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+      </svg>
+    ),
+    status: "ready",
+    category: "工具",
+  },
+  {
+    id: "web_search",
+    name: "网络搜索",
+    desc: "搜索互联网信息",
+    icon: (
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+      >
+        <circle cx="12" cy="12" r="10" />
+        <line x1="2" y1="12" x2="22" y2="12" />
+        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+      </svg>
+    ),
+    status: "coming",
+    category: "知识",
+  },
+  {
+    id: "code_gen",
+    name: "代码生成",
+    desc: "编写和分析代码",
+    icon: (
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+      >
+        <polyline points="16 18 22 12 16 6" />
+        <polyline points="8 6 2 12 8 18" />
+      </svg>
+    ),
+    status: "ready",
+    category: "工具",
+  },
+  {
+    id: "ocr",
+    name: "文字识别",
+    desc: "识别图片和屏幕中的文字",
+    icon: (
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+      >
+        <path d="M4 7V4a2 2 0 0 1 2-2h2" />
+        <path d="M16 2h2a2 2 0 0 1 2 2v3" />
+        <path d="M20 17v3a2 2 0 0 1-2 2h-2" />
+        <path d="M8 22H6a2 2 0 0 1-2-2v-3" />
+        <line x1="12" y1="8" x2="12" y2="16" />
+        <line x1="8" y1="12" x2="16" y2="12" />
+      </svg>
+    ),
+    status: "coming",
+    category: "感知",
+  },
+  {
+    id: "voice_io",
+    name: "语音交互",
+    desc: "语音输入和语音合成输出",
+    icon: (
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+      >
+        <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+        <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+        <line x1="12" x2="12" y1="19" y2="22" />
+      </svg>
+    ),
+    status: "ready",
+    category: "交互",
+  },
+  {
+    id: "clipboard",
+    name: "剪贴板",
+    desc: "读写系统剪贴板内容",
+    icon: (
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+      >
+        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+        <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+      </svg>
+    ),
+    status: "coming",
+    category: "工具",
+  },
+];
+
+const CapabilitiesPage: React.FC = () => {
+  const [filter, setFilter] = useState<string>("all");
+  const categories = ["all", ...new Set(CAPABILITIES.map((c) => c.category))];
+  const filtered =
+    filter === "all"
+      ? CAPABILITIES
+      : CAPABILITIES.filter((c) => c.category === filter);
+  const readyCount = CAPABILITIES.filter((c) => c.status === "ready").length;
+
+  return (
+    <div className="flex-1 flex flex-col h-full overflow-hidden">
+      <div className="flex-1 overflow-y-auto px-5 py-4">
+        <div className="flex items-center gap-2 mb-3">
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setFilter(cat)}
+              className={`px-2.5 py-1 rounded-full text-[10px] transition-colors ${
+                filter === cat
+                  ? "bg-norma-accent/20 text-norma-accent border border-norma-accent/30"
+                  : "bg-white/[0.03] text-norma-textMuted border border-white/[0.06] hover:border-white/[0.1]"
+              }`}
+            >
+              {cat === "all" ? `全部 (${CAPABILITIES.length})` : cat}
+            </button>
+          ))}
+          <span className="ml-auto text-[10px] text-norma-textDim">
+            {readyCount}/{CAPABILITIES.length} 就绪
+          </span>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          {filtered.map((cap) => (
+            <div
+              key={cap.id}
+              className="rounded-xl bg-white/[0.03] border border-white/[0.06] px-4 py-3 hover:border-white/[0.1] transition-colors group"
+            >
+              <div className="flex items-center gap-2 mb-1.5">
+                <div
+                  className={`w-7 h-7 rounded-lg flex items-center justify-center ${cap.status === "ready" ? "bg-norma-accentMuted text-norma-accent" : "bg-white/[0.04] text-norma-textDim"}`}
+                >
+                  {cap.icon}
+                </div>
+                <span className="text-[12px] font-medium text-norma-text">
+                  {cap.name}
+                </span>
+                {cap.status === "coming" && (
+                  <span className="ml-auto text-[8px] px-1.5 py-0.5 rounded-full bg-white/[0.06] text-norma-textDim">
+                    即将推出
+                  </span>
+                )}
+                {cap.status === "ready" && (
+                  <span
+                    className="ml-auto w-1.5 h-1.5 rounded-full bg-emerald-400"
+                    title="已就绪"
+                  />
+                )}
+              </div>
+              <div className="text-[10px] text-norma-textMuted mb-1">
+                {cap.desc}
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[9px] text-norma-textDim font-mono">
+                  {cap.id}
+                </span>
+                <span className="text-[9px] px-1 py-0.5 rounded bg-white/[0.04] text-norma-textDim">
+                  {cap.category}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+interface KnowledgeDoc {
+  id: string;
+  name: string;
+  size: string;
+  date: string;
+  chunks: number;
+}
+
+const KnowledgePage: React.FC = () => {
+  const [docs, setDocs] = useStoredState<KnowledgeDoc[]>("norma-docs", [
+    {
+      id: "1",
+      name: "项目架构文档.pdf",
+      size: "2.3 MB",
+      date: "2天前",
+      chunks: 45,
+    },
+    {
+      id: "2",
+      name: "API 接口规范.md",
+      size: "128 KB",
+      date: "5天前",
+      chunks: 12,
+    },
+    {
+      id: "3",
+      name: "产品需求 PRD.docx",
+      size: "890 KB",
+      date: "1周前",
+      chunks: 23,
+    },
+    {
+      id: "4",
+      name: "设计系统指南.pdf",
+      size: "4.1 MB",
+      date: "2周前",
+      chunks: 67,
+    },
+  ]);
+  const [search, setSearch] = useState("");
+  const [showUpload, setShowUpload] = useState(false);
+  const [uploadName, setUploadName] = useState("");
+  const filtered = docs.filter((d) =>
+    d.name.toLowerCase().includes(search.toLowerCase()),
+  );
+
+  const addDoc = () => {
+    if (!uploadName.trim()) return;
+    const doc: KnowledgeDoc = {
+      id: Date.now().toString(),
+      name: uploadName.trim(),
+      size: `${Math.floor(Math.random() * 5000 + 100)} KB`,
+      date: "刚刚",
+      chunks: Math.floor(Math.random() * 50 + 1),
+    };
+    setDocs((prev) => [...prev, doc]);
+    setUploadName("");
+    setShowUpload(false);
+  };
+
+  const deleteDoc = (id: string) => {
+    setDocs((prev) => prev.filter((d) => d.id !== id));
+  };
+
+  return (
+    <div className="flex-1 flex flex-col h-full overflow-hidden">
+      <div className="flex-1 overflow-y-auto px-5 py-4">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="flex-1 relative">
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-norma-textDim"
+            >
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.3-4.3" />
+            </svg>
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="搜索文档..."
+              className="w-full pl-8 pr-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[11px] text-norma-text placeholder-norma-textMuted outline-none focus:border-norma-accent/40 transition-colors"
+            />
+          </div>
+        </div>
+
+        {showUpload && (
+          <div className="mb-4 p-4 rounded-xl bg-white/[0.04] border border-white/[0.08] space-y-2">
+            <div className="text-[11px] text-norma-textMuted mb-1">
+              添加文档
+            </div>
+            <input
+              value={uploadName}
+              onChange={(e) => setUploadName(e.target.value)}
+              placeholder="文档名称 (如: 技术方案.md)"
+              className="w-full bg-white/[0.04] border border-white/[0.06] rounded-lg px-3 py-1.5 text-[11px] text-norma-text placeholder-norma-textDim outline-none focus:border-norma-accent/40"
+            />
+            <div className="flex items-center gap-2 pt-1">
+              <button
+                onClick={addDoc}
+                className="px-3 py-1 rounded-lg bg-norma-accent text-white text-[11px] hover:opacity-90"
+              >
+                添加
+              </button>
+              <button
+                onClick={() => setShowUpload(false)}
+                className="px-3 py-1 rounded-lg bg-white/[0.06] text-norma-textMuted text-[11px] hover:bg-white/[0.1]"
+              >
+                取消
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div className="flex items-center gap-4 mb-3 text-[10px] text-norma-textDim">
+          <span>{filtered.length} 个文档</span>
+          <span>{filtered.reduce((s, d) => s + d.chunks, 0)} 个分块</span>
+        </div>
+        <div className="flex flex-col gap-2">
+          {filtered.map((doc) => (
+            <div
+              key={doc.id}
+              className="rounded-xl bg-white/[0.03] border border-white/[0.06] px-4 py-3 hover:border-white/[0.1] transition-colors flex items-center gap-3 group"
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                className="text-norma-accent flex-none"
+              >
+                <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+                <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+              </svg>
+              <div className="flex-1 min-w-0">
+                <div className="text-[11px] font-medium text-norma-text truncate">
+                  {doc.name}
+                </div>
+                <div className="text-[9px] text-norma-textDim mt-0.5">
+                  {doc.size} · {doc.chunks} 分块 · {doc.date}
+                </div>
+              </div>
+              <button
+                onClick={() => deleteDoc(doc.id)}
+                className="p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-white/[0.08] text-norma-textDim hover:text-red-400 transition-all flex-none"
+                title="删除"
+              >
+                <svg
+                  width="10"
+                  height="10"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path d="M3 6h18" />
+                  <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                  <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                </svg>
+              </button>
+            </div>
+          ))}
+          {filtered.length === 0 && (
+            <div className="text-[11px] text-norma-textDim text-center py-8">
+              未找到匹配的文档
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const SettingsPage: React.FC = () => {
+  const [apiKey, setApiKey] = useStoredState<string>("norma-api-key", "");
+  const [selectedModel, setSelectedModel] = useStoredState<string>(
+    "norma-model",
+    "norma-local",
+  );
+  const [theme, setTheme] = useStoredState<string>("norma-theme", "dark");
+  const [showApiKey, setShowApiKey] = useState(false);
+  const isMac = window.electronAPI?.platform === "darwin";
+
+  return (
+    <div className="flex-1 flex flex-col h-full overflow-hidden">
+      <div className="flex-1 overflow-y-auto px-5 py-4">
+        <div className="space-y-5 max-w-[480px]">
+          <section>
+            <h3 className="text-[11px] font-semibold text-norma-text mb-2">
+              模型配置
+            </h3>
+            <div className="space-y-2">
+              <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] px-3 py-2">
+                <span className="text-[10px] text-norma-textMuted block mb-1.5">
+                  默认模型
+                </span>
+                <div className="flex gap-2">
+                  {MODELS.map((model) => (
+                    <button
+                      key={model.id}
+                      onClick={() => setSelectedModel(model.id)}
+                      className={`flex-1 px-3 py-1.5 rounded-lg text-[11px] transition-colors ${
+                        selectedModel === model.id
+                          ? "bg-norma-accent/20 border border-norma-accent/50 text-norma-accent"
+                          : "bg-white/[0.04] border border-white/[0.06] text-norma-textMuted hover:border-white/[0.1]"
+                      }`}
+                    >
+                      <div>{model.name}</div>
+                      <div className="text-[9px] opacity-60">{model.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center gap-3 rounded-lg bg-white/[0.03] border border-white/[0.06] px-3 py-2">
+                <span className="text-[10px] text-norma-textMuted w-20 flex-none">
+                  API Key
+                </span>
+                <div className="flex-1 flex items-center gap-1">
+                  <input
+                    type={showApiKey ? "text" : "password"}
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    placeholder="sk-..."
+                    className="flex-1 bg-transparent text-[11px] text-norma-text placeholder-norma-textDim outline-none"
+                  />
+                  <button
+                    onClick={() => setShowApiKey(!showApiKey)}
+                    className="p-1 rounded text-norma-textDim hover:text-norma-textMuted transition-colors"
+                    title={showApiKey ? "隐藏" : "显示"}
+                  >
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      {showApiKey ? (
+                        <>
+                          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+                          <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+                          <path d="m14.12 14.12a3 3 0 1 1-4.24-4.24" />
+                          <line x1="1" x2="23" y1="1" y2="23" />
+                        </>
+                      ) : (
+                        <>
+                          <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                          <circle cx="12" cy="12" r="3" />
+                        </>
+                      )}
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+          <section>
+            <h3 className="text-[11px] font-semibold text-norma-text mb-2">
+              外观
+            </h3>
+            <div className="flex gap-2">
+              {[
+                {
+                  id: "dark",
+                  label: "暗色",
+                  icon: (
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                    </svg>
+                  ),
+                },
+                {
+                  id: "light",
+                  label: "亮色",
+                  icon: (
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <circle cx="12" cy="12" r="5" />
+                      <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+                    </svg>
+                  ),
+                },
+                {
+                  id: "system",
+                  label: "跟随系统",
+                  icon: (
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+                      <line x1="8" y1="21" x2="16" y2="21" />
+                      <line x1="12" y1="17" x2="12" y2="21" />
+                    </svg>
+                  ),
+                },
+              ].map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => setTheme(t.id)}
+                  className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[11px] transition-colors ${
+                    theme === t.id
+                      ? "bg-norma-accent/20 border border-norma-accent/50 text-norma-accent"
+                      : "bg-white/[0.04] border border-white/[0.06] text-norma-textMuted hover:border-white/[0.1]"
+                  }`}
+                >
+                  {t.icon}
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </section>
+          <section>
+            <h3 className="text-[11px] font-semibold text-norma-text mb-2">
+              快捷键
+            </h3>
+            <div className="space-y-2">
+              <div className="flex items-center gap-3 rounded-lg bg-white/[0.03] border border-white/[0.06] px-3 py-2">
+                <span className="text-[10px] text-norma-textMuted flex-1">
+                  唤出命令栏
+                </span>
+                <kbd className="px-1.5 py-0.5 rounded bg-white/[0.06] border border-white/[0.08] text-[10px] text-norma-text font-mono">
+                  {isMac ? "⌥ Space" : "Ctrl+Shift+Space"}
+                </kbd>
+              </div>
+              <div className="flex items-center gap-3 rounded-lg bg-white/[0.03] border border-white/[0.06] px-3 py-2">
+                <span className="text-[10px] text-norma-textMuted flex-1">
+                  隐藏窗口
+                </span>
+                <kbd className="px-1.5 py-0.5 rounded bg-white/[0.06] border border-white/[0.08] text-[10px] text-norma-text font-mono">
+                  Esc
+                </kbd>
+              </div>
+            </div>
+          </section>
+          <section>
+            <h3 className="text-[11px] font-semibold text-norma-text mb-2">
+              关于
+            </h3>
+            <div className="space-y-1.5 text-[10px] text-norma-textMuted">
+              <div className="flex justify-between">
+                <span>版本</span>
+                <span className="text-norma-text font-mono">v0.5.0</span>
+              </div>
+              <div className="flex justify-between">
+                <span>运行时</span>
+                <span className="text-norma-text font-mono">
+                  Electron 42 + React 19
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span>AI 框架</span>
+                <span className="text-norma-text font-mono">
+                  AssistantUI 0.14 + Mastra
+                </span>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const AutoScrollHelper: React.FC = () => {
   const { scrollToBottom } = useThreadViewportAutoScroll({ smooth: true });
   return null;
 };
 
+function useStoredState<T>(
+  key: string,
+  initial: T,
+): [T, React.Dispatch<React.SetStateAction<T>>] {
+  const [value, setValue] = useState<T>(() => {
+    try {
+      const stored = localStorage.getItem(key);
+      return stored ? JSON.parse(stored) : initial;
+    } catch {
+      return initial;
+    }
+  });
+  useEffect(() => {
+    localStorage.setItem(key, JSON.stringify(value));
+  }, [key, value]);
+  return [value, setValue];
+}
+
 const ChatAreaInner: React.FC = () => {
   const [activeNav, setActiveNav] = useState("chat");
-  const [activeSession, setActiveSession] = useState("1");
+  const [sessions, setSessions] = useStoredState<Session[]>("norma-sessions", [
+    {
+      id: "1",
+      title: "屏幕分析",
+      preview: "读取屏幕上的错误信息...",
+      time: "2分钟",
+      active: true,
+    },
+    {
+      id: "2",
+      title: "文件整理",
+      preview: "按日期排序下载目录...",
+      time: "15分钟",
+      active: false,
+    },
+    {
+      id: "3",
+      title: "接口联调",
+      preview: "配置 REST 端点...",
+      time: "1小时",
+      active: false,
+    },
+  ]);
+  const [activeSessionId, setActiveSessionId] = useState<string>(
+    sessions.find((s) => s.active)?.id ?? "",
+  );
+
+  const handleNewSession = () => {
+    const newSession: Session = {
+      id: Date.now().toString(),
+      title: "新会话",
+      preview: "开始新的对话...",
+      time: "刚刚",
+      active: true,
+    };
+    setSessions((prev) =>
+      prev.map((s) => ({ ...s, active: false })).concat(newSession),
+    );
+    setActiveSessionId(newSession.id);
+    setActiveNav("chat");
+  };
+
+  const handleDeleteSession = (id: string) => {
+    setSessions((prev) => {
+      const next = prev.filter((s) => s.id !== id);
+      if (next.length === 0) return next;
+      if (id === activeSessionId) {
+        next[0].active = true;
+        setActiveSessionId(next[0].id);
+      }
+      return next;
+    });
+  };
+
+  const handleSwitchSession = (id: string) => {
+    setSessions((prev) => prev.map((s) => ({ ...s, active: s.id === id })));
+    setActiveSessionId(id);
+    setActiveNav("chat");
+  };
+
+  const isChatPage = activeNav === "chat";
+
+  const renderPage = () => {
+    switch (activeNav) {
+      case "automation":
+        return <AutomationPage />;
+      case "capabilities":
+        return <CapabilitiesPage />;
+      case "knowledge":
+        return <KnowledgePage />;
+      case "settings":
+        return <SettingsPage />;
+      default:
+        return null;
+    }
+  };
 
   return (
     <div className="glass-root titlebar-drag h-screen w-screen p-[5px] gap-[5px] flex">
       <LeftIsland
         activeNav={activeNav}
         onNavChange={setActiveNav}
-        activeSession={activeSession}
-        onSessionChange={setActiveSession}
+        sessions={sessions}
+        activeSessionId={activeSessionId}
+        onNewSession={handleNewSession}
+        onDeleteSession={handleDeleteSession}
+        onSwitchSession={handleSwitchSession}
       />
       <div className="glass-island-right titlebar-no-drag flex-1 h-full flex flex-col overflow-hidden relative">
-        <ReadScreenTool />
-        <ExecuteActionTool />
-        <ContextDisplay />
+        <WindowControls />
+        {isChatPage ? (
+          <>
+            <ReadScreenTool />
+            <ExecuteActionTool />
+            <ContextDisplay />
 
-        <ThreadPrimitive.Root className="flex-1 flex flex-col min-h-0">
-          <ThreadPrimitive.Viewport className="flex-1 overflow-y-auto px-5 py-3 flex flex-col gap-3 min-h-0 scroll-smooth">
-            <AutoScrollHelper />
-            <AuiIf condition={(s: any) => s.thread.isEmpty}>
-              <div className="flex-1 flex flex-col items-center justify-center gap-6">
-                <div className="text-center">
-                  <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-norma-accentMuted flex items-center justify-center">
-                    <svg
-                      width="28"
-                      height="28"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="hsl(215, 90%, 68%)"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M12 8V4H8" />
-                      <rect width="16" height="12" x="4" y="8" rx="2" />
-                      <path d="M2 14h2" />
-                      <path d="M20 14h2" />
-                      <path d="M15 13v2" />
-                      <path d="M9 13v2" />
-                    </svg>
+            <ThreadPrimitive.Root className="flex-1 flex flex-col min-h-0">
+              <ThreadPrimitive.Viewport className="flex-1 overflow-y-auto px-5 py-3 flex flex-col gap-3 min-h-0 scroll-smooth">
+                <AutoScrollHelper />
+                <AuiIf condition={(s: any) => s.thread.isEmpty}>
+                  <div className="flex-1 flex flex-col items-center justify-center gap-6">
+                    <div className="text-center">
+                      <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-norma-accentMuted flex items-center justify-center">
+                        <svg
+                          width="28"
+                          height="28"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="hsl(215, 90%, 68%)"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M12 8V4H8" />
+                          <rect width="16" height="12" x="4" y="8" rx="2" />
+                          <path d="M2 14h2" />
+                          <path d="M20 14h2" />
+                          <path d="M15 13v2" />
+                          <path d="M9 13v2" />
+                        </svg>
+                      </div>
+                      <h2 className="text-base font-semibold text-norma-text mb-1.5">
+                        欢迎使用 Norma
+                      </h2>
+                      <p className="text-[12px] text-norma-textMuted max-w-[260px]">
+                        你的本地智能助手，可以感知屏幕、操控电脑、管理工作流。
+                      </p>
+                    </div>
+                    <WelcomeSuggestions />
                   </div>
-                  <h2 className="text-base font-semibold text-norma-text mb-1.5">
-                    欢迎使用 Norma
-                  </h2>
-                  <p className="text-[12px] text-norma-textMuted max-w-[260px]">
-                    你的本地智能助手，可以感知屏幕、操控电脑、管理工作流。
-                  </p>
-                </div>
-                <WelcomeSuggestions />
-              </div>
-            </AuiIf>
-            <ThreadPrimitive.Messages>
-              {() => <ThreadMessage />}
-            </ThreadPrimitive.Messages>
-            <ThreadPrimitive.ScrollToBottom className="absolute bottom-24 left-1/2 -translate-x-1/2 z-10 w-8 h-8 rounded-full bg-norma-panel border border-norma-border flex items-center justify-center text-norma-textMuted hover:text-norma-text transition-colors shadow-lg disabled:invisible">
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="m6 9 6 6 6-6" />
-              </svg>
-            </ThreadPrimitive.ScrollToBottom>
-          </ThreadPrimitive.Viewport>
-
-          <div className="flex-none px-5 pb-3 pt-1 grid grid-cols-[120px_1fr_120px] items-end w-full">
-            <div className="flex justify-start mb-2">
-              <ModelSelector />
-            </div>
-            <div className="flex justify-center w-full">
-              <div className="flex items-end gap-2 w-full max-w-[620px]">
-                <ComposerPill />
-                <ComposerPrimitive.AddAttachment
-                  className="flex-none p-2 mb-1 rounded-full text-norma-textDim hover:text-norma-textMuted hover:bg-white/[0.06] transition-colors"
-                  title="添加附件"
-                >
+                </AuiIf>
+                <ThreadPrimitive.Messages>
+                  {() => <ThreadMessage />}
+                </ThreadPrimitive.Messages>
+                <ThreadPrimitive.ScrollToBottom className="absolute bottom-24 left-1/2 -translate-x-1/2 z-10 w-8 h-8 rounded-full bg-norma-panel border border-norma-border flex items-center justify-center text-norma-textMuted hover:text-norma-text transition-colors shadow-lg disabled:invisible">
                   <svg
-                    width="16"
-                    height="16"
+                    width="14"
+                    height="14"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
                     strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
                   >
-                    <path d="M5 12h14" />
-                    <path d="M12 5v14" />
+                    <path d="m6 9 6 6 6-6" />
                   </svg>
-                </ComposerPrimitive.AddAttachment>
+                </ThreadPrimitive.ScrollToBottom>
+              </ThreadPrimitive.Viewport>
+
+              <div className="flex-none px-5 pb-3 pt-1 grid grid-cols-[120px_1fr_120px] items-end w-full">
+                <div className="flex justify-start mb-2">
+                  <ModelSelector />
+                </div>
+                <div className="flex justify-center w-full">
+                  <div className="flex items-end gap-2 w-full max-w-[620px]">
+                    <ComposerPill />
+                    <ComposerPrimitive.AddAttachment
+                      className="flex-none p-2 mb-1 rounded-full text-norma-textDim hover:text-norma-textMuted hover:bg-white/[0.06] transition-colors"
+                      title="添加附件"
+                    >
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M5 12h14" />
+                        <path d="M12 5v14" />
+                      </svg>
+                    </ComposerPrimitive.AddAttachment>
+                  </div>
+                </div>
+                <div />
               </div>
-            </div>
-            <div />
-          </div>
-        </ThreadPrimitive.Root>
+            </ThreadPrimitive.Root>
+          </>
+        ) : (
+          <>{renderPage()}</>
+        )}
       </div>
     </div>
   );
 };
 
+const CommandBarMessage: React.FC = () => {
+  const role = useAuiState((s: any) => s.message.role);
+  if (role === "user") {
+    return (
+      <MessagePrimitive.Root className="flex justify-end mb-2">
+        <div className="max-w-[85%] rounded-lg bg-white/[0.08] px-3 py-1.5">
+          <MessagePrimitive.Content
+            components={{
+              Text: ({ text }: any) => (
+                <span className="whitespace-pre-wrap text-[12px] text-norma-text leading-relaxed">
+                  {text}
+                </span>
+              ),
+            }}
+          />
+        </div>
+      </MessagePrimitive.Root>
+    );
+  }
+  return (
+    <MessagePrimitive.Root className="flex justify-start mb-2">
+      <div className="max-w-[90%]">
+        <MessagePrimitive.Content
+          components={{
+            Text: (props: any) => (
+              <div className="text-[12px] leading-relaxed text-norma-text">
+                <MarkdownTextPrimitive
+                  {...props}
+                  components={MarkdownComponents}
+                  remarkPlugins={[remarkGfm]}
+                />
+              </div>
+            ),
+          }}
+        />
+      </div>
+    </MessagePrimitive.Root>
+  );
+};
+
 const CommandBarInner: React.FC = () => {
-  const [expanded, setExpanded] = useState(false);
   const isRunning = useAuiState((s: any) => s.thread.isRunning);
-  const isEmpty = useAuiState((s: any) => s.thread.isEmpty);
+  const messageCount = useAuiState((s: any) => s.thread.messages?.length ?? 0);
 
   useEffect(() => {
-    if (expanded && isEmpty && !isRunning) {
-      setExpanded(false);
-      window.electronAPI?.resizeWindow?.(680, 56);
+    if (isRunning && messageCount > 0) {
+      window.electronAPI?.resizeWindow?.(680, 360);
     }
-  }, [isEmpty, isRunning, expanded]);
-
-  useEffect(() => {
-    if (isRunning && !expanded) {
-      setExpanded(true);
-      window.electronAPI?.resizeWindow?.(680, 320);
-    }
-  }, [isRunning, expanded]);
+  }, [isRunning, messageCount]);
 
   return (
     <div className="w-full h-full flex flex-col overflow-hidden">
       <div className="flex-none flex items-center gap-3 h-[52px] px-4 border-b border-white/[0.06]">
-        <ContextRing />
+        <div className="w-4 h-4 rounded-full bg-norma-accentMuted flex items-center justify-center flex-none">
+          <svg
+            width="10"
+            height="10"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="hsl(215, 90%, 68%)"
+            strokeWidth="3"
+          >
+            <path d="M12 2L2 7l10 5 10-5-10-5z" />
+          </svg>
+        </div>
         <ComposerPrimitive.Root className="flex-1 min-w-0 h-full flex items-center">
           <ComposerPrimitive.Unstable_TriggerPopoverRoot>
             <SlashCommandTrigger />
             <MentionTrigger />
             <ComposerPrimitive.Input
-              placeholder="让 Norma 帮你做点什么...  输入 / 命令  @ 指定智能体"
+              placeholder="输入指令，Enter 发送..."
               rows={1}
               autoFocus
               className="flex-1 w-full bg-transparent text-[15px] text-norma-text placeholder-norma-textMuted outline-none resize-none leading-none py-0"
@@ -1346,13 +2437,11 @@ const CommandBarInner: React.FC = () => {
         </ComposerPrimitive.Root>
       </div>
 
-      {expanded && (
-        <div className="flex-1 overflow-y-auto px-4 py-3 min-h-0 scroll-smooth">
-          <ThreadPrimitive.Messages>
-            {() => <ThreadMessage />}
-          </ThreadPrimitive.Messages>
-        </div>
-      )}
+      <div className="flex-1 overflow-y-auto px-4 py-3 min-h-0 scroll-smooth">
+        <ThreadPrimitive.Messages>
+          {() => <CommandBarMessage />}
+        </ThreadPrimitive.Messages>
+      </div>
     </div>
   );
 };
@@ -1366,15 +2455,19 @@ const App = () => {
     return () => window.removeEventListener("hashchange", handleHashChange);
   }, []);
 
-  return (
-    <NormaRuntime>
-      {route === "#/command" ? (
+  if (route === "#/command") {
+    return (
+      <IpcRuntime>
         <div className="command-bar-bg w-full h-full overflow-hidden">
           <CommandBarInner />
         </div>
-      ) : (
-        <ChatAreaInner />
-      )}
+      </IpcRuntime>
+    );
+  }
+
+  return (
+    <NormaRuntime>
+      <ChatAreaInner />
     </NormaRuntime>
   );
 };
