@@ -62,36 +62,44 @@ export async function initAgent(dbDir?: string) {
     },
   });
 
+  const systemAgent = new Agent({
+    id: 'system-agent',
+    name: 'System Agent',
+    description: 'Uses native system tools to read the screen and execute mouse/keyboard actions.',
+    model: 'openai/gpt-4o-mini',
+    tools: baseTools,
+  });
+
+  const researchAgent = new Agent({
+    id: 'research-agent',
+    name: 'Research Agent',
+    description: 'Gathers factual information and uses external MCP tools (like web browsers).',
+    model: 'openai/gpt-4o-mini',
+    tools: mcpTools,
+  });
+
   _agent = new Agent({
     id: 'norma-router',
     name: 'Norma Router',
-    instructions: `You are Norma, a highly intelligent desktop assistant. 
-Be concise and helpful. Remember to maintain a professional and empathetic tone.
+    instructions: `You are Norma, a highly intelligent desktop assistant.
+You coordinate tasks using specialized agents.
 
-## Built-in Tools
-- read_screen: Capture a screenshot of the user's current screen.
-- execute_action: Execute mouse and keyboard actions (move, click, type, scroll, etc).
+## Available Agents
+- systemAgent: Interacts with the user's local system (screen, mouse, keyboard).
+- researchAgent: Handles web browsing, data gathering, or external MCP tool usage.
 
-## MCP Browser Tools (via Playwright)
-${mcpToolNames || '  (no MCP tools loaded)'}
+## Delegation Strategy
+1. For screen reading or UI automation, delegate to systemAgent.
+2. For web browsing or gathering information, delegate to researchAgent.
 
-## Workflow for UI automation tasks
-1. read_screen → analyze what's on screen
-2. Plan the actions needed
-3. execute_action with precise coordinates
-4. read_screen again to verify the result
-
-## Workflow for web tasks
-Use the Playwright MCP browser tools to navigate web pages, fill forms, extract data, etc.
-
-Be careful with coordinates. Screen origin (0,0) is top-left. Only execute actions the user has explicitly requested.`,
+Be concise and helpful. Remember to maintain a professional and empathetic tone.`,
     model: 'openai/gpt-4o',
-    tools: allTools,
+    agents: { systemAgent, researchAgent },
     memory: _memory,
   });
 
   _mastra = new Mastra({
-    agents: { normaRouter: _agent },
+    agents: { normaRouter: _agent, systemAgent, researchAgent },
   });
 
   return { agent: _agent, mastra: _mastra };

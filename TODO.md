@@ -57,10 +57,10 @@
   - [x] 前端会话系统与后端线程绑定：新建会话创建线程、删除会话删除线程、切换会话切换线程。
   - [x] 跨会话持久化：Agent 记住用户偏好和过往对话上下文。
 
-- [ ] **v0.10 - 群聊与工作流 (SubAgent & UI Reveal)**
-  - [ ] 利用 Mastra 创建至少两个专门的 SubAgent (例如 `ResearchAgent`, `SystemAgent`)。
-  - [ ] 实现 Router Agent 根据任务复杂度向 SubAgent 派发任务的逻辑。
-  - [ ] 在主窗口 UI 侧增加“思考过程 (Thinking Panel)”折叠组件，展示内部 Agent 的对话和工具调用日志。
+- [x] **v0.10 - 群聊与工作流 (SubAgent & UI Reveal)**
+  - [x] 利用 Mastra 创建至少两个专门的 SubAgent (例如 `ResearchAgent`, `SystemAgent`)。
+  - [x] 实现 Router Agent 根据任务复杂度向 SubAgent 派发任务的逻辑。
+  - [x] 在主窗口 UI 侧增加“思考过程 (Thinking Panel)”折叠组件，展示内部 Agent 的对话和工具调用日志。
 
 - [ ] **v0.11 - 自愈机制与打磨 (Self-Healing & Polish)**
   - [ ] 完善 Tool 调用的错误捕获机制 (try-catch std/err)。

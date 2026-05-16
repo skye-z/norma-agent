@@ -69,22 +69,48 @@ export const ToolFallbackDisplay: React.FC<any> = ({
   status,
 }) => {
   const isRunning = status?.type === "running";
+  
+  // Check if it's a subagent delegation
+  const isSubAgent = toolName === "systemAgent" || toolName === "researchAgent" || toolName === "system-agent" || toolName === "research-agent";
+  const displayName = isSubAgent ? (toolName.includes("system") ? "System Agent" : "Research Agent") : toolName;
+
+  const [open, setOpen] = useState(isSubAgent);
+
   return (
-    <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] overflow-hidden text-[11px]">
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-white/[0.04] whitespace-nowrap">
+    <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] overflow-hidden text-[11px] my-1">
+      <button 
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center gap-2 px-3 py-2 border-b border-white/[0.04] whitespace-nowrap hover:bg-white/[0.02]"
+      >
+        <svg
+          className={`w-3 h-3 text-norma-textDim transition-transform ${open ? "rotate-90" : ""}`}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+        >
+          <path d="m9 18 6-6-6-6" />
+        </svg>
         <div
-          className={`w-1.5 h-1.5 rounded-full ${isRunning ? "bg-amber-400 animate-pulse" : result ? "bg-emerald-400" : "bg-norma-textDim"}`}
+          className={`w-1.5 h-1.5 rounded-full flex-none ${isRunning ? "bg-amber-400 animate-pulse" : result ? "bg-emerald-400" : "bg-norma-textDim"}`}
         />
-        <span className="font-mono text-norma-textMuted">{toolName}</span>
-        <span className="text-norma-textDim ml-auto">
-          {isRunning ? "运行中..." : result ? "完成" : "等待中"}
+        <span className={`${isSubAgent ? "font-semibold text-norma-text" : "font-mono text-norma-textMuted"}`}>
+          {isSubAgent ? `派发任务: ${displayName}` : displayName}
         </span>
-      </div>
-      {result && (
-        <div className="px-3 py-2 text-norma-text/80 leading-relaxed">
+        <span className="text-norma-textDim ml-auto text-[10px]">
+          {isRunning ? "思考执行中..." : result ? "已完成" : "等待中"}
+        </span>
+      </button>
+      {open && result && (
+        <div className="px-3 py-2 text-norma-text/80 leading-relaxed font-mono whitespace-pre-wrap text-[10px] bg-black/20">
           {typeof result === "string"
             ? result
-            : JSON.stringify(result, null, 2)}
+            : (result as any)?.text || JSON.stringify(result, null, 2)}
+        </div>
+      )}
+      {open && !result && args && (
+        <div className="px-3 py-2 text-norma-textDim leading-relaxed font-mono whitespace-pre-wrap text-[10px] bg-black/10">
+          {JSON.stringify(args, null, 2)}
         </div>
       )}
     </div>
