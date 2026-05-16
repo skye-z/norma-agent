@@ -31,15 +31,17 @@
   - [x] 设置页面：模型选择、API Key 管理、快捷键显示、主题/关于信息
   - [x] 会话管理：新建会话、删除会话、切换会话（前端状态管理）
 
-- [ ] **v0.6 - 兜底引擎 V1：感知 (Native Sensing)**
-  - [ ] 集成屏幕截图相关 Node/Electron 原生能力 (如 `desktopCapturer`)。
-  - [ ] 将截图能力封装为 Mastra Tool (工具)，让 Agent 能够根据指令“看”屏幕。
-  - [ ] (可选) 接入轻量级本地 OCR 或依赖大模型 Vision 能力解析截图内容。
+- [x] **v0.6 - 兜底引擎 V1：感知 (Native Sensing)**
+  - [x] 集成屏幕截图相关 Node/Electron 原生能力 (如 `desktopCapturer`)。
+  - [x] 将截图能力封装为 Mastra Tool (工具)，让 Agent 能够根据指令"看"屏幕。
+  - [x] (可选) 接入轻量级本地 OCR 或依赖大模型 Vision 能力解析截图内容。
+  - [x] 更新 Chat IPC 使用 `fullStream` 以支持 tool-call/tool-result 结构化流传输。
+  - [x] 测试完整的截屏 → Agent 分析 → 返回结果流程。
 
-- [ ] **v0.7 - 兜底引擎 V2：控制 (Native Action)**
-  - [ ] 引入 `robotjs` 或 `nut.js` 库，获得操作系统的键鼠控制权限。
-  - [ ] 封装基础操作工具 (鼠标移动、点击、键盘输入) 给 Agent 调用。
-  - [ ] 测试 Agent 根据屏幕截图坐标，执行一次完整的“点击指定位置”的自动化流。
+- [x] **v0.7 - 兜底引擎 V2：控制 (Native Action)**
+  - [x] 引入 `robotjs` 或 `nut.js` 库，获得操作系统的键鼠控制权限。
+  - [x] 封装基础操作工具 (鼠标移动、点击、键盘输入) 给 Agent 调用。
+  - [x] 测试 Agent 根据屏幕截图坐标，执行一次完整的“点击指定位置”的自动化流。
 
 - [ ] **v0.8 - 扩展生态 (MCP Support)**
   - [ ] 在主进程实现基础的 MCP Client 协议。

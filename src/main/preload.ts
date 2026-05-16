@@ -24,4 +24,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.send('window:resize', { width, height });
   },
   platform: process.platform,
+
+  invokeProviderPresets: () => ipcRenderer.invoke('provider:presets'),
+  testProviderConnectivity: (config: any) => ipcRenderer.invoke('provider:test', config),
+  fetchProviderModels: (config: any) => ipcRenderer.invoke('provider:models', config),
+  testModelAvailability: (config: any, modelId: string) => ipcRenderer.invoke('model:test', config, modelId),
 });

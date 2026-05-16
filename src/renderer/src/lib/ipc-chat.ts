@@ -1,13 +1,19 @@
 type ContentPart =
   | { type: "text"; text: string }
-  | { type: "reasoning"; text: string };
+  | { type: "reasoning"; text: string }
+  | { type: "tool-call"; toolCallId: string; toolName: string; args: Record<string, unknown>; argsText: string; result?: unknown; isError?: boolean };
 
 interface YieldContent {
   content: ContentPart[];
 }
 
+type StreamChunk =
+  | { type: "text-delta"; text: string }
+  | { type: "tool-call"; toolCallId: string; toolName: string; args: Record<string, unknown> }
+  | { type: "tool-result"; toolCallId: string; toolName: string; result: unknown; isError?: boolean };
+
 type QueueItem =
-  | { type: "chunk"; text: string }
+  | { type: "chunk"; chunk: StreamChunk }
   | { type: "done" }
   | { type: "error"; message: string };
 
@@ -53,25 +59,26 @@ export function createIpcChatModel() {
         }
       };
 
-      interface UnsubscribeFn {
-        (): void;
-      }
-
-      const unsubscribeChunk: UnsubscribeFn = window.electronAPI.onMessage(
+      const unsubscribeChunk = window.electronAPI.onMessage(
         "chat:chunk",
-        (chunk: string) => {
-          pushToQueue({ type: "chunk", text: chunk });
+        (raw: string) => {
+          try {
+            const chunk: StreamChunk = JSON.parse(raw);
+            pushToQueue({ type: "chunk", chunk });
+          } catch {
+            pushToQueue({ type: "chunk", chunk: { type: "text-delta", text: raw } });
+          }
         },
       );
 
-      const unsubscribeDone: UnsubscribeFn = window.electronAPI.onMessage(
+      const unsubscribeDone = window.electronAPI.onMessage(
         "chat:done",
         () => {
           pushToQueue({ type: "done" });
         },
       );
 
-      const unsubscribeError: UnsubscribeFn = window.electronAPI.onMessage(
+      const unsubscribeError = window.electronAPI.onMessage(
         "chat:error",
         (err: string) => {
           pushToQueue({ type: "error", message: err });
@@ -82,6 +89,34 @@ export function createIpcChatModel() {
 
       let fullText = "";
       let isFirstChunk = true;
+      const toolCalls: Map<string, { toolName: string; args: Record<string, unknown>; result?: unknown; isError?: boolean }> = new Map();
+
+      const buildContent = (): ContentPart[] => {
+        const content: ContentPart[] = [];
+
+        if (isFirstChunk) {
+          isFirstChunk = false;
+          content.push({ type: "reasoning", text: "Norma 正在处理..." });
+        }
+
+        for (const [tcId, tc] of toolCalls) {
+          content.push({
+            type: "tool-call",
+            toolCallId: tcId,
+            toolName: tc.toolName,
+            args: tc.args,
+            argsText: JSON.stringify(tc.args),
+            ...(tc.result !== undefined ? { result: tc.result } : {}),
+            ...(tc.isError !== undefined ? { isError: tc.isError } : {}),
+          });
+        }
+
+        if (fullText) {
+          content.push({ type: "text", text: fullText });
+        }
+
+        return content;
+      };
 
       try {
         while (true) {
@@ -109,20 +144,33 @@ export function createIpcChatModel() {
             break;
           }
 
-          fullText += item.text;
+          const { chunk } = item;
 
-          if (isFirstChunk) {
-            isFirstChunk = false;
-            yield {
-              content: [
-                { type: "reasoning", text: "Norma 正在处理..." },
-                { type: "text", text: fullText },
-              ],
-            };
-          } else {
-            yield {
-              content: [{ type: "text", text: fullText }],
-            };
+          if (chunk.type === "text-delta") {
+            fullText += chunk.text;
+          } else if (chunk.type === "tool-call") {
+            toolCalls.set(chunk.toolCallId, {
+              toolName: chunk.toolName,
+              args: chunk.args,
+            });
+          } else if (chunk.type === "tool-result") {
+            const existing = toolCalls.get(chunk.toolCallId);
+            if (existing) {
+              existing.result = chunk.result;
+              existing.isError = chunk.isError;
+            } else {
+              toolCalls.set(chunk.toolCallId, {
+                toolName: chunk.toolName,
+                args: {},
+                result: chunk.result,
+                isError: chunk.isError,
+              });
+            }
+          }
+
+          const content = buildContent();
+          if (content.length > 0) {
+            yield { content };
           }
         }
       } finally {
