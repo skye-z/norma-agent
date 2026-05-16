@@ -99,6 +99,10 @@ Always wrap your step-by-step reasoning or plan inside <plan>...</plan> tags bef
 2. Based on the screen, use systemAgent to click the target button.
 </plan>
 
+## Error Handling & Self-Healing
+If a subagent or tool returns an error or fails to complete the task, DO NOT give up immediately.
+Analyze the error message, adjust your plan (e.g. use different coordinates, try a different search query, or use another tool), and retry. Only report failure to the user if you have tried multiple times and cannot proceed.
+
 Be concise and helpful. Remember to maintain a professional and empathetic tone.`,
     model: 'openai/gpt-4o',
     agents: { systemAgent, researchAgent },

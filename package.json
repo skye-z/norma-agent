@@ -11,6 +11,10 @@
     "build:main": "tsup",
     "build:renderer": "vite build",
     "build": "pnpm build:renderer && pnpm build:main",
+    "pack": "electron-builder --dir",
+    "dist": "pnpm build && electron-builder",
+    "dist:win": "pnpm build && electron-builder --win",
+    "dist:mac": "pnpm build && electron-builder --mac",
     "start": "electron .",
     "test:e2e": "playwright test --config tests/playwright.config.ts",
     "test:e2e:headed": "playwright test --config tests/playwright.config.ts --headed"
@@ -30,6 +34,7 @@
     "concurrently": "^9.2.1",
     "cross-env": "^10.1.0",
     "electron": "^33.3.0",
+    "electron-builder": "^26.8.1",
     "postcss": "^8.5.14",
     "tailwindcss": "^3.4.19",
     "tsup": "^8.5.1",
@@ -61,5 +66,35 @@
       "electron",
       "@jitsi/robotjs"
     ]
+  },
+  "build": {
+    "npmRebuild": false,
+    "appId": "com.norma.agent",
+    "productName": "Norma Agent",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": ".env",
+        "to": ".",
+        "filter": ["**/*"]
+      }
+    ],
+    "mac": {
+      "target": "dmg",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
   }
 }

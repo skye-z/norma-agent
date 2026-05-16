@@ -62,7 +62,7 @@
   - [x] 实现 Router Agent 根据任务复杂度向 SubAgent 派发任务的逻辑。
   - [x] 在主窗口 UI 侧增加“思考过程 (Thinking Panel)”折叠组件，展示内部 Agent 的对话和工具调用日志。
 
-- [ ] **v0.11 - 自愈机制与打磨 (Self-Healing & Polish)**
-  - [ ] 完善 Tool 调用的错误捕获机制 (try-catch std/err)。
-  - [ ] 编写发生错误时 Agent 的重试 Prompt 模板，实现简单的闭环自修复逻辑。
-  - [ ] 调整 UI 样式，统一主题，完成 Electron 应用的基础打包配置 (electron-builder)，输出可执行程序。
+- [x] **v0.11 - 自愈机制与打磨 (Self-Healing & Polish)**
+  - [x] 完善 Tool 调用的错误捕获机制 (try-catch std/err)。
+  - [x] 编写发生错误后 Agent 的重试 Prompt 模板，实现简单的闭环自修复逻辑。
+  - [x] 调整 UI 样式，统一主题，完成 Electron 应用的基础打包配置 (electron-builder)，输出可执行程序。
