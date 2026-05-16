@@ -27,11 +27,16 @@ if (!gotTheLock) {
     showWindow();
   });
 
-  app.whenReady().then(() => {
+  app.whenReady().then(async () => {
     setupIpc();
     createTray();
     createWindow();
     createCommandBarWindow();
+
+    const { initAgent } = await import('./agent');
+    initAgent().catch((err) => {
+      console.error('[Agent] Failed to initialize:', err);
+    });
 
     const isMac = process.platform === "darwin";
     const shortcut = isMac ? "Option+Space" : "Ctrl+Shift+Space";

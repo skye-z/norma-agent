@@ -39,8 +39,8 @@ export function setupIpc() {
         return;
       }
 
-      const { mastra } = await import('../agent');
-      const agent = mastra.getAgent('normaRouter');
+      const { getAgent } = await import('../agent');
+      const agent = getAgent();
       const response = await agent.stream(message);
 
       for await (const chunk of response.fullStream) {

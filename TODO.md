@@ -43,10 +43,10 @@
   - [x] 封装基础操作工具 (鼠标移动、点击、键盘输入) 给 Agent 调用。
   - [x] 测试 Agent 根据屏幕截图坐标，执行一次完整的“点击指定位置”的自动化流。
 
-- [ ] **v0.8 - 扩展生态 (MCP Support)**
-  - [ ] 在主进程实现基础的 MCP Client 协议。
-  - [ ] 编写代码支持连接一个本地的测试 MCP Server (例如读取本地文件系统的 MCP)。
-  - [ ] 让 Norma 能够通过 MCP 协议感知并调用 Server 提供的工具。
+- [x] **v0.8 - 扩展生态 (MCP Support)**
+  - [x] 在主进程实现基础的 MCP Client 协议。
+  - [x] 编写代码支持连接一个本地的测试 MCP Server (例如读取本地文件系统的 MCP)。
+  - [x] 让 Norma 能够通过 MCP 协议感知并调用 Server 提供的工具。
 
 - [ ] **v0.9 - 记忆系统初探 (Semantic Memory)**
   - [ ] 集成本地 SQLite 数据库。
