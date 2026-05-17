@@ -72,6 +72,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   automationRun: (name: string, desc: string, trigger: string) => ipcRenderer.invoke('automation:run', { name, desc, trigger }),
   automationListWorkflows: () => ipcRenderer.invoke('automation:listWorkflows'),
+  automationHistory: () => ipcRenderer.invoke('automation:history'),
 
   diagSetLogging: (enabled: boolean) => ipcRenderer.invoke('diag:setLogging', enabled),
   diagGetLoggingState: () => ipcRenderer.invoke('diag:getLoggingState'),

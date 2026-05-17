@@ -38,6 +38,7 @@ declare global {
       knowledgeDelete: (docId: string) => Promise<{ success: boolean; error?: string }>;
       automationRun: (name: string, desc: string, trigger: string) => Promise<{ success: boolean; status?: string; output?: string; timestamp?: string; error?: string }>;
       automationListWorkflows: () => Promise<{ success: boolean; workflows: Array<{ id: string; name: string }>; error?: string }>;
+      automationHistory: () => Promise<Array<{ name: string; desc: string; trigger: string; success: boolean; status?: string; output?: string; timestamp: string; ts: string }>>;
       diagSetLogging: (enabled: boolean) => Promise<{ enabled: boolean }>;
       diagGetLoggingState: () => Promise<{ enabled: boolean }>;
       diagGetLogs: () => Promise<Array<{ ts: string; level: string; source: string; message: string }>>;
