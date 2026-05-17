@@ -1,15 +1,23 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
 contextBridge.exposeInMainWorld('electronAPI', {
-  sendMessage: (channel: string, data: any) => {
-    ipcRenderer.send(channel, data);
+  chatSend: (data: string | { message: string; threadId?: string }) => {
+    ipcRenderer.send('chat:send', data);
   },
-  onMessage: (channel: string, callback: (data: any) => void) => {
-    const subscription = (_event: any, ...args: any[]) => callback(...args);
-    ipcRenderer.on(channel, subscription);
-    return () => {
-      ipcRenderer.removeListener(channel, subscription);
-    };
+  onChatChunk: (callback: (data: string) => void) => {
+    const handler = (_event: any, data: string) => callback(data);
+    ipcRenderer.on('chat:chunk', handler);
+    return () => { ipcRenderer.removeListener('chat:chunk', handler); };
+  },
+  onChatDone: (callback: () => void) => {
+    const handler = () => callback();
+    ipcRenderer.on('chat:done', handler);
+    return () => { ipcRenderer.removeListener('chat:done', handler); };
+  },
+  onChatError: (callback: (err: string) => void) => {
+    const handler = (_event: any, err: string) => callback(err);
+    ipcRenderer.on('chat:error', handler);
+    return () => { ipcRenderer.removeListener('chat:error', handler); };
   },
   hideWindow: () => {
     ipcRenderer.send('window:hide');

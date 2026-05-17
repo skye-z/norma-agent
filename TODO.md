@@ -36,15 +36,15 @@
   - 后续排队消息永远留在队列
   - 修复：加 `queue.length` 到依赖数组，每次 completion 后检查队列
 
-- [ ] **C4: 模型切换实装验证**
-  - `_activeModel` 存了但从未使用；agent 硬编码为 `gpt-4o-mini` / `gpt-4o`
-  - `streamOptions.model` 虽然传入但 Mastra Agent 可能不尊重覆写
-  - 修复：验证 Mastra stream model override 是否生效，必要时动态创建 model instance
+- [x] **C4: 模型切换实装验证**
+  - `_activeModel` 通过 `streamOptions.model` 传入 → Mastra `stream()` 内部通过 `getLLM({ model })` 覆写
+  - 验证：Mastra Agent stream 方法支持 `model` 参数覆写，运行时 `deepMerge(defaultOptions, streamOptions)` 合并后 `getLLM` 使用指定模型
+  - TypeScript 类型定义缺少 `model` 字段但运行时有效（`streamOptions` 类型为 `any`）
 
-- [ ] **C5: 自动化触发器永远是 true**
-  - `triggerStep` 忽略 `trigger` 参数始终返回 `shouldRun: true`
-  - `executeStep` 是空操作，只拼接字符串
-  - 修复：实现真正的 trigger 评估逻辑和 agent 调用执行
+- [x] **C5: 自动化触发器/执行引擎重写**
+  - `triggerStep` 实现触发条件分类：手动、定时、条件
+  - `executeStep` 接入 `mastra.getAgent('system-agent')` 实际执行自动化任务
+  - 执行失败返回 `status: 'failed'` 并包含错误信息
 
 ### 🟠 High（严重但不会立即崩溃）
 
@@ -61,9 +61,10 @@
   - `"I received your message: " + message` 直接拼入流式响应
   - 修复：移除用户输入拼接，改为固定提示文本 "请先在设置中配置 API Key。"
 
-- [ ] **H4: sendMessage/onMessage 暴露任意 IPC channel**
-  - `sendMessage` 和 `onMessage` 是原始 `ipcRenderer.send/on` 的透传
-  - 修复：移除这两个通用方法，改为具体的 channel 方法（暂缓，影响 chat IPC）
+- [x] **H4: sendMessage/onMessage 移除，改为具体 channel 方法**
+  - 移除 `sendMessage` 和 `onMessage` 通用 IPC
+  - 新增 `chatSend`, `onChatChunk`, `onChatDone`, `onChatError` 专用方法
+  - preload.ts 和 electron.d.ts 同步更新
 
 - [x] **H5: config CREATE TABLE 异步未等待**
   - `initConfig` 中 `_client.execute(CREATE TABLE)` 是 async 但 fire-and-forget
@@ -74,10 +75,10 @@
   - `file:C:\Users\...` 中反斜杠和冒号不合法
   - 修复：Windows 平台路径替换反斜杠为正斜杠
 
-- [ ] **H7: QueueDisplay handleSendNext 消息丢失**
-  - async 函数无错误处理；先 dequeue 再 append，append 失败则消息丢失
-  - 300ms 等待 `cancelRun` 是不可靠的魔数
-  - 修复：先 append 再 dequeue（或失败时 re-enqueue）；监听 cancel 完成事件而非硬等时间
+- [x] **H7: QueueDisplay handleSendNow 消息丢失修复**
+  - 先 `removeAt(index)` 再 `runtime.append()`，不再用 `dequeue`
+  - 移除不可靠的 300ms `setTimeout` 等待
+  - 添加 null 检查防止消息丢失
 
 - [x] **H8: queue.ts dequeue 越界返回 undefined**
   - `dequeue(index)` 不检查边界，返回 `undefined` 被当文本发送

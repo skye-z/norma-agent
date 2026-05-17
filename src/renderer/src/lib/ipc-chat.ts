@@ -83,8 +83,7 @@ export function createIpcChatModel(getThreadId?: () => string | undefined) {
         }
       };
 
-      const unsubscribeChunk = window.electronAPI.onMessage(
-        "chat:chunk",
+      const unsubscribeChunk = window.electronAPI.onChatChunk(
         (raw: string) => {
           try {
             const chunk: StreamChunk = JSON.parse(raw);
@@ -95,22 +94,20 @@ export function createIpcChatModel(getThreadId?: () => string | undefined) {
         },
       );
 
-      const unsubscribeDone = window.electronAPI.onMessage(
-        "chat:done",
+      const unsubscribeDone = window.electronAPI.onChatDone(
         () => {
           pushToQueue({ type: "done" });
         },
       );
 
-      const unsubscribeError = window.electronAPI.onMessage(
-        "chat:error",
+      const unsubscribeError = window.electronAPI.onChatError(
         (err: string) => {
           pushToQueue({ type: "error", message: err });
         },
       );
 
       const threadId = getThreadId?.();
-      window.electronAPI.sendMessage("chat:send", threadId ? { message: text, threadId } : text);
+      window.electronAPI.chatSend(threadId ? { message: text, threadId } : text);
 
       if (abortSignal) {
         const onAbort = () => {

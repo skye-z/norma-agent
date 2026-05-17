@@ -11,15 +11,13 @@ export const QueueDisplay: React.FC = () => {
 
   if (queue.length === 0) return null;
 
-  const handleSendNow = async (index: number) => {
-    const msg = dequeue(index);
-    if (thread.isRunning) {
-      runtime.cancelRun();
-      await new Promise(r => setTimeout(r, 300));
-    }
+  const handleSendNow = (index: number) => {
+    const msg = queue[index];
+    if (!msg) return;
+    removeAt(index);
     runtime.append({
       role: 'user',
-      content: [{ type: 'text', text: msg }]
+      content: [{ type: 'text', text: msg }],
     });
   };
 

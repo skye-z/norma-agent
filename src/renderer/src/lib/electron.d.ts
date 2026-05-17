@@ -1,8 +1,11 @@
 declare global {
   interface Window {
     electronAPI: {
-      sendMessage: (channel: string, data: any) => void;
-      onMessage: (channel: string, callback: (data: any) => void) => () => void;
+      chatSend: (data: string | { message: string; threadId?: string }) => void;
+      onChatChunk: (callback: (data: string) => void) => () => void;
+      onChatDone: (callback: () => void) => () => void;
+      onChatError: (callback: (err: string) => void) => () => void;
+      cancelChat: () => Promise<{ success: boolean }>;
       hideWindow: () => void;
       minimizeWindow: () => void;
       quitApp: () => void;
@@ -12,7 +15,6 @@ declare global {
       configSet: (key: string, value: any) => Promise<{ success: boolean; error?: string }>;
       configDelete: (key: string) => Promise<{ success: boolean; error?: string }>;
       configGetAll: () => Promise<Record<string, any>>;
-      cancelChat: () => Promise<{ success: boolean }>;
       invokeProviderPresets: () => Promise<any[]>;
       testProviderConnectivity: (config: any) => Promise<{ success: boolean; error?: string; latency?: number }>;
       fetchProviderModels: (config: any) => Promise<{ success: boolean; models?: any[]; error?: string }>;
