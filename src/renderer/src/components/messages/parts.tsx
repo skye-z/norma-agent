@@ -13,17 +13,26 @@ export const MessageMetaDisplay: React.FC = () => {
   const message = useMessage();
   const msgIdx = (message as any).index ?? 0;
   const meta = getMessageMeta(msgIdx) ?? (message as any).metadata?.custom;
-  if (!meta) return null;
+  const hasValidMeta = meta && typeof meta.totalStreamMs === "number" && !Number.isNaN(meta.totalStreamMs) && meta.totalStreamMs > 0;
+  if (!hasValidMeta) return null;
 
-  const formatMs = (ms: number) =>
-    ms < 1000 ? `${Math.round(ms)}ms` : `${(ms / 1000).toFixed(1)}s`;
+  const formatMs = (ms: number) => {
+    if (!ms || Number.isNaN(ms)) return "";
+    return ms < 1000 ? `${Math.round(ms)}ms` : `${(ms / 1000).toFixed(1)}s`;
+  };
   const modelShort = meta.model ? meta.model.split('/').pop() || meta.model : '';
-  const fmtTok = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(1)}K` : String(n);
+  const fmtTok = (n: number) => {
+    if (!n || Number.isNaN(n)) return "";
+    return n >= 1000 ? `${(n / 1000).toFixed(1)}K` : String(n);
+  };
+
+  const durationText = formatMs(meta.totalStreamMs);
+  if (!durationText) return null;
 
   return (
     <span className="inline-flex items-center gap-1 relative">
       <span className="text-[9px] text-norma-textDim font-mono">
-        {formatMs(meta.totalStreamMs)}
+        {durationText}
       </span>
       <button
         onClick={(e) => { e.stopPropagation(); setShowInfo(!showInfo); }}
@@ -37,11 +46,11 @@ export const MessageMetaDisplay: React.FC = () => {
       {showInfo && (
         <div className="absolute left-0 bottom-full mb-1 rounded-lg bg-[#1a1a1f] border border-white/[0.08] shadow-xl px-3 py-2 z-50 text-[9px] font-mono space-y-1 min-w-[160px]" onClick={(e) => e.stopPropagation()}>
           {modelShort && <div className="flex justify-between gap-3"><span className="text-norma-textDim">模型</span><span className="text-norma-text">{modelShort}</span></div>}
-          {meta.promptTokens > 0 && <div className="flex justify-between gap-3"><span className="text-norma-textDim">输入</span><span className="text-norma-text">{fmtTok(meta.promptTokens)}</span></div>}
-          {meta.completionTokens > 0 && <div className="flex justify-between gap-3"><span className="text-norma-textDim">输出</span><span className="text-norma-text">{fmtTok(meta.completionTokens)}</span></div>}
-          {meta.totalTokens > 0 && <div className="flex justify-between gap-3"><span className="text-norma-textDim">总计</span><span className="text-norma-text">{fmtTok(meta.totalTokens)}</span></div>}
-          {meta.firstTokenMs > 0 && <div className="flex justify-between gap-3"><span className="text-norma-textDim">首字延迟</span><span className="text-norma-text">{formatMs(meta.firstTokenMs)}</span></div>}
-          <div className="flex justify-between gap-3"><span className="text-norma-textDim">总耗时</span><span className="text-norma-text">{formatMs(meta.totalStreamMs)}</span></div>
+          {meta.promptTokens > 0 && !Number.isNaN(meta.promptTokens) && <div className="flex justify-between gap-3"><span className="text-norma-textDim">输入</span><span className="text-norma-text">{fmtTok(meta.promptTokens)}</span></div>}
+          {meta.completionTokens > 0 && !Number.isNaN(meta.completionTokens) && <div className="flex justify-between gap-3"><span className="text-norma-textDim">输出</span><span className="text-norma-text">{fmtTok(meta.completionTokens)}</span></div>}
+          {meta.totalTokens > 0 && !Number.isNaN(meta.totalTokens) && <div className="flex justify-between gap-3"><span className="text-norma-textDim">总计</span><span className="text-norma-text">{fmtTok(meta.totalTokens)}</span></div>}
+          {meta.firstTokenMs > 0 && !Number.isNaN(meta.firstTokenMs) && <div className="flex justify-between gap-3"><span className="text-norma-textDim">首字延迟</span><span className="text-norma-text">{formatMs(meta.firstTokenMs)}</span></div>}
+          <div className="flex justify-between gap-3"><span className="text-norma-textDim">总耗时</span><span className="text-norma-text">{durationText}</span></div>
         </div>
       )}
     </span>

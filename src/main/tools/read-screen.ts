@@ -69,7 +69,7 @@ async function captureScreen(targetWindow?: string): Promise<string> {
 export const readScreenTool = createTool({
   id: 'read_screen',
   description:
-    'Capture a screenshot of the current screen or a specific window. Returns the screenshot as an image. Use this tool when you need to see what is currently displayed on the user\'s screen.',
+    'Capture a screenshot of the current screen or a specific window. For vision-capable models, returns the actual image. For text-only models, returns a text placeholder. Use this tool when you need to check what is currently displayed on the user\'s screen.',
   inputSchema: z.object({
     reason: z
       .string()

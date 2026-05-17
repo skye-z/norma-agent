@@ -202,7 +202,7 @@ export async function setupIpc() {
 
       if (_providerConfig?.apiKey) {
         const pt = _providerConfig.providerType;
-        if (pt === 'openai' || pt === 'openrouter' || pt === 'custom') {
+        if (pt === 'openai' || pt === 'openrouter' || pt === 'custom' || pt === 'longcat' || pt === 'mimo') {
           savedEnv.OPENAI_API_KEY = process.env.OPENAI_API_KEY;
           savedEnv.OPENAI_BASE_URL = process.env.OPENAI_BASE_URL;
           process.env.OPENAI_API_KEY = _providerConfig.apiKey;
@@ -254,6 +254,34 @@ export async function setupIpc() {
       const streamStartAt = Date.now();
       let firstTokenAt = 0;
       const activeModelName = _activeModel || 'openai/gpt-4o-mini';
+
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = typeof input === 'string' ? input : input.toString();
+        if (!url.includes('/responses') || !init?.body) {
+          return originalFetch(input, init);
+        }
+        try {
+          const bodyText = typeof init.body === 'string' ? init.body : await new Response(init.body).text();
+          const body = JSON.parse(bodyText);
+          if (body.input && Array.isArray(body.input)) {
+            for (const msg of body.input) {
+              if (msg.content === undefined || msg.content === null) {
+                msg.content = '';
+              }
+            }
+            const devIdx = body.input.findIndex((m: any) => m.role === 'developer');
+            if (devIdx >= 0) {
+              const devMsg = body.input[devIdx];
+              body.instructions = typeof devMsg.content === 'string' ? devMsg.content : JSON.stringify(devMsg.content);
+              body.input.splice(devIdx, 1);
+            }
+          }
+          return originalFetch(input, { ...init, body: JSON.stringify(body) });
+        } catch {
+          return originalFetch(input, init);
+        }
+      };
 
       const response = await agent.stream(message, streamOptions);
       let chunkCount = 0;
@@ -311,7 +339,7 @@ export async function setupIpc() {
           appendLog('error', 'chat', `Stream 错误: ${errMsg}`);
           event.sender.send('chat:error', errMsg.slice(0, 500));
           break;
-        } else if (chunk.type === 'start' || chunk.type === 'step-start' || chunk.type === 'step-finish' || chunk.type === 'finish' || chunk.type === 'text-start' || chunk.type === 'text-end' || chunk.type === 'reasoning-start' || chunk.type === 'reasoning-end' || chunk.type === 'source-start' || chunk.type === 'source-end') {
+        } else if (chunk.type === 'start' || chunk.type === 'step-start' || chunk.type === 'step-finish' || chunk.type === 'finish' || chunk.type === 'text-start' || chunk.type === 'text-end' || chunk.type === 'reasoning-start' || chunk.type === 'reasoning-end' || chunk.type === 'source-start' || chunk.type === 'source-end' || chunk.type === 'tool-call-delta' || chunk.type === 'tool-call-input-streaming-end') {
         } else {
           appendLog('warn', 'chat', `未知 chunk 类型: ${chunk.type} data=${JSON.stringify(chunk).slice(0, 200)}`);
         }
@@ -335,10 +363,13 @@ export async function setupIpc() {
 
       const totalStreamMs = Date.now() - streamStartAt;
       const firstTokenMs = firstTokenAt > 0 ? firstTokenAt - streamStartAt : 0;
+      const { getDisplayModelName } = await import('../tools/model-capabilities');
+      const displayName = getDisplayModelName(activeModelName);
       event.sender.send('chat:chunk', JSON.stringify({
         type: 'metadata',
         metadata: {
           model: activeModelName,
+          displayName: displayName || activeModelName.split('/').pop() || activeModelName,
           totalStreamMs,
           firstTokenMs,
           promptTokens: usage?.inputTokens ?? 0,
@@ -355,9 +386,13 @@ export async function setupIpc() {
       event.sender.send('chat:done');
     } catch (error) {
       console.error('Agent error:', error);
-      event.sender.send('chat:error', String(error));
-      appendLog('error', 'chat', `Agent 错误: ${String(error)}`);
+      const errDetail = (error as any)?.message || String(error);
+      const errBody = (error as any)?.responseBody || (error as any)?.cause?.message || '';
+      const cleanErr = errBody ? `${errDetail}: ${errBody}` : errDetail;
+      event.sender.send('chat:error', cleanErr.slice(0, 300));
+      appendLog('error', 'chat', `Agent 错误: ${cleanErr}`.slice(0, 300));
     } finally {
+      globalThis.fetch = originalFetch;
       if (_activeChatAbort === abort) _activeChatAbort = null;
       for (const [k, v] of Object.entries(savedEnv)) {
         if (v === undefined) delete (process.env as any)[k];

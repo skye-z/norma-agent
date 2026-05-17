@@ -11,7 +11,6 @@ import { WindowControls } from "./WindowControls";
 import { ReadScreenTool } from "./tools/ReadScreenTool";
 import { ExecuteActionTool } from "./tools/ExecuteActionTool";
 import {
-  ContextDisplay,
   AutoScrollHelper,
   WelcomeSuggestions,
 } from "./chat-helpers";
@@ -204,7 +203,6 @@ const ChatAreaInner: React.FC = () => {
           <>
             <ReadScreenTool />
             <ExecuteActionTool />
-            <ContextDisplay />
 
             <ThreadPrimitive.Root className="flex-1 flex flex-col min-h-0">
               <AutoQueueSender />
