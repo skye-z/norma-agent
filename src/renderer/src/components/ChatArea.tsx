@@ -146,10 +146,13 @@ const ChatAreaInner: React.FC = () => {
   };
 
   const handleSwitchSession = (id: string) => {
-    setSessions((prev) => prev.map((s) => ({ ...s, active: s.id === id })));
+    setSessions((prev) => {
+      const next = prev.map((s) => ({ ...s, active: s.id === id }));
+      const session = next.find((s) => s.id === id);
+      setActiveThreadId(session?.threadId);
+      return next;
+    });
     setActiveSessionId(id);
-    const session = sessions.find((s) => s.id === id);
-    setActiveThreadId(session?.threadId);
     setActiveNav("chat");
   };
 

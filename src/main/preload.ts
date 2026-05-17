@@ -38,6 +38,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   configDelete: (key: string) => ipcRenderer.invoke('config:delete', key),
   configGetAll: () => ipcRenderer.invoke('config:getAll'),
 
+  onConfigChanged: (callback: (key: string) => void) => {
+    const handler = (_event: any, key: string) => callback(key);
+    ipcRenderer.on('config:changed', handler);
+    return () => { ipcRenderer.removeListener('config:changed', handler); };
+  },
+
   cancelChat: () => ipcRenderer.invoke('chat:cancel'),
 
   invokeProviderPresets: () => ipcRenderer.invoke('provider:presets'),

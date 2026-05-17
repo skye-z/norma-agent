@@ -29,13 +29,28 @@ function syncActiveModelConfig() {
   }).catch(() => {});
 }
 
+const CONFIG_KEYS = ['norma-providers', 'norma-enabled-models'];
+
+function useConfigSync() {
+  React.useEffect(() => {
+    syncActiveModelConfig();
+    const unsub = (window as any).electronAPI?.onConfigChanged?.((key: string) => {
+      if (CONFIG_KEYS.includes(key)) {
+        syncActiveModelConfig();
+      }
+    });
+    return () => { unsub?.(); };
+  }, []);
+}
+
 export function IpcRuntime({ children }: { children: React.ReactNode }) {
   const ipcModel = React.useMemo(() => createIpcChatModel(), []);
-  React.useEffect(() => { syncActiveModelConfig(); }, []);
+  const dictationAdapter = React.useMemo(() => new WebSpeechDictationAdapter(), []);
+  useConfigSync();
   const runtime = useLocalRuntime(ipcModel, {
     maxSteps: getMaxSteps(3),
     adapters: {
-      dictation: new WebSpeechDictationAdapter(),
+      dictation: dictationAdapter,
     },
   });
   return (
@@ -47,11 +62,12 @@ export function IpcRuntime({ children }: { children: React.ReactNode }) {
 
 export function NormaRuntime({ children }: { children: React.ReactNode }) {
   const ipcModel = React.useMemo(() => createIpcChatModel(() => getActiveThreadId()), []);
-  React.useEffect(() => { syncActiveModelConfig(); }, []);
+  const dictationAdapter = React.useMemo(() => new WebSpeechDictationAdapter(), []);
+  useConfigSync();
   const runtime = useLocalRuntime(ipcModel, {
     maxSteps: getMaxSteps(5),
     adapters: {
-      dictation: new WebSpeechDictationAdapter(),
+      dictation: dictationAdapter,
     },
   });
 

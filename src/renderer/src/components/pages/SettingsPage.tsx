@@ -17,9 +17,9 @@ interface EnabledModel {
 
 const ModelTab: React.FC = () => {
   const [presets, setPresets] = useState<any[]>([]);
-  const [providers, setProviders] = useDbState<SavedProvider[]>("norma-providers", []);
-  const [enabledModels, setEnabledModels] = useDbState<EnabledModel[]>("norma-enabled-models", []);
-  const [cachedModels, setCachedModels] = useDbState<Record<string, any[]>>("norma-cached-models", {});
+  const [providers, setProviders, providersLoaded] = useDbState<SavedProvider[]>("norma-providers", []);
+  const [enabledModels, setEnabledModels, enabledLoaded] = useDbState<EnabledModel[]>("norma-enabled-models", []);
+  const [cachedModels, setCachedModels, cachedLoaded] = useDbState<Record<string, any[]>>("norma-cached-models", {});
   const [selectedProviderId, setSelectedProviderId] = useState<string>("");
   const [showAddMenu, setShowAddMenu] = useState(false);
 
@@ -139,6 +139,16 @@ const ModelTab: React.FC = () => {
     enabledModels.some((m) => m.providerId === selectedProviderId && m.modelId === modelId);
 
   const notEnabledModels = fetchedModels.filter((m: any) => !isModelOn(m.id));
+
+  const loaded = providersLoaded && enabledLoaded && cachedLoaded;
+
+  if (!loaded) {
+    return (
+      <div className="flex h-full min-h-0 items-center justify-center">
+        <div className="w-5 h-5 border-2 border-norma-accent/30 border-t-norma-accent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-full min-h-0">

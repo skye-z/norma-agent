@@ -2,6 +2,7 @@ import { LibSQLVector } from '@mastra/libsql';
 import { ModelRouterEmbeddingModel } from '@mastra/core/llm';
 import { MDocument } from '@mastra/rag';
 import { embedMany, embed } from 'ai';
+import { createClient } from '@libsql/client';
 import * as path from 'path';
 
 const INDEX_NAME = 'norma_knowledge';
@@ -9,15 +10,16 @@ const EMBEDDING_DIMENSION = 1536;
 
 let _vector: LibSQLVector | null = null;
 let _embedder: ModelRouterEmbeddingModel | null = null;
+let _dbUrl: string = '';
 
 export function initKnowledge(dbDir?: string) {
-  const dbPath = dbDir
+  _dbUrl = dbDir
     ? `file:${path.join(dbDir, 'norma-memory.db')}`
     : 'file:norma-memory.db';
 
   _vector = new LibSQLVector({
     id: 'norma-knowledge-vector',
-    url: dbPath,
+    url: _dbUrl,
   });
 
   if (process.env.OPENAI_API_KEY) {
@@ -27,12 +29,10 @@ export function initKnowledge(dbDir?: string) {
 
 async function ensureIndex() {
   if (!_vector) throw new Error('Knowledge not initialized');
-  try {
-    const indexes = await _vector.listIndexes();
-    if (!indexes.includes(INDEX_NAME)) {
-      await _vector.createIndex({ indexName: INDEX_NAME, dimension: EMBEDDING_DIMENSION });
-    }
-  } catch {}
+  const indexes = await _vector.listIndexes();
+  if (!indexes.includes(INDEX_NAME)) {
+    await _vector.createIndex({ indexName: INDEX_NAME, dimension: EMBEDDING_DIMENSION });
+  }
 }
 
 export async function ingestDocument(
@@ -102,28 +102,32 @@ export async function listDocuments(): Promise<Array<{ docId: string; chunkCount
 
   await ensureIndex();
 
-  const results = await _vector.query({
-    indexName: INDEX_NAME,
-    queryVector: new Array(EMBEDDING_DIMENSION).fill(0),
-    topK: 1000,
-  });
-
-  const docMap = new Map<string, { name: string; date: string; count: number }>();
-  for (const r of results) {
-    const m = r.metadata || {};
-    const docId = m.docId || 'unknown';
-    if (!docMap.has(docId)) {
-      docMap.set(docId, { name: m.name || docId, date: m.date || '', count: 0 });
+  const client = createClient({ url: _dbUrl });
+  try {
+    const rs = await client.execute({
+      sql: `SELECT id, metadata FROM "${INDEX_NAME}"`,
+    });
+    const docMap = new Map<string, { name: string; date: string; count: number }>();
+    for (const row of rs.rows) {
+      let meta: Record<string, any> = {};
+      try {
+        meta = typeof row.metadata === 'string' ? JSON.parse(row.metadata) : (row.metadata as any);
+      } catch {}
+      const docId = meta.docId || 'unknown';
+      if (!docMap.has(docId)) {
+        docMap.set(docId, { name: meta.name || docId, date: meta.date || '', count: 0 });
+      }
+      docMap.get(docId)!.count++;
     }
-    docMap.get(docId)!.count++;
+    return Array.from(docMap.entries()).map(([docId, info]) => ({
+      docId,
+      name: info.name,
+      date: info.date,
+      chunkCount: info.count,
+    }));
+  } finally {
+    await client.close();
   }
-
-  return Array.from(docMap.entries()).map(([docId, info]) => ({
-    docId,
-    name: info.name,
-    date: info.date,
-    chunkCount: info.count,
-  }));
 }
 
 export async function deleteDocument(docId: string): Promise<boolean> {

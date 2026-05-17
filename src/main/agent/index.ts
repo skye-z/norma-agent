@@ -69,7 +69,7 @@ export async function initAgent(dbDir?: string) {
     }),
     embedder: process.env.OPENAI_API_KEY 
       ? new ModelRouterEmbeddingModel('openai/text-embedding-3-small') 
-      : ({ embed: async () => [] } as any),
+      : ({ embed: async () => { console.warn('[Memory] No OPENAI_API_KEY — semantic recall disabled, returning empty embeddings'); return []; } } as any),
     options: {
       lastMessages: 20,
       semanticRecall: {

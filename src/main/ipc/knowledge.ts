@@ -1,12 +1,14 @@
 import { ipcMain, dialog, BrowserWindow } from 'electron';
-import * as fs from 'fs';
+import * as fs from 'fs/promises';
 import * as path from 'path';
+
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
 export function setupKnowledgeIpc() {
   ipcMain.handle('knowledge:ingest', async (event, { name, text }: { name: string; text: string }) => {
     try {
       const { ingestDocument } = await import('../knowledge');
-      const docId = `doc_${Date.now()}`;
+      const docId = `doc_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
       const result = await ingestDocument(docId, text, {
         name,
         date: new Date().toISOString(),
@@ -34,9 +36,14 @@ export function setupKnowledgeIpc() {
       const { ingestDocument } = await import('../knowledge');
       const results = [];
       for (const filePath of result.filePaths) {
-        const text = fs.readFileSync(filePath, 'utf-8');
+        const stat = await fs.stat(filePath);
+        if (stat.size > MAX_FILE_SIZE) {
+          results.push({ name: path.basename(filePath), docId: '', chunks: 0, error: `文件超过 5MB 限制 (${(stat.size / 1024 / 1024).toFixed(1)}MB)` });
+          continue;
+        }
+        const text = await fs.readFile(filePath, 'utf-8');
         const name = path.basename(filePath);
-        const docId = `doc_${Date.now()}_${path.basename(filePath, path.extname(filePath))}`;
+        const docId = `doc_${Date.now()}_${Math.random().toString(36).slice(2, 8)}_${path.basename(filePath, path.extname(filePath))}`;
         const res = await ingestDocument(docId, text, {
           name,
           date: new Date().toISOString(),
