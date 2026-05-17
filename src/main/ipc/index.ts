@@ -19,7 +19,7 @@ export type StreamChunk =
   | { type: 'step-finish' }
   | { type: 'finish' };
 
-export function setupIpc() {
+export async function setupIpc() {
   setupProviderIpc();
   setupMemoryIpc();
   setupKnowledgeIpc();
@@ -27,18 +27,16 @@ export function setupIpc() {
   setupConfigIpc();
   setupDiagIpc();
 
-  (async () => {
-    try {
-      const savedModel = await getConfig('norma-active-model');
-      if (savedModel && typeof savedModel === 'string') {
-        _activeModel = savedModel;
-      }
-      const savedConfig = await getConfig('norma-active-provider-config');
-      if (savedConfig && typeof savedConfig === 'object') {
-        _providerConfig = savedConfig;
-      }
-    } catch {}
-  })();
+  try {
+    const savedModel = await getConfig('norma-active-model');
+    if (savedModel && typeof savedModel === 'string') {
+      _activeModel = savedModel;
+    }
+    const savedConfig = await getConfig('norma-active-provider-config');
+    if (savedConfig && typeof savedConfig === 'object') {
+      _providerConfig = savedConfig;
+    }
+  } catch {}
 
   ipcMain.handle('system:version', () => {
     return {

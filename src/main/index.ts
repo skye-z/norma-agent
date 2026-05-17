@@ -35,7 +35,7 @@ if (!gotTheLock) {
 
   app.whenReady().then(async () => {
     await initConfig(app.getPath('userData'));
-    setupIpc();
+    await setupIpc();
     createTray();
     createWindow();
     createCommandBarWindow();

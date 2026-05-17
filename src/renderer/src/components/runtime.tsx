@@ -9,22 +9,25 @@ import {
 import { createIpcChatModel } from "../lib/ipc-chat";
 import { getActiveThreadId } from "../lib/shared";
 
-function syncActiveModelConfig() {
-  (window as any).electronAPI?.configGet?.("norma-providers").then((providersRaw: any) => {
+function syncActiveModelConfig(force?: boolean) {
+  Promise.all([
+    (window as any).electronAPI?.getActiveModel?.() ?? Promise.resolve(null),
+    (window as any).electronAPI?.configGet?.("norma-providers") ?? Promise.resolve(null),
+    (window as any).electronAPI?.configGet?.("norma-enabled-models") ?? Promise.resolve(null),
+  ]).then(([activeModel, providersRaw, enabledRaw]) => {
+    if (activeModel && !force) return;
     const providers = Array.isArray(providersRaw) ? providersRaw : [];
-    return (window as any).electronAPI?.configGet?.("norma-enabled-models").then((enabledRaw: any) => {
-      const enabled = Array.isArray(enabledRaw) ? enabledRaw : [];
-      if (enabled.length === 0) return;
-      const em = enabled[0];
-      const prov = providers.find((p: any) => p.id === em.providerId);
-      if (!prov) return;
-      const providerType = prov.presetId === 'custom' ? 'openai' : prov.presetId;
-      const modelString = `${providerType}/${em.modelId}`;
-      (window as any).electronAPI?.setActiveModel?.(modelString, {
-        providerType,
-        baseUrl: prov.baseUrl || '',
-        apiKey: prov.apiKey || '',
-      });
+    const enabled = Array.isArray(enabledRaw) ? enabledRaw : [];
+    if (enabled.length === 0) return;
+    const em = enabled[0];
+    const prov = providers.find((p: any) => p.id === em.providerId);
+    if (!prov) return;
+    const providerType = prov.presetId === 'custom' ? 'openai' : prov.presetId;
+    const modelString = `${providerType}/${em.modelId}`;
+    (window as any).electronAPI?.setActiveModel?.(modelString, {
+      providerType,
+      baseUrl: prov.baseUrl || '',
+      apiKey: prov.apiKey || '',
     });
   }).catch(() => {});
 }
@@ -36,7 +39,7 @@ function useConfigSync() {
     syncActiveModelConfig();
     const unsub = (window as any).electronAPI?.onConfigChanged?.((key: string) => {
       if (CONFIG_KEYS.includes(key)) {
-        syncActiveModelConfig();
+        syncActiveModelConfig(true);
       }
     });
     return () => { unsub?.(); };
