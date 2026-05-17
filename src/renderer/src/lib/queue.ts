@@ -8,7 +8,7 @@ function notify() {
 }
 
 export function useMessageQueue() {
-  const [queue, setQueue] = useState(messageQueue);
+  const [queue, setQueue] = useState<string[]>([]);
 
   useEffect(() => {
     const listener = () => setQueue([...messageQueue]);
@@ -19,18 +19,20 @@ export function useMessageQueue() {
   }, []);
 
   const enqueue = (msg: string) => {
+    if (!msg.trim()) return;
     messageQueue.push(msg);
     notify();
   };
 
-  const dequeue = (index: number) => {
+  const dequeue = (index: number): string | null => {
+    if (index < 0 || index >= messageQueue.length) return null;
     const msg = messageQueue[index];
     messageQueue.splice(index, 1);
     notify();
     return msg;
   };
 
-  const dequeueFirst = () => {
+  const dequeueFirst = (): string | null => {
     if (messageQueue.length === 0) return null;
     const msg = messageQueue.shift()!;
     notify();

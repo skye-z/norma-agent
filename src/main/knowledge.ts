@@ -64,10 +64,10 @@ export async function ingestDocument(
     indexName: INDEX_NAME,
     vectors: embeddings,
     metadata: chunks.map((c, i) => ({
+      ...metadata,
       text: c.text,
       docId,
       chunkIndex: i,
-      ...metadata,
     })),
     ids,
   });

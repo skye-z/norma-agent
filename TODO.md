@@ -1,68 +1,276 @@
 # Norma MVP 实施计划
 
-基于 PRD 设计，MVP (Minimum Viable Product) 划分为 10 个可运行的版本迭代。每个版本都保证项目能够正常启动，逐步叠加核心能力。
+基于 PRD 设计，MVP (Minimum Viable Product) 划分为 10+ 个可运行的版本迭代。每个版本都保证项目能够正常启动，逐步叠加核心能力。
 
 - [x] **v0.1 - 骨架搭建 (Project Init)**
-  - [x] 初始化 Node.js 24 + pnpm 项目。
-  - [x] 配置 TypeScript 环境。
-  - [x] 集成 Electron 42 框架，实现最基础的 Hello World 主窗口显示。
-  - [x] 配置基本的开发脚本 (start, build)。
-
 - [x] **v0.2 - 核心 UI 接入 (UI Shell)**
-  - [x] 在渲染进程中接入 AssistantUI 框架。
-  - [x] 实现基础的聊天气泡、输入框交互界面。
-  - [x] 构建主进程 (Main) 与渲染进程 (Renderer) 的 IPC (进程间通信) 桥梁。
-
 - [x] **v0.3 - 大脑接入 (Mastra Base)**
-  - [x] 在主进程中集成 Mastra 框架。
-  - [x] 实例化一个基础的 Router Agent，接入 LLM (如 OpenAI/Anthropic 接口)。
-  - [x] 实现用户在前端发送消息 -> IPC 转发 -> Mastra Agent 处理 -> 流式返回 UI 的完整链路。
-
 - [x] **v0.4 - 双模态 UI (Command Bar)**
-  - [x] 开发全局唤出命令栏的独立透明窗口。
-  - [x] 注册全局系统快捷键 (如 Cmd+Space 变体) 控制命令栏的显示/隐藏。
-  - [x] 实现命令栏输入内容与后台 Agent 的快捷交互及结果轻量化展示。
-
 - [x] **v0.5 - 前端页面完善 (Frontend Pages)**
-  - [x] 实现导航路由：`activeNav` 切换右侧内容区域渲染不同页面
-  - [x] 自动化页面：任务列表、创建/启用/停用自动化工作流的 UI 骨架
-  - [x] 能力页面：展示 Agent 已注册工具/技能的卡片网格（read_screen、execute_action 等）
-  - [x] 知识库页面：文档列表、上传入口、搜索/检索 UI 骨架
-  - [x] 设置页面：模型选择、API Key 管理、快捷键显示、主题/关于信息
-  - [x] 会话管理：新建会话、删除会话、切换会话（前端状态管理）
-
 - [x] **v0.6 - 兜底引擎 V1：感知 (Native Sensing)**
-  - [x] 集成屏幕截图相关 Node/Electron 原生能力 (如 `desktopCapturer`)。
-  - [x] 将截图能力封装为 Mastra Tool (工具)，让 Agent 能够根据指令"看"屏幕。
-  - [x] (可选) 接入轻量级本地 OCR 或依赖大模型 Vision 能力解析截图内容。
-  - [x] 更新 Chat IPC 使用 `fullStream` 以支持 tool-call/tool-result 结构化流传输。
-  - [x] 测试完整的截屏 → Agent 分析 → 返回结果流程。
-
 - [x] **v0.7 - 兜底引擎 V2：控制 (Native Action)**
-  - [x] 引入 `robotjs` 或 `nut.js` 库，获得操作系统的键鼠控制权限。
-  - [x] 封装基础操作工具 (鼠标移动、点击、键盘输入) 给 Agent 调用。
-  - [x] 测试 Agent 根据屏幕截图坐标，执行一次完整的“点击指定位置”的自动化流。
-
 - [x] **v0.8 - 扩展生态 (MCP Support)**
-  - [x] 在主进程实现基础的 MCP Client 协议。
-  - [x] 编写代码支持连接一个本地的测试 MCP Server (例如读取本地文件系统的 MCP)。
-  - [x] 让 Norma 能够通过 MCP 协议感知并调用 Server 提供的工具。
-
 - [x] **v0.9 - 记忆系统初探 (Semantic Memory)**
-  - [x] 集成 `@mastra/memory` + `@mastra/libsql` 本地 SQLite 存储。
-  - [x] 配置 Memory：LibSQLStore + LibSQLVector + OpenAI text-embedding-3-small 嵌入。
-  - [x] 启用 semanticRecall（语义召回）、workingMemory（工作记忆）、generateTitle（自动标题）。
-  - [x] 实现会话线程管理 IPC：创建/列出/获取/删除线程。
-  - [x] 更新 Chat IPC 支持 threadId，将 memory:{ thread, resource } 传递给 agent.stream()。
-  - [x] 前端会话系统与后端线程绑定：新建会话创建线程、删除会话删除线程、切换会话切换线程。
-  - [x] 跨会话持久化：Agent 记住用户偏好和过往对话上下文。
-
 - [x] **v0.10 - 群聊与工作流 (SubAgent & UI Reveal)**
-  - [x] 利用 Mastra 创建至少两个专门的 SubAgent (例如 `ResearchAgent`, `SystemAgent`)。
-  - [x] 实现 Router Agent 根据任务复杂度向 SubAgent 派发任务的逻辑。
-  - [x] 在主窗口 UI 侧增加“思考过程 (Thinking Panel)”折叠组件，展示内部 Agent 的对话和工具调用日志。
-
 - [x] **v0.11 - 自愈机制与打磨 (Self-Healing & Polish)**
-  - [x] 完善 Tool 调用的错误捕获机制 (try-catch std/err)。
-  - [x] 编写发生错误后 Agent 的重试 Prompt 模板，实现简单的闭环自修复逻辑。
-  - [x] 调整 UI 样式，统一主题，完成 Electron 应用的基础打包配置 (electron-builder)，输出可执行程序。
+
+---
+
+## v0.12 — 严重缺陷修复
+
+### 🔴 Critical（功能崩溃级）
+
+- [ ] **C1: `preload.ts` onMessage 监听器注册 bug**
+  - `onMessage` 多了一层 `() =>` 包装，返回值是 `() => (() => void)` 而非 `() => void`
+  - 后果：`chat:chunk/done/error` 监听器永远不注册，聊天流式响应完全不工作
+  - "取消订阅"时反向创建新监听器，每次聊天泄漏 3 个监听器
+  - 修复：移除多余 `() =>`，让函数体立即执行
+
+- [ ] **C2: 并发 chat:send 无隔离**
+  - 两条流式响应交替往同一窗口发 `chat:chunk`，输出乱码
+  - 第一条 `chat:done` 终止渲染端生成器，第二条后续 chunk 丢失
+  - 修复：加请求 ID 或互斥锁，新一代请求取消旧请求
+
+- [ ] **C3: AutoQueueSender 只发第一条排队消息**
+  - `useEffect` 依赖 `[thread.isRunning]`，`isRunning` 变 false 时只触发一次 `dequeueFirst`
+  - 后续排队消息永远留在队列
+  - 修复：dequeue 后继续检查队列，或改用 `while (queue.length > 0)` 循环
+
+- [ ] **C4: 模型切换完全无效**
+  - `_activeModel` 存了但从未使用；agent 硬编码为 `gpt-4o-mini` / `gpt-4o`
+  - `streamOptions.model` 虽然传入但 Mastra Agent 可能不尊重覆写
+  - 修复：验证 Mastra stream model override 是否生效，必要时动态创建 model instance
+
+- [ ] **C5: 自动化触发器永远是 true**
+  - `triggerStep` 忽略 `trigger` 参数始终返回 `shouldRun: true`
+  - `executeStep` 是空操作，只拼接字符串
+  - 修复：实现真正的 trigger 评估逻辑和 agent 调用执行
+
+### 🟠 High（严重但不会立即崩溃）
+
+- [ ] **H1: window 操作目标错误窗口**
+  - `getFocusedWindow()` 可能操作命令栏而非主窗口
+  - 修复：改 `BrowserWindow.fromWebContents(event.sender)`
+
+- [ ] **H2: API key 并发覆盖 + 环境变量破坏**
+  - `process.env` 写入在并发请求时互相覆盖
+  - `delete process.env.OPENAI_BASE_URL` 破坏用户 .env 配置
+  - 修复：不用 process.env，改用 per-request 传参；不删原值而是覆盖后恢复
+
+- [ ] **H3: fallback 响应拼接用户输入（XSS 向量）**
+  - `"I received your message: " + message` 直接拼入流式响应
+  - 修复：移除用户输入拼接，改为固定提示文本
+
+- [ ] **H4: sendMessage/onMessage 暴露任意 IPC channel**
+  - `sendMessage` 和 `onMessage` 是原始 `ipcRenderer.send/on` 的透传
+  - 修复：移除这两个通用方法，改为具体的 channel 方法
+
+- [ ] **H5: config CREATE TABLE 异步未等待**
+  - `initConfig` 中 `_client.execute(CREATE TABLE)` 是 async 但 `.catch(() => {})` fire-and-forget
+  - 后续 `setConfig` 可能在表不存在时写入丢失
+  - 修复：改为 `await _client.execute(...)` 并在 `initConfig` 返回前确保表存在
+
+- [ ] **H6: Windows 路径 file: URL 未转义**
+  - `file:C:\Users\...` 中反斜杠和冒号不合法
+  - 修复：使用 `pathToFileURL()` 或手动替换反斜杠为正斜杠
+
+- [ ] **H7: QueueDisplay handleSendNext 消息丢失**
+  - async 函数无错误处理；先 dequeue 再 append，append 失败则消息丢失
+  - 300ms 等待 `cancelRun` 是不可靠的魔数
+  - 修复：先 append 再 dequeue（或失败时 re-enqueue）；监听 cancel 完成事件而非硬等时间
+
+- [ ] **H8: queue.ts dequeue 越界返回 undefined**
+  - `dequeue(index)` 不检查边界，返回 `undefined` 被当文本发送
+  - 修复：加边界检查，越界时返回 null 并在调用方处理
+
+- [ ] **H9: chat:cancel 未实现**
+  - 用户点停止只取消前端监听器，后端继续消耗 token 生成响应
+  - 修复：实现 `chat:cancel` IPC，后端收到后调用 abort controller 终止流
+
+- [ ] **H10: ModelSelector selectedIdx 越界 crash**
+  - `models` 列表缩短后 `selectedIdx` 指向不存在的元素
+  - 修复：models 变化时 clamp selectedIdx 到合法范围
+
+### 🟡 Medium（逻辑漏洞/设计缺陷）
+
+- [ ] **M1: _activeModel/_providerConfig 全局变量无互斥**
+  - 多个 IPC 调用可同时读写
+  - 修复：加锁或使用 per-session context
+
+- [ ] **M2: config.ts getClient() 并发创建两个 Client**
+  - `_client` null 时两路并发均创建 Client，第一个连接泄漏
+  - 修复：加初始化锁或用单例 promise
+
+- [ ] **M3: config.ts setConfig 三元表达式无意义**
+  - `typeof value === 'string' ? JSON.stringify(value) : JSON.stringify(value)` 两分支相同
+  - 修复：直接 `JSON.stringify(value)`
+
+- [ ] **M4: configGetAll 泄露 API key**
+  - 返回所有配置含 API key，渲染进程可读
+  - 修复：过滤敏感字段，或限制 key 前缀
+
+- [ ] **M5: useDbState 首次渲染值闪烁**
+  - 初始值是空/默认，DB 数据异步加载后替换，造成闪烁
+  - 修复：使用 `loaded` flag 控制渲染，加载完成前显示骨架屏/空白
+
+- [ ] **M6: _state.activeThreadId 非响应式**
+  - 普通对象，React 无法追踪变化
+  - 修复：改用 React context 或 event emitter
+
+- [ ] **M7: syncActiveModelConfig 只跑一次**
+  - 依赖 `[]`，设置页改模型后不同步到后端
+  - 修复：监听 `norma-providers` / `norma-enabled-models` 变化重新同步
+
+- [ ] **M8: WebSpeechDictationAdapter 每次渲染重建**
+  - 修复：`useMemo` / `useRef`
+
+- [ ] **M9: handleSwitchSession 读取过期 sessions 闭包**
+  - `sessions.find()` 使用的是旧值
+  - 修复：用 `setSessions` 的 callback 形式或 `useRef`
+
+- [ ] **M10: 线程列表只同步一次**
+  - 创建/删除后本地与后端不同步
+  - 修复：加事件驱动或定时轮询同步
+
+- [ ] **M11: 无 API key 时 embedder 返回空数组**
+  - 语义搜索静默失败无提示
+  - 修复：搜索时检查返回条数，0 条时提示用户配置 API key
+
+- [ ] **M12: knowledge.ts listDocuments 用零向量查询**
+  - 返回结果随机
+  - 修复：改用 metadata 直查或独立文档表
+
+- [ ] **M13: ensureIndex 吞掉所有错误**
+  - 索引不存在时后续查询报不明确错误
+  - 修复：抛出或记录错误
+
+- [ ] **M14: readFileSync 阻塞主线程**
+  - 大文件导致 UI 卡死
+  - 修复：改 `await fs.promises.readFile()` + 文件大小限制
+
+- [ ] **M15: docId 用 Date.now() 毫秒精度并发冲突**
+  - 修复：加随机后缀或 UUID
+
+- [ ] **M16: metadata spread 可覆盖 docId/chunkIndex**
+  - 修复：将关键字段放在 spread 之后或过滤 metadata
+
+---
+
+## v0.13 — 前端功能实装
+
+以下功能已有 UI 但后端未实装或逻辑是空壳，需要完整接入。
+
+### 核心链路
+
+- [ ] **聊天取消机制**
+  - 前端 `ComposerPrimitive.Cancel` 点击后只断开前端监听器，后端继续消耗 token
+  - 需实现 `chat:cancel` IPC，后端收到后用 AbortController 终止 `agent.stream()`
+  - 前端 `ipc-chat.ts` 增加 abort 信号到 `run()` 参数，abort 时发 IPC 取消
+
+- [ ] **模型切换实装**
+  - 后端 `_activeModel` 虽存储但 agent.stream 从未使用
+  - 需验证 Mastra `agent.stream(msg, { model: modelString })` 是否真正覆写默认模型
+  - 若不支持，需在 stream 时动态创建 `new Model(modelString)` 实例传入
+
+- [ ] **并发消息隔离**
+  - 当前多消息并发会导致流式输出交替混乱
+  - 方案：为每个 chat:send 生成唯一 requestId，stream chunk 带 requestId，前端按 id 过滤
+  - 或：后端强制串行，新请求自动取消旧请求
+
+### 自动化系统
+
+- [ ] **触发器评估引擎**
+  - 当前 `triggerStep` 硬编码返回 `{ shouldRun: true }`
+  - 需实现触发器语法解析器：支持时间(cron)、事件(webhook)、条件表达式
+  - UI 端增加触发器类型选择和参数配置
+
+- [ ] **自动化执行引擎**
+  - 当前 `executeStep` 是空操作，只拼字符串
+  - 需接入 Agent 系统：创建独立 Agent 实例执行自动化任务
+  - 执行结果需持久化，支持历史查看
+
+- [ ] **自动化状态持久化**
+  - 当前自动化配置只在 config DB，创建/删除/启停没有后端存储
+  - 需设计 workflow 实例表：id、name、trigger、status、lastRun、result
+
+### 知识库系统
+
+- [ ] **文档列表准确获取**
+  - 当前用零向量做相似度搜索来列出所有文档，结果随机且不完整
+  - 需独立文档元数据表（docId、name、createdAt、chunkCount），ingest 时写入，delete 时删除
+
+- [ ] **文档大小/类型限制**
+  - 无文件大小限制，大文件可卡死主线程
+  - 无文件类型校验（All Files 允许任意类型）
+  - 需限制文件大小（如 5MB）、白名单扩展名、异步读取
+
+- [ ] **搜索结果展示增强**
+  - 当前搜索只显示 score 和 metadata，用户无法预览匹配片段
+  - 需返回匹配文本片段（chunk text），前端高亮显示
+
+### 会话系统
+
+- [ ] **线程列表实时同步**
+  - 当前只在 mount 时同步一次，之后创建/删除不会更新
+  - 方案 A：后端 thread 变更时 IPC push 通知
+  - 方案 B：前端定时轮询（每 30s）
+  - 方案 C：操作后手动刷新
+
+- [ ] **会话标题自动生成**
+  - Mastra Memory 有 generateTitle 配置但需验证实际效果
+  - 需 IPC 监听 title 变更事件并更新前端
+
+- [ ] **排队消息自动清空**
+  - AutoQueueSender 只发第一条，后续永远留在队列
+  - 修复：发完一条后检查队列是否还有，若还有且有模型空闲则继续
+
+### 设置系统
+
+- [ ] **Provider 配置实时同步**
+  - 当前 ModelSelector/runtime syncActiveModelConfig 只在 mount 时跑一次
+  - 设置页改 provider/model 后，运行中的对话不会感知新配置
+  - 需要：设置页保存时 IPC push 通知 → 各组件监听刷新
+
+- [ ] **maxSteps 实时生效**
+  - `getMaxSteps()` 只在 runtime 创建时读取一次
+  - 修改设置后需要重启对话才生效
+  - 修复：useEffect 监听 storage 变化，更新 runtime options
+
+### 诊断系统
+
+- [ ] **日志内容脱敏**
+  - 当前用户消息原文被写入诊断日志，可能含敏感信息
+  - 需截断或 hash 处理
+
+- [ ] **日志持久化**
+  - 当前日志只存在内存 buffer（2000 条），重启丢失
+  - 需持久化到 DB 或文件
+
+### 安全加固
+
+- [ ] **IPC channel 白名单**
+  - 移除 `sendMessage`/`onMessage` 通用方法
+  - 所有 IPC 通信改为具体 channel 方法（`chat:send`, `chat:chunk` 监听等）
+
+- [ ] **configGetAll API key 过滤**
+  - `configGetAll` 不应返回 `apiKey` 等敏感字段
+  - 渲染进程获取 provider 列表时 API key 应掩码显示
+
+- [ ] **window 操作绑定发送者窗口**
+  - `window:hide/minimize/resize` 应 `BrowserWindow.fromWebContents(event.sender)`
+
+- [ ] **fallback 响应移除用户输入拼接**
+  - 改为固定文本："请先在设置中配置 API Key"
+
+---
+
+## v0.14+ 规划（暂缓）
+
+- [ ] WebSpeechDictationAdapter 内存优化
+- [ ] queue.ts 改为 per-instance 而非全局单例
+- [ ] ModelSelector dropdown 键盘交互（Escape 关闭、方向键导航）
+- [ ] useDbState 初始值闪烁骨架屏
+- [ ] 长时间流式响应 toolCalls Map 内存增长
+- [ ] MCP 进程环境变量最小化（仅传必需 key）
+- [ ] config DB 优雅关闭（app quit 时 flush）
+- [ ] formatTimeAgo NaN 兜底

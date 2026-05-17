@@ -12,6 +12,7 @@ declare global {
       configSet: (key: string, value: any) => Promise<{ success: boolean; error?: string }>;
       configDelete: (key: string) => Promise<{ success: boolean; error?: string }>;
       configGetAll: () => Promise<Record<string, any>>;
+      cancelChat: () => Promise<{ success: boolean }>;
       invokeProviderPresets: () => Promise<any[]>;
       testProviderConnectivity: (config: any) => Promise<{ success: boolean; error?: string; latency?: number }>;
       fetchProviderModels: (config: any) => Promise<{ success: boolean; models?: any[]; error?: string }>;

@@ -8,6 +8,7 @@ import { setupConfigIpc } from './config';
 
 let _activeModel: string | null = null;
 let _providerConfig: { providerType: string; baseUrl: string; apiKey: string } | null = null;
+let _activeChatSender: Electron.WebContents | null = null;
 
 export type StreamChunk =
   | { type: 'text-delta'; text: string }
@@ -71,25 +72,51 @@ export function setupIpc() {
     return { success: true };
   });
 
-  ipcMain.on('window:hide', () => {
-    const win = BrowserWindow.getFocusedWindow();
+  ipcMain.on('window:hide', (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
     if (win) win.hide();
   });
 
-  ipcMain.on('window:minimize', () => {
-    BrowserWindow.getFocusedWindow()?.minimize();
+  ipcMain.on('window:minimize', (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (win) win.minimize();
   });
 
   ipcMain.on('window:quit', () => {
     app.quit();
   });
 
-  ipcMain.on('window:resize', (_event, { width, height }: { width: number; height: number }) => {
-    const win = BrowserWindow.getFocusedWindow();
-    if (win) win.setSize(width, height);
+  ipcMain.on('window:resize', (event, { width, height }: { width: number; height: number }) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (win) {
+      if (width <= 0 || height <= 0 || isNaN(width) || isNaN(height)) return;
+      win.setSize(width, height);
+    }
+  });
+
+  let _activeChatAbort: AbortController | null = null;
+
+  ipcMain.handle('chat:cancel', () => {
+    if (_activeChatAbort) {
+      _activeChatAbort.abort();
+      _activeChatAbort = null;
+    }
+    return { success: true };
   });
 
   ipcMain.on('chat:send', async (event, payload: string | { message: string; threadId?: string }) => {
+    if (_activeChatAbort) {
+      _activeChatAbort.abort();
+      _activeChatAbort = null;
+      if (_activeChatSender && !_activeChatSender.isDestroyed()) {
+        _activeChatSender.send('chat:done');
+      }
+    }
+    _activeChatSender = event.sender;
+    const abort = new AbortController();
+    _activeChatAbort = abort;
+
+    const savedEnv: Record<string, string | undefined> = {};
     try {
       const { message, threadId } = typeof payload === 'string'
         ? { message: payload, threadId: undefined }
@@ -98,15 +125,12 @@ export function setupIpc() {
       appendLog('info', 'chat', `收到消息: ${message.slice(0, 100)}${message.length > 100 ? '...' : ''}`);
 
       const apiKey = _providerConfig?.apiKey || '';
-      const baseUrl = _providerConfig?.baseUrl || '';
       const providerType = _providerConfig?.providerType || 'openai';
       const needsApiKey = providerType !== 'ollama';
 
-      if (needsApiKey && !apiKey && !process.env.OPENAI_API_KEY) {
+      if (needsApiKey && !apiKey && !process.env.OPENAI_API_KEY && !process.env.ANTHROPIC_API_KEY) {
         appendLog('warn', 'chat', '未配置 API Key，返回 fallback 响应');
-        event.sender.send('chat:chunk', JSON.stringify({ type: 'text-delta', text: "OPENAI_API_KEY is not configured.\n\n" }));
-        event.sender.send('chat:chunk', JSON.stringify({ type: 'text-delta', text: "I received your message: \"" + message + "\"\n\n" }));
-        event.sender.send('chat:chunk', JSON.stringify({ type: 'text-delta', text: "Please set your API key in a .env file to enable real intelligence." }));
+        event.sender.send('chat:chunk', JSON.stringify({ type: 'text-delta', text: "请先在设置中配置 API Key。" }));
         event.sender.send('chat:done');
         return;
       }
@@ -117,14 +141,18 @@ export function setupIpc() {
       if (_providerConfig?.apiKey) {
         const pt = _providerConfig.providerType;
         if (pt === 'openai' || pt === 'deepseek' || pt === 'openrouter' || pt === 'custom') {
+          savedEnv.OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+          savedEnv.OPENAI_BASE_URL = process.env.OPENAI_BASE_URL;
           process.env.OPENAI_API_KEY = _providerConfig.apiKey;
           if (_providerConfig.baseUrl) process.env.OPENAI_BASE_URL = _providerConfig.baseUrl;
           else delete process.env.OPENAI_BASE_URL;
         }
         if (pt === 'anthropic') {
+          savedEnv.ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
           process.env.ANTHROPIC_API_KEY = _providerConfig.apiKey;
         }
         if (pt === 'google') {
+          savedEnv.GOOGLE_GENERATIVE_AI_API_KEY = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
           process.env.GOOGLE_GENERATIVE_AI_API_KEY = _providerConfig.apiKey;
         }
       }
@@ -145,6 +173,7 @@ export function setupIpc() {
       const response = await agent.stream(message, streamOptions);
 
       for await (const chunk of response.fullStream) {
+        if (abort.signal.aborted) break;
         if (chunk.type === 'text-delta') {
           const c = chunk as any;
           event.sender.send('chat:chunk', JSON.stringify({
@@ -206,6 +235,12 @@ export function setupIpc() {
       console.error('Agent error:', error);
       event.sender.send('chat:error', String(error));
       appendLog('error', 'chat', `Agent 错误: ${String(error)}`);
+    } finally {
+      if (_activeChatAbort === abort) _activeChatAbort = null;
+      for (const [k, v] of Object.entries(savedEnv)) {
+        if (v === undefined) delete (process.env as any)[k];
+        else (process.env as any)[k] = v;
+      }
     }
   });
 }

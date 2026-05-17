@@ -31,7 +31,7 @@ const AutoQueueSender: React.FC = () => {
       }
     }
     prevRunning.current = thread.isRunning;
-  }, [thread.isRunning]);
+  }, [thread.isRunning, queue.length]);
 
   return null;
 };

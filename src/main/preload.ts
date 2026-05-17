@@ -4,7 +4,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   sendMessage: (channel: string, data: any) => {
     ipcRenderer.send(channel, data);
   },
-  onMessage: (channel: string, callback: (data: any) => void) => () => {
+  onMessage: (channel: string, callback: (data: any) => void) => {
     const subscription = (_event: any, ...args: any[]) => callback(...args);
     ipcRenderer.on(channel, subscription);
     return () => {
@@ -29,6 +29,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   configSet: (key: string, value: any) => ipcRenderer.invoke('config:set', key, value),
   configDelete: (key: string) => ipcRenderer.invoke('config:delete', key),
   configGetAll: () => ipcRenderer.invoke('config:getAll'),
+
+  cancelChat: () => ipcRenderer.invoke('chat:cancel'),
 
   invokeProviderPresets: () => ipcRenderer.invoke('provider:presets'),
   testProviderConnectivity: (config: any) => ipcRenderer.invoke('provider:test', config),

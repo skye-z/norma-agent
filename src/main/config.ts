@@ -1,27 +1,43 @@
 import { createClient, type Client } from '@libsql/client';
 import * as path from 'path';
+import * as fs from 'fs';
 
 let _client: Client | null = null;
+let _initPromise: Promise<void> | null = null;
 
-export function initConfig(dbDir?: string) {
-  const dbPath = dbDir
-    ? path.join(dbDir, 'norma-config.db')
-    : 'norma-config.db';
+export async function initConfig(dbDir?: string) {
+  if (_initPromise) return _initPromise;
 
-  _client = createClient({ url: `file:${dbPath}` });
+  _initPromise = (async () => {
+    const rawPath = dbDir
+      ? path.join(dbDir, 'norma-config.db')
+      : 'norma-config.db';
 
-  _client.execute(`
-    CREATE TABLE IF NOT EXISTS app_config (
-      key TEXT PRIMARY KEY,
-      value TEXT NOT NULL,
-      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
-    )
-  `).catch(() => {});
+    if (dbDir) {
+      fs.mkdirSync(dbDir, { recursive: true });
+    }
+
+    const dbPath = process.platform === 'win32'
+      ? rawPath.replace(/\\/g, '/')
+      : rawPath;
+
+    _client = createClient({ url: `file:${dbPath}` });
+
+    await _client.execute(`
+      CREATE TABLE IF NOT EXISTS app_config (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL,
+        updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+      )
+    `);
+  })();
+
+  return _initPromise;
 }
 
 function getClient(): Client {
-  if (!_client) initConfig();
-  return _client!;
+  if (!_client) throw new Error('Config DB not initialized. Call initConfig() first.');
+  return _client;
 }
 
 export async function getConfig<T = any>(key: string): Promise<T | null> {
@@ -40,11 +56,10 @@ export async function getConfig<T = any>(key: string): Promise<T | null> {
 
 export async function setConfig(key: string, value: any): Promise<void> {
   const client = getClient();
-  const serialized = typeof value === 'string' ? JSON.stringify(value) : JSON.stringify(value);
   await client.execute({
     sql: `INSERT INTO app_config (key, value, updated_at) VALUES (?, ?, unixepoch())
           ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = unixepoch()`,
-    args: [key, serialized],
+    args: [key, JSON.stringify(value)],
   });
 }
 

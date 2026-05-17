@@ -88,7 +88,8 @@ const ModelSelector: React.FC = () => {
 
   if (models.length === 0) return null;
 
-  const selected = models[selectedIdx];
+  const safeIdx = Math.min(selectedIdx, models.length - 1);
+  const selected = models[safeIdx];
 
   return (
     <div className="relative flex-none">

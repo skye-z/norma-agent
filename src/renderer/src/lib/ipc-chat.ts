@@ -112,6 +112,14 @@ export function createIpcChatModel(getThreadId?: () => string | undefined) {
       const threadId = getThreadId?.();
       window.electronAPI.sendMessage("chat:send", threadId ? { message: text, threadId } : text);
 
+      if (abortSignal) {
+        const onAbort = () => {
+          (window as any).electronAPI?.cancelChat?.();
+          pushToQueue({ type: "done" });
+        };
+        abortSignal.addEventListener("abort", onAbort);
+      }
+
       let fullText = "";
       const toolCalls: Map<string, { toolName: string; args: Record<string, unknown>; result?: unknown; isError?: boolean }> = new Map();
 
