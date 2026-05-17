@@ -10,6 +10,7 @@ import {
 import * as path from "path";
 import { fileURLToPath } from "url";
 import { setupIpc } from "./ipc";
+import { initConfig } from "./config";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -33,6 +34,7 @@ if (!gotTheLock) {
   });
 
   app.whenReady().then(async () => {
+    initConfig(app.getPath('userData'));
     setupIpc();
     createTray();
     createWindow();

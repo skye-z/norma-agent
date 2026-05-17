@@ -6,7 +6,7 @@ export default [
     outDir: 'dist/main',
     format: ['esm'],
     target: 'node22',
-    clean: true,
+    clean: false,
     external: [
       'electron',
       '@mastra/core',

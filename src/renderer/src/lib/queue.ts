@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 
-// Global queue state
 let messageQueue: string[] = [];
 const listeners = new Set<() => void>();
 
@@ -31,10 +30,31 @@ export function useMessageQueue() {
     return msg;
   };
 
+  const dequeueFirst = () => {
+    if (messageQueue.length === 0) return null;
+    const msg = messageQueue.shift()!;
+    notify();
+    return msg;
+  };
+
   const clearQueue = () => {
     messageQueue = [];
     notify();
   };
 
-  return { queue, enqueue, dequeue, clearQueue };
+  const updateAt = (index: number, newMsg: string) => {
+    if (index >= 0 && index < messageQueue.length) {
+      messageQueue[index] = newMsg;
+      notify();
+    }
+  };
+
+  const removeAt = (index: number) => {
+    if (index >= 0 && index < messageQueue.length) {
+      messageQueue.splice(index, 1);
+      notify();
+    }
+  };
+
+  return { queue, enqueue, dequeue, dequeueFirst, clearQueue, updateAt, removeAt };
 }

@@ -3,13 +3,38 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https: wss: ws:;">
     <title>Norma</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+    <style>
+      body, html { margin: 0; padding: 0; height: 100%; background: transparent; overflow: hidden; }
+      #splash {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: rgba(15, 15, 18, 0.6);
+        z-index: 9999;
+        transition: opacity 0.3s;
+      }
+      #splash.hide { opacity: 0; pointer-events: none; }
+      .loader {
+        width: 24px;
+        height: 24px;
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        border-bottom-color: hsl(215, 90%, 68%);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
   </head>
   <body>
     <div id="root"></div>
+    <div id="splash"><div class="loader"></div></div>
     <script type="module" src="/src/App.tsx"></script>
   </body>
 </html>

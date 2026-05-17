@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useStoredState } from "../../lib/shared";
+import { useDbState, PROVIDER_COLORS } from "../../lib/shared";
 
 interface SavedProvider {
   id: string;
@@ -15,31 +15,11 @@ interface EnabledModel {
   modelId: string;
 }
 
-const PROVIDER_PRESET_LIST = [
-  { id: "openai", name: "OpenAI", type: "openai", baseUrl: "https://api.openai.com/v1", keyHint: "sk-..." },
-  { id: "anthropic", name: "Anthropic", type: "anthropic", baseUrl: "https://api.anthropic.com", keyHint: "sk-ant-..." },
-  { id: "deepseek", name: "DeepSeek", type: "openai", baseUrl: "https://api.deepseek.com", keyHint: "sk-..." },
-  { id: "openrouter", name: "OpenRouter", type: "openai", baseUrl: "https://openrouter.ai/api/v1", keyHint: "sk-or-..." },
-  { id: "google", name: "Google AI", type: "google", baseUrl: "https://generativelanguage.googleapis.com/v1beta", keyHint: "AIza..." },
-  { id: "ollama", name: "Ollama", type: "ollama", baseUrl: "http://localhost:11434", keyHint: "无需密钥" },
-  { id: "custom", name: "自定义", type: "openai", baseUrl: "", keyHint: "API Key" },
-];
-
-const PRESET_COLORS: Record<string, string> = {
-  openai: "#10a37f",
-  anthropic: "#d4a27f",
-  deepseek: "#4d6bfe",
-  openrouter: "#6d28d9",
-  google: "#4285f4",
-  ollama: "#6366f1",
-  custom: "#8b8b8b",
-};
-
 const ModelTab: React.FC = () => {
   const [presets, setPresets] = useState<any[]>([]);
-  const [providers, setProviders] = useStoredState<SavedProvider[]>("norma-providers", []);
-  const [enabledModels, setEnabledModels] = useStoredState<EnabledModel[]>("norma-enabled-models", []);
-  const [cachedModels, setCachedModels] = useStoredState<Record<string, any[]>>("norma-cached-models", {});
+  const [providers, setProviders] = useDbState<SavedProvider[]>("norma-providers", []);
+  const [enabledModels, setEnabledModels] = useDbState<EnabledModel[]>("norma-enabled-models", []);
+  const [cachedModels, setCachedModels] = useDbState<Record<string, any[]>>("norma-cached-models", {});
   const [selectedProviderId, setSelectedProviderId] = useState<string>("");
   const [showAddMenu, setShowAddMenu] = useState(false);
 
@@ -176,7 +156,7 @@ const ModelTab: React.FC = () => {
             >
               <div
                 className="w-2 h-2 rounded-full flex-none"
-                style={{ backgroundColor: PRESET_COLORS[p.presetId] || "#888" }}
+                style={{ backgroundColor: PROVIDER_COLORS[p.presetId] || "#888" }}
               />
               <span className="text-[11px] text-norma-text truncate flex-1">{p.name}</span>
               <button
@@ -201,13 +181,13 @@ const ModelTab: React.FC = () => {
           </button>
           {showAddMenu && (
             <div className="absolute bottom-full left-2 right-2 mb-1 glass-popover py-1 max-h-[260px] overflow-y-auto z-50">
-              {PROVIDER_PRESET_LIST.map((preset) => (
+              {presets.map((preset) => (
                 <button
                   key={preset.id}
                   onClick={() => handleAddProvider(preset)}
                   className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-norma-textMuted hover:bg-white/[0.06] hover:text-norma-text transition-colors text-left"
                 >
-                  <div className="w-2 h-2 rounded-full flex-none" style={{ backgroundColor: PRESET_COLORS[preset.id] || "#888" }} />
+                  <div className="w-2 h-2 rounded-full flex-none" style={{ backgroundColor: PROVIDER_COLORS[preset.id] || "#888" }} />
                   <span className="flex-1">{preset.name}</span>
                   <span className="text-[9px] text-norma-textDim font-mono">{preset.type}</span>
                 </button>
@@ -221,7 +201,7 @@ const ModelTab: React.FC = () => {
         {selected ? (
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: PRESET_COLORS[selected.presetId] || "#888" }} />
+              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: PROVIDER_COLORS[selected.presetId] || "#888" }} />
               <input
                 value={selected.name}
                 onChange={(e) => updateProvider({ name: e.target.value })}
@@ -247,7 +227,7 @@ const ModelTab: React.FC = () => {
                   type="password"
                   value={selected.apiKey}
                   onChange={(e) => updateProvider({ apiKey: e.target.value })}
-                  placeholder={PROVIDER_PRESET_LIST.find((p) => p.id === selected.presetId)?.keyHint || "API Key"}
+                  placeholder={presets.find((p) => p.id === selected.presetId)?.keyHint || "API Key"}
                   className="w-full bg-white/[0.04] border border-white/[0.06] rounded-lg px-3 py-1.5 text-[11px] text-norma-text placeholder-norma-textDim outline-none focus:border-norma-accent/40 font-mono"
                 />
               </div>
@@ -294,9 +274,9 @@ const ModelTab: React.FC = () => {
                     return (
                       <div key={em.modelId} className="flex items-center gap-2 rounded-lg border border-norma-accent/30 bg-norma-accent/10 px-3 py-1.5">
                         <div className="w-1.5 h-1.5 rounded-full bg-norma-accent flex-none" />
-                        <div className="flex-1 min-w-0">
-                          <div className="text-[11px] font-mono text-norma-text truncate">{em.modelId}</div>
-                          {info?.owned_by && <div className="text-[9px] text-norma-textDim">{info.owned_by}</div>}
+                          <div className="flex-1 min-w-0">
+                            <div className="text-[11px] text-norma-text truncate">{info?.display_name || em.modelId}</div>
+                            <div className="text-[9px] text-norma-textDim font-mono truncate">{em.modelId}</div>
                         </div>
                         <button
                           onClick={() => toggleModel(em.modelId)}
@@ -334,9 +314,9 @@ const ModelTab: React.FC = () => {
                       const result = modelResults[model.id];
                       return (
                         <div key={model.id} className="flex items-center gap-2 rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-1.5 hover:border-white/[0.1] transition-colors">
-                          <div className="flex-1 min-w-0">
-                            <div className="text-[11px] font-mono text-norma-text truncate">{model.id}</div>
-                            {model.name !== model.id && <div className="text-[9px] text-norma-textDim truncate">{model.name}</div>}
+                           <div className="flex-1 min-w-0">
+                            <div className="text-[11px] text-norma-text truncate">{model.display_name || model.id}</div>
+                            <div className="text-[9px] text-norma-textDim font-mono truncate">{model.id}</div>
                           </div>
                           {model.owned_by && <span className="text-[9px] text-norma-textDim flex-none">{model.owned_by}</span>}
                           {model.created && <span className="text-[8px] text-norma-textDim font-mono flex-none">{new Date(model.created * 1000).toLocaleDateString()}</span>}
@@ -389,21 +369,47 @@ const BasicTab: React.FC<{ theme: string; setTheme: (t: string) => void; isMac: 
   <div className="px-5 py-4">
     <div className="space-y-5 max-w-[400px]">
       <section>
-        <h3 className="text-[11px] font-semibold text-norma-text mb-2">主题</h3>
+        <h3 className="text-[11px] font-semibold text-norma-text mb-2 flex items-center gap-1.5">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-norma-accent">
+            <circle cx="12" cy="12" r="4" />
+            <path d="M12 2v2" />
+            <path d="M12 20v2" />
+            <path d="m4.93 4.93 1.41 1.41" />
+            <path d="m17.66 17.66 1.41 1.41" />
+            <path d="M2 12h2" />
+            <path d="M20 12h2" />
+            <path d="m6.34 17.66-1.41 1.41" />
+            <path d="m19.07 4.93-1.41 1.41" />
+          </svg>
+          主题
+        </h3>
         <div className="flex gap-2">
-          {[{ id: "dark", label: "暗色" }, { id: "light", label: "亮色" }, { id: "system", label: "跟随系统" }].map((t) => (
+          {[
+            { id: "dark", label: "暗色", icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg> },
+            { id: "light", label: "亮色", icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg> },
+            { id: "system", label: "跟随系统", icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg> },
+          ].map((t) => (
             <button
               key={t.id}
               onClick={() => setTheme(t.id)}
-              className={`flex-1 px-3 py-2 rounded-lg text-[11px] transition-colors ${theme === t.id ? "bg-norma-accent/20 border border-norma-accent/50 text-norma-accent" : "bg-white/[0.04] border border-white/[0.06] text-norma-textMuted hover:border-white/[0.1]"}`}
+              className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[11px] transition-colors ${theme === t.id ? "bg-norma-accent/20 border border-norma-accent/50 text-norma-accent" : "bg-white/[0.04] border border-white/[0.06] text-norma-textMuted hover:border-white/[0.1]"}`}
             >
+              {t.icon}
               {t.label}
             </button>
           ))}
         </div>
       </section>
       <section>
-        <h3 className="text-[11px] font-semibold text-norma-text mb-2">快捷键</h3>
+        <h3 className="text-[11px] font-semibold text-norma-text mb-2 flex items-center gap-1.5">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-norma-accent">
+            <path d="M10 8V6a2 2 0 0 0-2-2" />
+            <path d="M14 8V6a2 2 0 0 1 2-2" />
+            <path d="M12 2a2 2 0 0 0-2 2v2" />
+            <rect width="16" height="12" x="4" y="8" rx="2" />
+          </svg>
+          快捷键
+        </h3>
         <div className="space-y-2">
           <div className="flex items-center gap-3 rounded-lg bg-white/[0.03] border border-white/[0.06] px-3 py-2">
             <span className="text-[10px] text-norma-textMuted flex-1">唤出命令栏</span>
@@ -419,24 +425,123 @@ const BasicTab: React.FC<{ theme: string; setTheme: (t: string) => void; isMac: 
   </div>
 );
 
-const AboutTab: React.FC = () => (
-  <div className="px-5 py-4">
-    <div className="space-y-1.5 text-[10px] text-norma-textMuted max-w-[400px]">
-      <div className="flex justify-between"><span>版本</span><span className="text-norma-text font-mono">v0.5.0</span></div>
-      <div className="flex justify-between"><span>运行时</span><span className="text-norma-text font-mono">Electron 42 + React 19</span></div>
-      <div className="flex justify-between"><span>AI 框架</span><span className="text-norma-text font-mono">AssistantUI 0.14 + Mastra</span></div>
+const AboutTab: React.FC = () => {
+  const [versionInfo, setVersionInfo] = useState<{ version: string; electron: string; node: string; chrome: string } | null>(null);
+
+  useEffect(() => {
+    (window as any).electronAPI?.getSystemVersion?.().then(setVersionInfo).catch(() => {});
+  }, []);
+
+  return (
+    <div className="px-5 py-4">
+      <div className="space-y-1.5 text-[10px] text-norma-textMuted max-w-[400px]">
+        <div className="flex justify-between"><span>版本</span><span className="text-norma-text font-mono">v{versionInfo?.version ?? "—"}</span></div>
+        <div className="flex justify-between"><span>Electron</span><span className="text-norma-text font-mono">{versionInfo?.electron ?? "—"}</span></div>
+        <div className="flex justify-between"><span>Node.js</span><span className="text-norma-text font-mono">{versionInfo?.node ?? "—"}</span></div>
+        <div className="flex justify-between"><span>Chrome</span><span className="text-norma-text font-mono">{versionInfo?.chrome ?? "—"}</span></div>
+      </div>
     </div>
-  </div>
-);
+  );
+};
+
+const DiagTab: React.FC = () => {
+  const [enabled, setEnabled] = useState(false);
+  const [logs, setLogs] = useState<Array<{ ts: string; level: string; source: string; message: string }>>([]);
+  const bottomRef = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    (window as any).electronAPI?.diagGetLoggingState?.().then((s: any) => setEnabled(s?.enabled ?? false)).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    (window as any).electronAPI?.diagGetLogs?.().then((l: any) => setLogs(l || [])).catch(() => {});
+  }, [enabled]);
+
+  useEffect(() => {
+    if (!enabled) return;
+    (window as any).electronAPI?.diagSubscribe?.().catch(() => {});
+    const unsub = (window as any).electronAPI?.onMessage?.('diag:logEntry', (raw: string) => {
+      try {
+        const entry = JSON.parse(raw);
+        setLogs((prev) => [...prev, entry].slice(-2000));
+      } catch {}
+    });
+    return () => { unsub?.(); (window as any).electronAPI?.diagUnsubscribe?.().catch(() => {}); };
+  }, [enabled]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [logs.length]);
+
+  const toggleLogging = async () => {
+    const next = !enabled;
+    const res = await (window as any).electronAPI?.diagSetLogging?.(next);
+    setEnabled(res?.enabled ?? next);
+    if (next) setLogs([]);
+  };
+
+  const clearLogs = async () => {
+    await (window as any).electronAPI?.diagClearLogs?.();
+    setLogs([]);
+  };
+
+  const levelColor = (level: string) => {
+    if (level === 'error') return 'text-red-400';
+    if (level === 'warn') return 'text-amber-400';
+    return 'text-norma-textDim';
+  };
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex-none flex items-center gap-3 px-5 py-3 border-b border-white/[0.06]">
+        <button
+          onClick={toggleLogging}
+          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${enabled ? 'bg-emerald-500' : 'bg-white/[0.12]'}`}
+        >
+          <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform ${enabled ? 'translate-x-[16px]' : 'translate-x-[2px]'}`} />
+        </button>
+        <span className="text-[11px] text-norma-text">{enabled ? '日志记录中' : '日志已关闭'}</span>
+        <span className="text-[9px] text-norma-textDim">{logs.length} 条记录</span>
+        <button
+          onClick={clearLogs}
+          disabled={logs.length === 0}
+          className="ml-auto px-2.5 py-1 rounded-lg bg-white/[0.06] text-norma-textMuted text-[10px] hover:bg-white/[0.1] disabled:opacity-30 transition-colors"
+        >
+          清除
+        </button>
+      </div>
+      <div className="flex-1 overflow-y-auto px-5 py-2 font-mono text-[10px] min-h-0">
+        {logs.length === 0 ? (
+          <div className="text-norma-textDim text-center py-8">
+            {enabled ? '等待日志...' : '打开日志开关后操作应用，日志会自动记录'}
+          </div>
+        ) : (
+          <div className="space-y-0.5">
+            {logs.map((log, i) => (
+              <div key={i} className="flex items-start gap-2 py-0.5">
+                <span className="text-norma-textDim flex-none opacity-60">{new Date(log.ts).toLocaleTimeString('zh-CN', { hour12: false })}</span>
+                <span className={`flex-none w-[38px] uppercase text-[9px] font-bold ${levelColor(log.level)}`}>{log.level}</span>
+                <span className="text-norma-accent flex-none w-[50px] truncate">{log.source}</span>
+                <span className="text-norma-text/80 break-all">{log.message}</span>
+              </div>
+            ))}
+            <div ref={bottomRef} />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 const SettingsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState("basic");
   const isMac = window.electronAPI?.platform === "darwin";
-  const [theme, setTheme] = useStoredState<string>("norma-theme", "dark");
+  const [theme, setTheme] = useDbState<string>("norma-theme", "dark");
 
   const tabs = [
     { id: "basic", label: "基础" },
     { id: "model", label: "模型" },
+    { id: "diag", label: "诊断" },
     { id: "about", label: "关于" },
   ];
 
@@ -460,6 +565,7 @@ const SettingsPage: React.FC = () => {
       <div className="flex-1 overflow-y-auto">
         {activeTab === "basic" && <BasicTab theme={theme} setTheme={setTheme} isMac={isMac} />}
         {activeTab === "model" && <ModelTab />}
+        {activeTab === "diag" && <DiagTab />}
         {activeTab === "about" && <AboutTab />}
       </div>
     </div>

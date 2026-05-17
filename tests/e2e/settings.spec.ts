@@ -76,8 +76,8 @@ test.describe('设置页面 - 关于标签', () => {
     await mainWindow.locator('text=关于').first().click({ force: true });
   });
 
-  test('应显示运行时信息', async ({ mainWindow }) => {
-    await expect(mainWindow.locator('text=Electron 42').first()).toBeVisible();
+  test('应显示运行时信息（动态获取）', async ({ mainWindow }) => {
+    await expect(mainWindow.locator('text=Electron').first()).toBeVisible({ timeout: 10000 });
   });
 
   test('应显示版本号', async ({ mainWindow }) => {

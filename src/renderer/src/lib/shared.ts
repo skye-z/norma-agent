@@ -1,29 +1,33 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 const _state = { activeThreadId: undefined as string | undefined };
 export function getActiveThreadId() { return _state.activeThreadId; }
 export function setActiveThreadId(id: string | undefined) { _state.activeThreadId = id; }
 
-export const SLASH_COMMANDS = [
-  { command: "/screen", description: "读取当前屏幕内容" },
-  { command: "/action", description: "执行系统操作" },
-  { command: "/file", description: "文件管理操作" },
-  { command: "/search", description: "搜索知识库" },
-  { command: "/code", description: "代码生成与分析" },
-  { command: "/help", description: "查看帮助信息" },
-];
+export const PROVIDER_COLORS: Record<string, string> = {
+  openai: "#10a37f",
+  anthropic: "#d4a27f",
+  deepseek: "#4d6bfe",
+  openrouter: "#6d28d9",
+  google: "#4285f4",
+  ollama: "#6366f1",
+  custom: "#8b8b8b",
+};
 
-export const MODELS = [
-  { id: "norma-local", name: "Norma Local", desc: "本地模型" },
-  { id: "gpt-4o", name: "GPT-4o", desc: "OpenAI" },
-  { id: "claude-3.5", name: "Claude 3.5", desc: "Anthropic" },
-];
+export function getMaxSteps(defaultValue: number): number {
+  try {
+    const stored = localStorage.getItem("norma-max-steps");
+    if (stored) return Number(stored) || defaultValue;
+  } catch {}
+  return defaultValue;
+}
 
-export const AGENTS = [
-  { id: "norma", type: "agent", label: "Norma", description: "通用助手" },
-  { id: "coder", type: "agent", label: "Coder", description: "代码专家" },
-  { id: "screen", type: "agent", label: "Screen", description: "屏幕感知" },
-];
+export function getSlashCommandsFromCapabilities(caps: Array<{ id: string; name: string }>) {
+  return caps.map(c => ({
+    command: `/${c.id}`,
+    description: c.name,
+  }));
+}
 
 export function useStoredState<T>(
   key: string,
@@ -37,8 +41,51 @@ export function useStoredState<T>(
       return initial;
     }
   });
+
   useEffect(() => {
-    localStorage.setItem(key, JSON.stringify(value));
+    (window as any).electronAPI?.configSet?.(key, value).catch(() => {});
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
   }, [key, value]);
+
   return [value, setValue];
+}
+
+export function useDbState<T>(
+  key: string,
+  initial: T,
+): [T, React.Dispatch<React.SetStateAction<T>>, boolean] {
+  const [value, setValue] = useState<T>(initial);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    (window as any).electronAPI?.configGet?.(key).then((stored: any) => {
+      if (stored !== null && stored !== undefined) {
+        try { setValue(typeof stored === 'string' ? JSON.parse(stored) : stored); } catch { setValue(stored); }
+      } else {
+        try {
+          const ls = localStorage.getItem(key);
+          if (ls) {
+            const parsed = JSON.parse(ls);
+            setValue(parsed);
+            (window as any).electronAPI?.configSet?.(key, parsed);
+          }
+        } catch {}
+      }
+      setLoaded(true);
+    }).catch(() => {
+      try {
+        const ls = localStorage.getItem(key);
+        if (ls) setValue(JSON.parse(ls));
+      } catch {}
+      setLoaded(true);
+    });
+  }, [key]);
+
+  useEffect(() => {
+    if (!loaded) return;
+    (window as any).electronAPI?.configSet?.(key, value).catch(() => {});
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
+  }, [key, value, loaded]);
+
+  return [value, setValue, loaded];
 }

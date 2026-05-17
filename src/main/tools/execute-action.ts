@@ -23,11 +23,12 @@ const MouseActionSchema = z.object({
 
 const KeyboardActionSchema = z.object({
   type: z.literal('keyboard'),
-  action: z.enum(['type', 'key_tap', 'key_toggle', 'hotkey']),
+  action: z.enum(['type', 'key_tap', 'key_toggle', 'hotkey', 'shortcut']),
   text: z.string().optional().describe('Text to type (for "type" action)'),
   key: z.string().optional().describe('Key name (for "key_tap" / "key_toggle") e.g. "enter", "tab", "escape"'),
   down: z.boolean().optional().describe('true = key down, false = key up (for "key_toggle")'),
   modifiers: z.array(z.string()).optional().describe('Modifier keys e.g. ["control", "shift"]'),
+  shortcut: z.string().optional().describe('Named shortcut: "selectAll", "copy", "paste", "cut", "undo", "save", "find", "switchApp", "closeWindow", "altTab"'),
 });
 
 const GetPositionActionSchema = z.object({
@@ -42,14 +43,16 @@ const ActionSchema = z.discriminatedUnion('type', [
 
 export const executeActionTool = createTool({
   id: 'execute_action',
-  description: `Execute mouse and keyboard actions on the user's screen. Available actions:
-- Mouse: move, click, double_click, right_click, scroll_up, scroll_down, drag
-- Keyboard: type (type a string), key_tap (press a key like enter/tab/escape), key_toggle (hold/release a key), hotkey (press key with modifiers)
-- Get mouse position: get_mouse_pos
+  description: `在用户屏幕上执行鼠标和键盘操作。可用操作:
+- 鼠标: move(移动), click(单击), double_click(双击), right_click(右键), scroll_up(向上滚), scroll_down(向下滚), drag(拖拽)
+- 键盘: type(输入文字), key_tap(按键如enter/tab/escape), key_toggle(按下/释放), hotkey(组合键), shortcut(预设快捷键)
+- 获取鼠标位置: get_mouse_pos
 
-Always use read_screen first to see the screen, then calculate coordinates, then execute actions. Screen coordinates: top-left is (0,0).`,
+预设快捷键(shortcut): selectAll(Ctrl+A), copy(Ctrl+C), paste(Ctrl+V), cut(Ctrl+X), undo(Ctrl+Z), save(Ctrl+S), find(Ctrl+F), closeWindow(Alt+F4), altTab(Alt+Tab)
+
+重要: 始终先用 read_screen 截图确认屏幕内容, 再计算坐标, 最后执行操作。屏幕坐标: 左上角为(0,0)。`,
   inputSchema: z.object({
-    actions: z.array(ActionSchema).min(1).describe('Array of actions to execute sequentially'),
+    actions: z.array(ActionSchema).min(1).describe('按顺序执行的操作数组'),
   }),
   outputSchema: z.object({
     success: z.boolean(),
@@ -154,6 +157,9 @@ function executeMouseAction(act: z.infer<typeof MouseActionSchema>, robot: NonNu
 }
 
 function executeKeyboardAction(act: z.infer<typeof KeyboardActionSchema>, robot: NonNullable<Awaited<ReturnType<typeof getRobot>>>) {
+  if (act.action === 'shortcut') {
+    return executeShortcut(act.shortcut || '', robot);
+  }
   switch (act.action) {
     case 'type': {
       if (!act.text) return { action: 'keyboard/type', success: false, error: 'text required' };
@@ -185,4 +191,27 @@ function executeKeyboardAction(act: z.infer<typeof KeyboardActionSchema>, robot:
     default:
       return { action: `keyboard/${act.action}`, success: false, error: 'Unknown keyboard action' };
   }
+}
+
+const SHORTCUTS: Record<string, { key: string; modifiers: string[] }> = {
+  selectAll: { key: 'a', modifiers: ['control'] },
+  copy: { key: 'c', modifiers: ['control'] },
+  paste: { key: 'v', modifiers: ['control'] },
+  cut: { key: 'x', modifiers: ['control'] },
+  undo: { key: 'z', modifiers: ['control'] },
+  save: { key: 's', modifiers: ['control'] },
+  find: { key: 'f', modifiers: ['control'] },
+  switchApp: { key: 'tab', modifiers: ['alt'] },
+  closeWindow: { key: 'f4', modifiers: ['alt'] },
+  altTab: { key: 'tab', modifiers: ['alt'] },
+};
+
+function executeShortcut(shortcut: string, robot: NonNullable<Awaited<ReturnType<typeof getRobot>>>) {
+  const mapping = SHORTCUTS[shortcut];
+  if (!mapping) {
+    const available = Object.keys(SHORTCUTS).join(', ');
+    return { action: 'keyboard/shortcut', success: false, error: `未知快捷键: "${shortcut}". 可用: ${available}` };
+  }
+  robot.keyTap(mapping.key, mapping.modifiers as any);
+  return { action: 'keyboard/shortcut', success: true, detail: `快捷键 ${[...mapping.modifiers, mapping.key].join('+')} (${shortcut})` };
 }

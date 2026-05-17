@@ -5,6 +5,7 @@ import {
   useMessagePartFile,
   useMessagePartImage,
 } from "@assistant-ui/react";
+import { getToolLabel } from "../../lib/tool-registry";
 
 export const MessageTimingDisplay: React.FC = () => {
   const timing = useMessageTiming();
@@ -102,18 +103,41 @@ export const ToolFallbackDisplay: React.FC<any> = ({
   status,
 }) => {
   const isRunning = status?.type === "running";
-  
-  // Check if it's a subagent delegation
   const isSubAgent = toolName === "systemAgent" || toolName === "researchAgent" || toolName === "system-agent" || toolName === "research-agent";
   const displayName = isSubAgent ? (toolName.includes("system") ? "System Agent" : "Research Agent") : toolName;
 
+  const label = isSubAgent ? displayName : getToolLabel(toolName);
   const [open, setOpen] = useState(isSubAgent);
+
+  const getStatusIcon = () => {
+    if (isRunning) {
+      return (
+        <div className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse flex-none" />
+      );
+    }
+    if (result) {
+      const isError = typeof result === 'object' && (result as any)?.isError;
+      return isError
+        ? <div className="w-1.5 h-1.5 rounded-full bg-red-400 flex-none" />
+        : <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-none" />;
+    }
+    return <div className="w-1.5 h-1.5 rounded-full bg-norma-textDim flex-none" />;
+  };
+
+  const getStatusText = () => {
+    if (isRunning) return "执行中...";
+    if (result) {
+      const isError = typeof result === 'object' && (result as any)?.isError;
+      return isError ? "失败" : "完成";
+    }
+    return "等待中";
+  };
 
   return (
     <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] overflow-hidden text-[11px] my-1">
-      <button 
+      <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center gap-2 px-3 py-2 border-b border-white/[0.04] whitespace-nowrap hover:bg-white/[0.02]"
+        className="w-full flex items-center gap-2 px-3 py-2 border-b border-white/[0.04] whitespace-nowrap hover:bg-white/[0.02] transition-colors"
       >
         <svg
           className={`w-3 h-3 text-norma-textDim transition-transform ${open ? "rotate-90" : ""}`}
@@ -124,24 +148,32 @@ export const ToolFallbackDisplay: React.FC<any> = ({
         >
           <path d="m9 18 6-6-6-6" />
         </svg>
-        <div
-          className={`w-1.5 h-1.5 rounded-full flex-none ${isRunning ? "bg-amber-400 animate-pulse" : result ? "bg-emerald-400" : "bg-norma-textDim"}`}
-        />
+        {getStatusIcon()}
         <span className={`${isSubAgent ? "font-semibold text-norma-text" : "font-mono text-norma-textMuted"}`}>
-          {isSubAgent ? `派发任务: ${displayName}` : displayName}
+          {isSubAgent ? `派发: ${displayName}` : label}
         </span>
         <span className="text-norma-textDim ml-auto text-[10px]">
-          {isRunning ? "思考执行中..." : result ? "已完成" : "等待中"}
+          {getStatusText()}
         </span>
       </button>
       {open && result && (
-        <div className="px-3 py-2 text-norma-text/80 leading-relaxed font-mono whitespace-pre-wrap text-[10px] bg-black/20">
+        <div className="px-3 py-2 text-norma-text/80 leading-relaxed font-mono whitespace-pre-wrap text-[10px] bg-black/20 max-h-[200px] overflow-y-auto">
           {typeof result === "string"
             ? result
             : (result as any)?.text || JSON.stringify(result, null, 2)}
         </div>
       )}
-      {open && !result && args && (
+      {open && isRunning && (
+        <div className="px-3 py-2 flex items-center gap-2 text-norma-textDim text-[10px] bg-black/10">
+          <div className="flex gap-0.5">
+            <span className="w-1 h-1 rounded-full bg-norma-accent animate-bounce" style={{ animationDelay: '0ms' }} />
+            <span className="w-1 h-1 rounded-full bg-norma-accent animate-bounce" style={{ animationDelay: '150ms' }} />
+            <span className="w-1 h-1 rounded-full bg-norma-accent animate-bounce" style={{ animationDelay: '300ms' }} />
+          </div>
+          <span>正在执行 {label}...</span>
+        </div>
+      )}
+      {open && !result && !isRunning && args && (
         <div className="px-3 py-2 text-norma-textDim leading-relaxed font-mono whitespace-pre-wrap text-[10px] bg-black/10">
           {JSON.stringify(args, null, 2)}
         </div>

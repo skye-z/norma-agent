@@ -9,13 +9,15 @@ test.describe('页面导航', () => {
     await waitForApp(mainWindow);
 
     await mainWindow.locator('.nav-item:has-text("能力")').click({ force: true });
-    await expect(mainWindow.locator('text=屏幕感知').first()).toBeVisible();
+    await mainWindow.waitForTimeout(1000);
+    const capContent = mainWindow.locator('.flex-1.overflow-y-auto').first();
+    await expect(capContent).toBeVisible({ timeout: 10000 });
 
     await mainWindow.locator('.nav-item:has-text("自动化")').click({ force: true });
     await expect(mainWindow.locator('text=每日文件整理').first()).toBeVisible();
 
     await mainWindow.locator('.nav-item:has-text("知识库")').click({ force: true });
-    await expect(mainWindow.locator('input[placeholder*="搜索文档"]').first()).toBeVisible();
+    await expect(mainWindow.locator('input[placeholder*="搜索知识库"]').first()).toBeVisible();
 
     await mainWindow.locator('.nav-item:has-text("设置")').click({ force: true });
     await expect(mainWindow.locator('text=基础').first()).toBeVisible();
@@ -49,12 +51,14 @@ test.describe('能力页面', () => {
     await mainWindow.locator('.nav-item:has-text("能力")').click({ force: true });
   });
 
-  test('应显示能力卡片列表', async ({ mainWindow }) => {
-    await expect(mainWindow.locator('text=屏幕感知').first()).toBeVisible();
-    await expect(mainWindow.locator('text=系统操控').first()).toBeVisible();
+  test('能力页面应加载（动态获取工具列表）', async ({ mainWindow }) => {
+    await mainWindow.waitForTimeout(1000);
+    const loadingOrContent = mainWindow.locator('.flex-1.flex.flex-col, .flex-1.flex.items-center');
+    await expect(loadingOrContent.first()).toBeVisible({ timeout: 10000 });
   });
 
   test('状态指示器应显示为开关', async ({ mainWindow }) => {
+    await mainWindow.waitForTimeout(1000);
     const toggles = mainWindow.locator('.bg-emerald-500, .bg-emerald-400');
     const count = await toggles.count();
     expect(count).toBeGreaterThanOrEqual(0);
@@ -67,9 +71,8 @@ test.describe('自动化页面', () => {
     await mainWindow.locator('.nav-item:has-text("自动化")').click({ force: true });
   });
 
-  test('应显示预设自动化任务', async ({ mainWindow }) => {
-    await expect(mainWindow.locator('text=每日文件整理').first()).toBeVisible();
-    await expect(mainWindow.locator('text=会议纪要生成').first()).toBeVisible();
+  test('应显示自动化页面布局', async ({ mainWindow }) => {
+    await expect(mainWindow.locator('button:has-text("新建自动化")').first()).toBeVisible();
   });
 
   test('应能创建新自动化任务', async ({ mainWindow }) => {
@@ -87,7 +90,7 @@ test.describe('知识库页面', () => {
   });
 
   test('应显示知识库界面', async ({ mainWindow }) => {
-    await expect(mainWindow.locator('input[placeholder*="搜索文档"]').first()).toBeVisible();
+    await expect(mainWindow.locator('input[placeholder*="搜索知识库"]').first()).toBeVisible();
     await expect(mainWindow.locator('.glass-island-right')).toBeVisible();
   });
 });

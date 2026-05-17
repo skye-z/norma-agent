@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { ThreadPrimitive, AuiIf, ComposerPrimitive } from "@assistant-ui/react";
+import React, { useState, useEffect, useRef } from "react";
+import { ThreadPrimitive, AuiIf, ComposerPrimitive, useThread, useThreadRuntime } from "@assistant-ui/react";
 import { LeftIsland, type Session } from "./LeftIsland";
 import { WindowControls } from "./WindowControls";
 import { ReadScreenTool } from "./tools/ReadScreenTool";
@@ -8,17 +8,88 @@ import { ContextDisplay, AutoScrollHelper, WelcomeSuggestions } from "./chat-hel
 import { ThreadMessage } from "./messages/ThreadMessage";
 import { ComposerPill } from "./composer/ComposerPill";
 import { QueueDisplay } from "./composer/QueueDisplay";
+import { useMessageQueue } from "../lib/queue";
+
 import { ModelSelector } from "./composer/ModelSelector";
 import { AutomationPage } from "./pages/AutomationPage";
 import { CapabilitiesPage } from "./pages/CapabilitiesPage";
 import { KnowledgePage } from "./pages/KnowledgePage";
 import { SettingsPage } from "./pages/SettingsPage";
-import { useStoredState, setActiveThreadId } from "../lib/shared";
+import { useDbState, setActiveThreadId } from "../lib/shared";
+
+const AutoQueueSender: React.FC = () => {
+  const thread = useThread();
+  const runtime = useThreadRuntime();
+  const { dequeueFirst, queue } = useMessageQueue();
+  const prevRunning = useRef(thread.isRunning);
+
+  useEffect(() => {
+    if (prevRunning.current && !thread.isRunning && queue.length > 0) {
+      const msg = dequeueFirst();
+      if (msg) {
+        runtime.append({ role: 'user', content: [{ type: 'text', text: msg }] });
+      }
+    }
+    prevRunning.current = thread.isRunning;
+  }, [thread.isRunning]);
+
+  return null;
+};
+
+function formatTimeAgo(dateStr?: string): string {
+  if (!dateStr) return "刚刚";
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "刚刚";
+  if (mins < 60) return `${mins}分钟`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}小时`;
+  const days = Math.floor(hours / 24);
+  return `${days}天`;
+}
 
 const ChatAreaInner: React.FC = () => {
   const [activeNav, setActiveNav] = useState("chat");
-  const [sessions, setSessions] = useStoredState<Session[]>("norma-sessions", []);
+  const [sessions, setSessions] = useDbState<Session[]>("norma-sessions", []);
   const [activeSessionId, setActiveSessionId] = useState<string>("");
+  const [synced, setSynced] = useState(false);
+
+  useEffect(() => {
+    if (synced) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const threads = await window.electronAPI?.listThreads?.() || [];
+        if (cancelled) return;
+        setSessions((prev) => {
+          const existingThreadIds = new Set(prev.filter((s) => s.threadId).map((s) => s.threadId));
+          const newFromThreads = threads
+            .filter((t) => !existingThreadIds.has(t.id))
+            .map((t) => ({
+              id: `thread-${t.id}`,
+              title: t.title || "新会话",
+              preview: "",
+              time: formatTimeAgo(t.createdAt),
+              active: false,
+              threadId: t.id,
+            }));
+          const merged = prev.map((s) => {
+            if (!s.threadId) return s;
+            const thread = threads.find((t) => t.id === s.threadId);
+            if (thread && thread.title && thread.title !== "新会话") {
+              return { ...s, title: thread.title };
+            }
+            return s;
+          });
+          return [...merged, ...newFromThreads];
+        });
+      } catch (e) {
+        console.error("Failed to sync threads:", e);
+      }
+      if (!cancelled) setSynced(true);
+    })();
+    return () => { cancelled = true; };
+  }, [synced]);
 
   useEffect(() => {
     const activeSession = sessions.find((s) => s.active);
@@ -119,6 +190,7 @@ const ChatAreaInner: React.FC = () => {
             <ContextDisplay />
 
             <ThreadPrimitive.Root className="flex-1 flex flex-col min-h-0">
+              <AutoQueueSender />
               <ThreadPrimitive.Viewport className="flex-1 overflow-y-auto px-5 py-3 flex flex-col gap-3 min-h-0 scroll-smooth">
                 <AutoScrollHelper />
                 <AuiIf condition={(s: any) => s.thread.isEmpty}>

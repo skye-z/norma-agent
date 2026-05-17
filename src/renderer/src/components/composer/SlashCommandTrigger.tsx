@@ -1,13 +1,22 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   unstable_useMentionAdapter,
   ComposerPrimitive,
 } from "@assistant-ui/react";
-import { SLASH_COMMANDS, AGENTS } from "../../lib/shared";
 
 const SlashCommandTrigger: React.FC = () => {
+  const [commands, setCommands] = useState<Array<{ command: string; description: string }>>([]);
+
+  useEffect(() => {
+    window.electronAPI?.getCapabilities?.().then((caps: Array<{ id: string; name: string }>) => {
+      if (caps && caps.length > 0) {
+        setCommands(caps.map(c => ({ command: `/${c.id}`, description: c.name })));
+      }
+    }).catch(() => {});
+  }, []);
+
   const slash = unstable_useMentionAdapter({
-    items: SLASH_COMMANDS.map((cmd) => ({
+    items: commands.map((cmd) => ({
       id: cmd.command,
       label: cmd.command,
       description: cmd.description,
@@ -50,8 +59,18 @@ const SlashCommandTrigger: React.FC = () => {
 };
 
 const MentionTrigger: React.FC = () => {
+  const [agents, setAgents] = useState<Array<{ id: string; type: string; label: string; description: string }>>([]);
+
+  useEffect(() => {
+    window.electronAPI?.getAgentsList?.().then((list: Array<{ id: string; name: string; description: string }>) => {
+      if (list && list.length > 0) {
+        setAgents(list.map(a => ({ id: a.id, type: "agent", label: a.name, description: a.description })));
+      }
+    }).catch(() => {});
+  }, []);
+
   const mention = unstable_useMentionAdapter({
-    items: AGENTS,
+    items: agents,
     formatter: {
       serialize: (item) => `@${item.label} `,
       parse: (text) => [{ kind: "text", text }],

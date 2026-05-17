@@ -1,3 +1,30 @@
+const FRIENDLY_NAMES: Record<string, string> = {
+  'gpt-4o': 'GPT-4o',
+  'gpt-4o-mini': 'GPT-4o Mini',
+  'gpt-4-turbo': 'GPT-4 Turbo',
+  'gpt-4': 'GPT-4',
+  'gpt-4.1': 'GPT-4.1',
+  'gpt-4.1-mini': 'GPT-4.1 Mini',
+  'gpt-4.1-nano': 'GPT-4.1 Nano',
+  'gpt-3.5-turbo': 'GPT-3.5 Turbo',
+  'o1': 'o1',
+  'o1-mini': 'o1 Mini',
+  'o1-pro': 'o1 Pro',
+  'o3': 'o3',
+  'o3-mini': 'o3 Mini',
+  'o4-mini': 'o4 Mini',
+  'chatgpt-4o-latest': 'ChatGPT-4o Latest',
+  'deepseek-chat': 'DeepSeek V3',
+  'deepseek-reasoner': 'DeepSeek R1',
+};
+
+export function friendlyModelName(id: string): string {
+  if (FRIENDLY_NAMES[id]) return FRIENDLY_NAMES[id];
+  const base = id.replace(/-(?:20\d{2})(?:\d{2})?(?:\d{2})?$/, '');
+  if (FRIENDLY_NAMES[base]) return FRIENDLY_NAMES[base];
+  return id;
+}
+
 export interface ProviderPreset {
   id: string;
   name: string;
@@ -86,6 +113,7 @@ export interface ProviderConfig {
 export interface ModelInfo {
   id: string;
   name: string;
+  display_name: string;
   owned_by?: string;
   created?: number;
   root?: string;
@@ -172,43 +200,28 @@ export async function fetchModels(
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
-        return (data.data || []).map((m: any) => ({
-          id: m.id,
-          name: m.id,
-          owned_by: m.owned_by || m.owner,
-          created: m.created,
-          root: m.root,
-          parent: m.parent ?? null,
-          object: m.object,
-        }));
+        return (data.data || []).map((m: any) => {
+          const id = m.id || '';
+          const display = m.name && m.name !== id ? m.name : friendlyModelName(id);
+          return {
+            id,
+            name: id,
+            display_name: display,
+            owned_by: m.owned_by || m.owner,
+            created: m.created,
+            root: m.root,
+            parent: m.parent ?? null,
+            object: m.object,
+          };
+        });
       }
       case "anthropic": {
         return [
-          {
-            id: "claude-sonnet-4-20250514",
-            name: "Claude Sonnet 4",
-            owned_by: "anthropic",
-          },
-          {
-            id: "claude-3-7-sonnet-20250219",
-            name: "Claude 3.7 Sonnet",
-            owned_by: "anthropic",
-          },
-          {
-            id: "claude-3-5-sonnet-20241022",
-            name: "Claude 3.5 Sonnet",
-            owned_by: "anthropic",
-          },
-          {
-            id: "claude-3-5-haiku-20241022",
-            name: "Claude 3.5 Haiku",
-            owned_by: "anthropic",
-          },
-          {
-            id: "claude-3-opus-20240229",
-            name: "Claude 3 Opus",
-            owned_by: "anthropic",
-          },
+          { id: "claude-sonnet-4-20250514", name: "claude-sonnet-4-20250514", display_name: "Claude Sonnet 4", owned_by: "anthropic" },
+          { id: "claude-3-7-sonnet-20250219", name: "claude-3-7-sonnet-20250219", display_name: "Claude 3.7 Sonnet", owned_by: "anthropic" },
+          { id: "claude-3-5-sonnet-20241022", name: "claude-3-5-sonnet-20241022", display_name: "Claude 3.5 Sonnet", owned_by: "anthropic" },
+          { id: "claude-3-5-haiku-20241022", name: "claude-3-5-haiku-20241022", display_name: "Claude 3.5 Haiku", owned_by: "anthropic" },
+          { id: "claude-3-opus-20240229", name: "claude-3-opus-20240229", display_name: "Claude 3 Opus", owned_by: "anthropic" },
         ];
       }
       case "google": {
@@ -218,13 +231,17 @@ export async function fetchModels(
         );
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
-        return (data.models || []).map((m: any) => ({
-          id: m.name.replace("models/", ""),
-          name: m.displayName || m.name,
-          owned_by: "google",
-          created: m.createTime ? Math.floor(new Date(m.createTime).getTime() / 1000) : undefined,
-          object: "model",
-        }));
+        return (data.models || []).map((m: any) => {
+          const id = m.name.replace("models/", "");
+          return {
+            id,
+            name: m.name,
+            display_name: m.displayName || friendlyModelName(id),
+            owned_by: "google",
+            created: m.createTime ? Math.floor(new Date(m.createTime).getTime() / 1000) : undefined,
+            object: "model",
+          };
+        });
       }
       case "ollama": {
         const res = await fetch(`${config.baseUrl}/api/tags`, {
@@ -232,11 +249,15 @@ export async function fetchModels(
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
-        return (data.models || []).map((m: any) => ({
-          id: m.name,
-          name: m.name,
-          owned_by: "local",
-        }));
+        return (data.models || []).map((m: any) => {
+          const id = m.name || m.model || '';
+          return {
+            id,
+            name: id,
+            display_name: m.details?.family ? `${m.details.family} (${id})` : friendlyModelName(id),
+            owned_by: "local",
+          };
+        });
       }
       default:
         return [];

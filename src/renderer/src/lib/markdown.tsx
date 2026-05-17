@@ -1,5 +1,7 @@
 import React from "react";
 import { PlanBlock } from "../components/messages/parts";
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 export const MarkdownComponents = {
   plan: ({ children }: any) => <PlanBlock>{children}</PlanBlock>,
@@ -22,21 +24,34 @@ export const MarkdownComponents = {
     <ol className="list-decimal list-inside mb-2 space-y-0.5">{children}</ol>
   ),
   li: ({ children }: any) => <li className="text-[12px]">{children}</li>,
-  code: ({ children, className }: any) => {
-    const isInline = !className;
+  code: ({ node, inline, className, children, ...props }: any) => {
+    const match = /language-(\w+)/.exec(className || '');
+    const isInline = inline || !match;
     return isInline ? (
-      <code className="bg-white/[0.06] px-1 py-0.5 rounded text-[11px] font-mono text-norma-accent">
+      <code className="bg-white/[0.06] px-1 py-0.5 rounded text-[11px] font-mono text-norma-accent" {...props}>
         {children}
       </code>
     ) : (
-      <code className={`${className || ""} text-[11px]`}>{children}</code>
+      <SyntaxHighlighter
+        style={vscDarkPlus as any}
+        language={match ? match[1] : 'text'}
+        PreTag="div"
+        customStyle={{
+          margin: '0 0 8px 0',
+          borderRadius: '8px',
+          padding: '12px',
+          fontSize: '11px',
+          lineHeight: '1.5',
+          background: 'rgba(255, 255, 255, 0.04)',
+          border: '1px solid rgba(255, 255, 255, 0.06)'
+        }}
+        {...props}
+      >
+        {String(children).replace(/\n$/, '')}
+      </SyntaxHighlighter>
     );
   },
-  pre: ({ children }: any) => (
-    <pre className="bg-white/[0.04] border border-white/[0.06] rounded-lg p-3 overflow-x-auto mb-2 text-[11px] font-mono">
-      {children}
-    </pre>
-  ),
+  pre: ({ children }: any) => <>{children}</>, // SyntaxHighlighter handles the pre tag
   a: ({ href, children }: any) => (
     <a
       href={href}

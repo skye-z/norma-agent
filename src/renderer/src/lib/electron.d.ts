@@ -8,6 +8,10 @@ declare global {
       quitApp: () => void;
       resizeWindow: (width: number, height: number) => void;
       platform: string;
+      configGet: (key: string) => Promise<any>;
+      configSet: (key: string, value: any) => Promise<{ success: boolean; error?: string }>;
+      configDelete: (key: string) => Promise<{ success: boolean; error?: string }>;
+      configGetAll: () => Promise<Record<string, any>>;
       invokeProviderPresets: () => Promise<any[]>;
       testProviderConnectivity: (config: any) => Promise<{ success: boolean; error?: string; latency?: number }>;
       fetchProviderModels: (config: any) => Promise<{ success: boolean; models?: any[]; error?: string }>;
@@ -17,6 +21,25 @@ declare global {
       getThread: (threadId: string) => Promise<{ id: string; title: string; resourceId: string; createdAt: string; updatedAt: string } | null>;
       deleteThread: (threadId: string) => Promise<boolean>;
       getThreadMessages: (threadId: string) => Promise<any[]>;
+      getCapabilities: () => Promise<Array<{ id: string; name: string; description: string; category: string }>>;
+      getAgentsList: () => Promise<Array<{ id: string; name: string; description: string }>>;
+      getModels: () => Promise<Array<{ id: string; modelId: string; provider: string }>>;
+      getActiveModel: () => Promise<string | null>;
+      setActiveModel: (modelString: string, providerConfig?: { providerType: string; baseUrl: string; apiKey: string }) => Promise<{ success: boolean }>;
+      getSystemVersion: () => Promise<{ version: string; electron: string; node: string; chrome: string }>;
+      knowledgeIngest: (name: string, text: string) => Promise<{ success: boolean; docId?: string; chunks?: number; error?: string }>;
+      knowledgeIngestFile: () => Promise<{ success: boolean; documents?: Array<{ name: string; docId: string; chunks: number }>; error?: string }>;
+      knowledgeQuery: (query: string, topK?: number) => Promise<{ success: boolean; results?: Array<{ id: string; score: number; metadata: Record<string, any> }>; error?: string }>;
+      knowledgeList: () => Promise<{ success: boolean; documents: Array<{ docId: string; name: string; date: string; chunkCount: number }>; error?: string }>;
+      knowledgeDelete: (docId: string) => Promise<{ success: boolean; error?: string }>;
+      automationRun: (name: string, desc: string, trigger: string) => Promise<{ success: boolean; status?: string; output?: string; timestamp?: string; error?: string }>;
+      automationListWorkflows: () => Promise<{ success: boolean; workflows: Array<{ id: string; name: string }>; error?: string }>;
+      diagSetLogging: (enabled: boolean) => Promise<{ enabled: boolean }>;
+      diagGetLoggingState: () => Promise<{ enabled: boolean }>;
+      diagGetLogs: () => Promise<Array<{ ts: string; level: string; source: string; message: string }>>;
+      diagClearLogs: () => Promise<boolean>;
+      diagSubscribe: () => Promise<boolean>;
+      diagUnsubscribe: () => Promise<boolean>;
     };
   }
 }

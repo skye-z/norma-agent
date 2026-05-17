@@ -10,12 +10,36 @@ interface YieldContent {
 type StreamChunk =
   | { type: "text-delta"; text: string }
   | { type: "tool-call"; toolCallId: string; toolName: string; args: Record<string, unknown> }
-  | { type: "tool-result"; toolCallId: string; toolName: string; result: unknown; isError?: boolean };
+  | { type: "tool-result"; toolCallId: string; toolName: string; result: unknown; isError?: boolean }
+  | { type: "usage"; usage: { promptTokens: number; completionTokens: number; totalTokens?: number; cachedTokens?: number } };
 
 type QueueItem =
   | { type: "chunk"; chunk: StreamChunk }
   | { type: "done" }
   | { type: "error"; message: string };
+
+export interface UsageData {
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens?: number;
+  cachedTokens?: number;
+}
+
+export let lastUsage: UsageData = { promptTokens: 0, completionTokens: 0 };
+
+const usageListeners = new Set<(usage: UsageData) => void>();
+
+export function onUsageUpdate(cb: (usage: UsageData) => void): () => void {
+  usageListeners.add(cb);
+  return () => { usageListeners.delete(cb); };
+}
+
+function notifyUsage(usage: UsageData) {
+  lastUsage = usage;
+  for (const cb of usageListeners) {
+    try { cb(usage); } catch {}
+  }
+}
 
 export function createIpcChatModel(getThreadId?: () => string | undefined) {
   return {
@@ -89,16 +113,10 @@ export function createIpcChatModel(getThreadId?: () => string | undefined) {
       window.electronAPI.sendMessage("chat:send", threadId ? { message: text, threadId } : text);
 
       let fullText = "";
-      let isFirstChunk = true;
       const toolCalls: Map<string, { toolName: string; args: Record<string, unknown>; result?: unknown; isError?: boolean }> = new Map();
 
       const buildContent = (): ContentPart[] => {
         const content: ContentPart[] = [];
-
-        if (isFirstChunk) {
-          isFirstChunk = false;
-          content.push({ type: "reasoning", text: "Norma 正在处理..." });
-        }
 
         for (const [tcId, tc] of toolCalls) {
           content.push({
@@ -167,6 +185,8 @@ export function createIpcChatModel(getThreadId?: () => string | undefined) {
                 isError: chunk.isError,
               });
             }
+          } else if (chunk.type === "usage") {
+            notifyUsage(chunk.usage);
           }
 
           const content = buildContent();

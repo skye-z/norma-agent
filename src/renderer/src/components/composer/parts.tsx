@@ -1,5 +1,15 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { ComposerPrimitive } from "@assistant-ui/react";
+import { lastUsage, onUsageUpdate, UsageData } from "../../lib/ipc-chat";
+
+const CONTEXT_WINDOW = 128000;
+
+const formatTokens = (n: number): string => {
+  if (n >= 1000) {
+    return (n / 1000).toFixed(1).replace(/\.0$/, "") + "k";
+  }
+  return String(n);
+};
 
 const ComposerAttachmentItem: React.FC = () => {
   return (
@@ -39,6 +49,28 @@ const ComposerAttachmentItem: React.FC = () => {
 };
 
 const ContextRing: React.FC = () => {
+  const [usage, setUsage] = useState<UsageData>(lastUsage);
+
+  useEffect(() => {
+    setUsage(lastUsage);
+    return onUsageUpdate((u) => setUsage({ ...u }));
+  }, []);
+
+  const promptTokens = usage.promptTokens;
+  const completionTokens = usage.completionTokens;
+  const cachedTokens = usage.cachedTokens ?? 0;
+  const totalUsed = promptTokens + completionTokens;
+  const percentage = Math.min(100, (promptTokens / CONTEXT_WINDOW) * 100);
+  const circumference = 2 * Math.PI * 16;
+  const strokeDashoffset = circumference * (1 - percentage / 100);
+
+  const ringColor =
+    percentage > 80
+      ? "text-red-400"
+      : percentage > 50
+        ? "text-amber-400"
+        : "text-emerald-400";
+
   return (
     <div className="relative group flex items-center justify-center flex-none w-6 h-6 rounded-full hover:bg-white/[0.06] transition-colors cursor-pointer">
       <svg className="w-3.5 h-3.5 transform -rotate-90" viewBox="0 0 36 36">
@@ -57,34 +89,34 @@ const ContextRing: React.FC = () => {
           fill="none"
           stroke="currentColor"
           strokeWidth="4"
-          strokeDasharray="100 100"
-          strokeDashoffset="58"
-          className="text-emerald-400"
+          strokeDasharray={`${circumference} ${circumference}`}
+          strokeDashoffset={strokeDashoffset}
+          className={ringColor}
         />
       </svg>
 
       <div className="absolute bottom-full left-0 mb-3 w-48 p-3 rounded-xl bg-norma-panel border border-norma-border shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
         <div className="flex items-center justify-between text-[11px] text-norma-text font-medium mb-2">
           <span>Usage</span>
-          <span>42%</span>
+          <span>{promptTokens > 0 ? `${Math.round(percentage)}%` : "—"}</span>
         </div>
         <div className="space-y-1.5 text-[10px]">
           <div className="flex justify-between text-norma-textMuted">
             <span>Input</span>
-            <span className="text-norma-textDim">53.8k</span>
+            <span className="text-norma-textDim">{promptTokens > 0 ? formatTokens(promptTokens) : "—"}</span>
           </div>
           <div className="flex justify-between text-norma-textMuted">
             <span>Cached</span>
-            <span className="text-norma-textDim">0</span>
+            <span className="text-norma-textDim">{cachedTokens > 0 ? formatTokens(cachedTokens) : "0"}</span>
           </div>
           <div className="flex justify-between text-norma-textMuted">
             <span>Output</span>
-            <span className="text-norma-textDim">0</span>
+            <span className="text-norma-textDim">{completionTokens > 0 ? formatTokens(completionTokens) : "—"}</span>
           </div>
         </div>
         <div className="mt-2 pt-2 border-t border-white/[0.06] flex justify-between text-[10px] font-mono text-norma-textDim">
           <span>Total</span>
-          <span>53.8k / 128.0k</span>
+          <span>{totalUsed > 0 ? `${formatTokens(totalUsed)} / ${formatTokens(CONTEXT_WINDOW)}` : "—"}</span>
         </div>
       </div>
     </div>

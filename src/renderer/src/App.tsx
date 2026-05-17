@@ -33,3 +33,11 @@ const App = () => {
 
 const root = createRoot(document.getElementById("root")!);
 root.render(<App />);
+
+requestAnimationFrame(() => {
+  const splash = document.getElementById("splash");
+  if (splash) {
+    splash.classList.add("hide");
+    setTimeout(() => splash.remove(), 400);
+  }
+});
