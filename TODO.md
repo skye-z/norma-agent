@@ -20,23 +20,23 @@
 
 ### 🔴 Critical（功能崩溃级）
 
-- [ ] **C1: `preload.ts` onMessage 监听器注册 bug**
+- [x] **C1: `preload.ts` onMessage 监听器注册 bug**
   - `onMessage` 多了一层 `() =>` 包装，返回值是 `() => (() => void)` 而非 `() => void`
   - 后果：`chat:chunk/done/error` 监听器永远不注册，聊天流式响应完全不工作
   - "取消订阅"时反向创建新监听器，每次聊天泄漏 3 个监听器
   - 修复：移除多余 `() =>`，让函数体立即执行
 
-- [ ] **C2: 并发 chat:send 无隔离**
+- [x] **C2: 并发 chat:send 无隔离**
   - 两条流式响应交替往同一窗口发 `chat:chunk`，输出乱码
   - 第一条 `chat:done` 终止渲染端生成器，第二条后续 chunk 丢失
-  - 修复：加请求 ID 或互斥锁，新一代请求取消旧请求
+  - 修复：加 AbortController 互斥，新一代请求取消旧请求
 
-- [ ] **C3: AutoQueueSender 只发第一条排队消息**
+- [x] **C3: AutoQueueSender 只发第一条排队消息**
   - `useEffect` 依赖 `[thread.isRunning]`，`isRunning` 变 false 时只触发一次 `dequeueFirst`
   - 后续排队消息永远留在队列
-  - 修复：dequeue 后继续检查队列，或改用 `while (queue.length > 0)` 循环
+  - 修复：加 `queue.length` 到依赖数组，每次 completion 后检查队列
 
-- [ ] **C4: 模型切换完全无效**
+- [ ] **C4: 模型切换实装验证**
   - `_activeModel` 存了但从未使用；agent 硬编码为 `gpt-4o-mini` / `gpt-4o`
   - `streamOptions.model` 虽然传入但 Mastra Agent 可能不尊重覆写
   - 修复：验证 Mastra stream model override 是否生效，必要时动态创建 model instance
@@ -48,48 +48,48 @@
 
 ### 🟠 High（严重但不会立即崩溃）
 
-- [ ] **H1: window 操作目标错误窗口**
+- [x] **H1: window 操作目标错误窗口**
   - `getFocusedWindow()` 可能操作命令栏而非主窗口
   - 修复：改 `BrowserWindow.fromWebContents(event.sender)`
 
-- [ ] **H2: API key 并发覆盖 + 环境变量破坏**
+- [x] **H2: API key 并发覆盖 + 环境变量破坏**
   - `process.env` 写入在并发请求时互相覆盖
   - `delete process.env.OPENAI_BASE_URL` 破坏用户 .env 配置
-  - 修复：不用 process.env，改用 per-request 传参；不删原值而是覆盖后恢复
+  - 修复：finally 块中恢复原始环境变量值
 
-- [ ] **H3: fallback 响应拼接用户输入（XSS 向量）**
+- [x] **H3: fallback 响应拼接用户输入（XSS 向量）**
   - `"I received your message: " + message` 直接拼入流式响应
-  - 修复：移除用户输入拼接，改为固定提示文本
+  - 修复：移除用户输入拼接，改为固定提示文本 "请先在设置中配置 API Key。"
 
 - [ ] **H4: sendMessage/onMessage 暴露任意 IPC channel**
   - `sendMessage` 和 `onMessage` 是原始 `ipcRenderer.send/on` 的透传
-  - 修复：移除这两个通用方法，改为具体的 channel 方法
+  - 修复：移除这两个通用方法，改为具体的 channel 方法（暂缓，影响 chat IPC）
 
-- [ ] **H5: config CREATE TABLE 异步未等待**
-  - `initConfig` 中 `_client.execute(CREATE TABLE)` 是 async 但 `.catch(() => {})` fire-and-forget
+- [x] **H5: config CREATE TABLE 异步未等待**
+  - `initConfig` 中 `_client.execute(CREATE TABLE)` 是 async 但 fire-and-forget
   - 后续 `setConfig` 可能在表不存在时写入丢失
-  - 修复：改为 `await _client.execute(...)` 并在 `initConfig` 返回前确保表存在
+  - 修复：`initConfig` 改为 async，用 Promise 锁确保表创建完成
 
-- [ ] **H6: Windows 路径 file: URL 未转义**
+- [x] **H6: Windows 路径 file: URL 未转义**
   - `file:C:\Users\...` 中反斜杠和冒号不合法
-  - 修复：使用 `pathToFileURL()` 或手动替换反斜杠为正斜杠
+  - 修复：Windows 平台路径替换反斜杠为正斜杠
 
 - [ ] **H7: QueueDisplay handleSendNext 消息丢失**
   - async 函数无错误处理；先 dequeue 再 append，append 失败则消息丢失
   - 300ms 等待 `cancelRun` 是不可靠的魔数
   - 修复：先 append 再 dequeue（或失败时 re-enqueue）；监听 cancel 完成事件而非硬等时间
 
-- [ ] **H8: queue.ts dequeue 越界返回 undefined**
+- [x] **H8: queue.ts dequeue 越界返回 undefined**
   - `dequeue(index)` 不检查边界，返回 `undefined` 被当文本发送
   - 修复：加边界检查，越界时返回 null 并在调用方处理
 
-- [ ] **H9: chat:cancel 未实现**
+- [x] **H9: chat:cancel 未实现**
   - 用户点停止只取消前端监听器，后端继续消耗 token 生成响应
-  - 修复：实现 `chat:cancel` IPC，后端收到后调用 abort controller 终止流
+  - 修复：实现 `chat:cancel` IPC，后端用 AbortController 终止流，前端 abortSignal 时发送取消
 
-- [ ] **H10: ModelSelector selectedIdx 越界 crash**
+- [x] **H10: ModelSelector selectedIdx 越界 crash**
   - `models` 列表缩短后 `selectedIdx` 指向不存在的元素
-  - 修复：models 变化时 clamp selectedIdx 到合法范围
+  - 修复：用 `Math.min(selectedIdx, models.length - 1)` 保护
 
 ### 🟡 Medium（逻辑漏洞/设计缺陷）
 
@@ -97,11 +97,11 @@
   - 多个 IPC 调用可同时读写
   - 修复：加锁或使用 per-session context
 
-- [ ] **M2: config.ts getClient() 并发创建两个 Client**
+- [x] **M2: config.ts getClient() 并发创建两个 Client**
   - `_client` null 时两路并发均创建 Client，第一个连接泄漏
-  - 修复：加初始化锁或用单例 promise
+  - 修复：加 `_initPromise` 初始化锁
 
-- [ ] **M3: config.ts setConfig 三元表达式无意义**
+- [x] **M3: config.ts setConfig 三元表达式无意义**
   - `typeof value === 'string' ? JSON.stringify(value) : JSON.stringify(value)` 两分支相同
   - 修复：直接 `JSON.stringify(value)`
 
@@ -151,8 +151,8 @@
 - [ ] **M15: docId 用 Date.now() 毫秒精度并发冲突**
   - 修复：加随机后缀或 UUID
 
-- [ ] **M16: metadata spread 可覆盖 docId/chunkIndex**
-  - 修复：将关键字段放在 spread 之后或过滤 metadata
+- [x] **M16: metadata spread 覆盖 docId/chunkIndex**
+  - 修复：将关键字段放在 spread 之后
 
 ---
 
