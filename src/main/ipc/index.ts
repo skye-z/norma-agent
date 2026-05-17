@@ -122,7 +122,7 @@ export function setupIpc() {
         ? { message: payload, threadId: undefined }
         : payload;
 
-      appendLog('info', 'chat', `收到消息: ${message.slice(0, 100)}${message.length > 100 ? '...' : ''}`);
+      appendLog('info', 'chat', `收到消息 (${message.length} chars)`);
 
       const apiKey = _providerConfig?.apiKey || '';
       const providerType = _providerConfig?.providerType || 'openai';

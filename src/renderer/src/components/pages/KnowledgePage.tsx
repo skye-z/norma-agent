@@ -11,6 +11,7 @@ const KnowledgePage: React.FC = () => {
   const [docs, setDocs] = useState<KnowledgeDoc[]>([]);
   const [search, setSearch] = useState("");
   const [searchResults, setSearchResults] = useState<Array<{ id: string; score: number; metadata: Record<string, any> }> | null>(null);
+  const [expandedResult, setExpandedResult] = useState<number | null>(null);
   const [showUpload, setShowUpload] = useState(false);
   const [uploadName, setUploadName] = useState("");
   const [uploadText, setUploadText] = useState("");
@@ -69,6 +70,7 @@ const KnowledgePage: React.FC = () => {
       const res = await window.electronAPI?.knowledgeQuery?.(queryText.trim(), 5);
       if (res?.success) {
         setSearchResults(res.results || []);
+        setExpandedResult(null);
       }
     } catch {}
     setLoading(false);
@@ -172,9 +174,17 @@ const KnowledgePage: React.FC = () => {
             <div className="flex flex-col gap-2">
               {searchResults.map((r, i) => (
                 <div key={r.id} className="rounded-xl bg-white/[0.03] border border-norma-accent/20 px-4 py-3">
-                  <div className="text-[11px] text-norma-text leading-relaxed whitespace-pre-wrap line-clamp-4">
+                  <div className={`text-[11px] text-norma-text leading-relaxed whitespace-pre-wrap ${expandedResult === i ? '' : 'line-clamp-4'}`}>
                     {r.metadata?.text || JSON.stringify(r.metadata)}
                   </div>
+                  {r.metadata?.text && r.metadata.text.length > 200 && (
+                    <button
+                      onClick={() => setExpandedResult(expandedResult === i ? null : i)}
+                      className="text-[9px] text-norma-accent hover:underline mt-0.5"
+                    >
+                      {expandedResult === i ? '收起' : '展开全文'}
+                    </button>
+                  )}
                   <div className="text-[9px] text-norma-textDim mt-1">
                     相关度: {(r.score * 100).toFixed(1)}% · 来源: {r.metadata?.name || r.metadata?.docId}
                   </div>

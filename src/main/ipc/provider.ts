@@ -11,14 +11,14 @@ export function setupProviderIpc() {
   ipcMain.handle("provider:presets", () => PROVIDER_PRESETS);
 
   ipcMain.handle("provider:test", async (_event, config: any) => {
-    appendLog('info', 'provider', `测试连通性: ${config.name} (${config.type}) ${config.baseUrl}`);
+    appendLog('info', 'provider', `测试连通性: ${config.name} (${config.type})`);
     const result = await testConnectivity(config);
     appendLog(result.success ? 'info' : 'warn', 'provider', `连通性${result.success ? '成功' : '失败'}: ${config.name}${result.latency ? ` ${result.latency}ms` : ''}${result.error ? ` ${result.error}` : ''}`);
     return result;
   });
 
   ipcMain.handle("provider:models", async (_event, config: any) => {
-    appendLog('info', 'provider', `获取模型列表: ${config.name} (${config.type}) ${config.baseUrl}`);
+    appendLog('info', 'provider', `获取模型列表: ${config.name} (${config.type})`);
     try {
       const models = await fetchModels(config);
       appendLog('info', 'provider', `获取到 ${models.length} 个模型: ${models.slice(0, 5).map((m: any) => m.display_name || m.id).join(', ')}${models.length > 5 ? ` ...共${models.length}个` : ''}`);

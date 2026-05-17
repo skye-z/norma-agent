@@ -1,12 +1,33 @@
 import { ipcMain } from 'electron';
+import { setConfig, getConfig } from '../config';
 
 const MAX_LOG_ENTRIES = 2000;
+const LOG_KEY = 'norma-diag-logs';
 let logBuffer: Array<{ ts: string; level: string; source: string; message: string }> = [];
 let loggingEnabled = false;
 let logSubscribers: Set<number> = new Set();
+let dirty = false;
+let flushTimer: ReturnType<typeof setTimeout> | null = null;
 
 function timestamp(): string {
   return new Date().toISOString();
+}
+
+async function flushLogs() {
+  if (!dirty) return;
+  dirty = false;
+  try {
+    await setConfig(LOG_KEY, logBuffer.slice(-MAX_LOG_ENTRIES));
+  } catch {}
+}
+
+async function loadLogs() {
+  try {
+    const stored = await getConfig(LOG_KEY);
+    if (Array.isArray(stored)) {
+      logBuffer = stored.slice(-MAX_LOG_ENTRIES);
+    }
+  } catch {}
 }
 
 export function isLoggingEnabled(): boolean {
@@ -19,6 +40,10 @@ export function appendLog(level: string, source: string, message: string) {
   logBuffer.push(entry);
   if (logBuffer.length > MAX_LOG_ENTRIES) {
     logBuffer = logBuffer.slice(-MAX_LOG_ENTRIES);
+  }
+  dirty = true;
+  if (!flushTimer) {
+    flushTimer = setTimeout(() => { flushTimer = null; flushLogs(); }, 2000);
   }
   const raw = JSON.stringify(entry);
   for (const webContentsId of logSubscribers) {
@@ -33,7 +58,9 @@ export function appendLog(level: string, source: string, message: string) {
 }
 
 export function setupDiagIpc() {
-  ipcMain.handle('diag:setLogging', (_event, enabled: boolean) => {
+  loadLogs();
+
+  ipcMain.handle('diag:setLogging', async (_event, enabled: boolean) => {
     loggingEnabled = enabled;
     if (enabled) logBuffer = [];
     return { enabled };
@@ -47,8 +74,10 @@ export function setupDiagIpc() {
     return logBuffer;
   });
 
-  ipcMain.handle('diag:clearLogs', () => {
+  ipcMain.handle('diag:clearLogs', async () => {
     logBuffer = [];
+    dirty = true;
+    await flushLogs();
     return true;
   });
 

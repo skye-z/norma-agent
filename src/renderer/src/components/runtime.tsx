@@ -7,7 +7,7 @@ import {
   WebSpeechDictationAdapter,
 } from "@assistant-ui/react";
 import { createIpcChatModel } from "../lib/ipc-chat";
-import { getActiveThreadId, getMaxSteps } from "../lib/shared";
+import { getActiveThreadId } from "../lib/shared";
 
 function syncActiveModelConfig() {
   (window as any).electronAPI?.configGet?.("norma-providers").then((providersRaw: any) => {
@@ -43,12 +43,38 @@ function useConfigSync() {
   }, []);
 }
 
+function useMaxSteps(defaultValue: number): number {
+  const [maxSteps, setMaxSteps] = React.useState(() => {
+    try {
+      const stored = localStorage.getItem("norma-max-steps");
+      return stored ? Number(stored) || defaultValue : defaultValue;
+    } catch { return defaultValue; }
+  });
+
+  React.useEffect(() => {
+    const unsub = (window as any).electronAPI?.onConfigChanged?.((key: string) => {
+      if (key === 'norma-max-steps') {
+        (window as any).electronAPI?.configGet?.('norma-max-steps').then((val: any) => {
+          if (typeof val === 'number') {
+            setMaxSteps(val);
+            try { localStorage.setItem('norma-max-steps', String(val)); } catch {}
+          }
+        }).catch(() => {});
+      }
+    });
+    return () => { unsub?.(); };
+  }, []);
+
+  return maxSteps;
+}
+
 export function IpcRuntime({ children }: { children: React.ReactNode }) {
   const ipcModel = React.useMemo(() => createIpcChatModel(), []);
   const dictationAdapter = React.useMemo(() => new WebSpeechDictationAdapter(), []);
+  const maxSteps = useMaxSteps(3);
   useConfigSync();
   const runtime = useLocalRuntime(ipcModel, {
-    maxSteps: getMaxSteps(3),
+    maxSteps,
     adapters: {
       dictation: dictationAdapter,
     },
@@ -63,9 +89,10 @@ export function IpcRuntime({ children }: { children: React.ReactNode }) {
 export function NormaRuntime({ children }: { children: React.ReactNode }) {
   const ipcModel = React.useMemo(() => createIpcChatModel(() => getActiveThreadId()), []);
   const dictationAdapter = React.useMemo(() => new WebSpeechDictationAdapter(), []);
+  const maxSteps = useMaxSteps(5);
   useConfigSync();
   const runtime = useLocalRuntime(ipcModel, {
-    maxSteps: getMaxSteps(5),
+    maxSteps,
     adapters: {
       dictation: dictationAdapter,
     },

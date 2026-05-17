@@ -54,42 +54,50 @@ const ChatAreaInner: React.FC = () => {
   const [activeSessionId, setActiveSessionId] = useState<string>("");
   const [synced, setSynced] = useState(false);
 
+  const syncThreads = React.useCallback(async () => {
+    try {
+      const threads = await window.electronAPI?.listThreads?.() || [];
+      setSessions((prev) => {
+        const existingThreadIds = new Set(prev.filter((s) => s.threadId).map((s) => s.threadId));
+        const newFromThreads = threads
+          .filter((t) => !existingThreadIds.has(t.id))
+          .map((t) => ({
+            id: `thread-${t.id}`,
+            title: t.title || "新会话",
+            preview: "",
+            time: formatTimeAgo(t.createdAt),
+            active: false,
+            threadId: t.id,
+          }));
+        const merged = prev.map((s) => {
+          if (!s.threadId) return s;
+          const thread = threads.find((t) => t.id === s.threadId);
+          if (thread && thread.title && thread.title !== "新会话") {
+            return { ...s, title: thread.title };
+          }
+          return s;
+        });
+        return [...merged, ...newFromThreads];
+      });
+    } catch (e) {
+      console.error("Failed to sync threads:", e);
+    }
+  }, []);
+
   useEffect(() => {
     if (synced) return;
     let cancelled = false;
     (async () => {
-      try {
-        const threads = await window.electronAPI?.listThreads?.() || [];
-        if (cancelled) return;
-        setSessions((prev) => {
-          const existingThreadIds = new Set(prev.filter((s) => s.threadId).map((s) => s.threadId));
-          const newFromThreads = threads
-            .filter((t) => !existingThreadIds.has(t.id))
-            .map((t) => ({
-              id: `thread-${t.id}`,
-              title: t.title || "新会话",
-              preview: "",
-              time: formatTimeAgo(t.createdAt),
-              active: false,
-              threadId: t.id,
-            }));
-          const merged = prev.map((s) => {
-            if (!s.threadId) return s;
-            const thread = threads.find((t) => t.id === s.threadId);
-            if (thread && thread.title && thread.title !== "新会话") {
-              return { ...s, title: thread.title };
-            }
-            return s;
-          });
-          return [...merged, ...newFromThreads];
-        });
-      } catch (e) {
-        console.error("Failed to sync threads:", e);
-      }
+      await syncThreads();
       if (!cancelled) setSynced(true);
     })();
     return () => { cancelled = true; };
-  }, [synced]);
+  }, [synced, syncThreads]);
+
+  useEffect(() => {
+    const interval = setInterval(() => { syncThreads(); }, 30000);
+    return () => { clearInterval(interval); };
+  }, [syncThreads]);
 
   useEffect(() => {
     const activeSession = sessions.find((s) => s.active);
