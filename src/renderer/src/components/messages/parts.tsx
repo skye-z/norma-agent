@@ -3,6 +3,7 @@ import {
   useMessage,
   useMessagePartFile,
   useMessagePartImage,
+  AttachmentPrimitive,
 } from "@assistant-ui/react";
 import { getToolLabel } from "../../lib/tool-registry";
 import { getMessageMeta } from "../../lib/ipc-chat";
@@ -220,44 +221,35 @@ export const ToolFallbackDisplay: React.FC<{
 export const FilePartView: React.FC = () => {
   const file = useMessagePartFile();
   return (
-    <div className="flex items-center gap-2 rounded-lg bg-white/[0.03] border border-white/[0.06] px-2.5 py-1.5 text-[10px]">
-      <svg
-        width="12"
-        height="12"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        className="text-norma-accent flex-none"
-      >
+    <AttachmentPrimitive.Root className="flex items-center gap-2 rounded-lg bg-white/[0.03] border border-white/[0.06] px-2.5 py-1.5 text-[10px]">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-norma-accent flex-none">
         <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
         <path d="M14 2v4a2 2 0 0 0 2 2h4" />
       </svg>
       <div className="flex-1 min-w-0">
-        <div className="text-norma-text truncate font-medium">
-          {file.name || "附件文件"}
-        </div>
-        {file.mimeType && (
-          <div className="text-norma-textDim">{file.mimeType}</div>
-        )}
+        <AttachmentPrimitive.Name className="text-norma-text truncate font-medium block" />
+        {file.mimeType && <div className="text-norma-textDim">{file.mimeType}</div>}
       </div>
-    </div>
+      <AttachmentPrimitive.Remove className="text-norma-textDim hover:text-red-400 transition-colors cursor-pointer flex-none">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
+      </AttachmentPrimitive.Remove>
+    </AttachmentPrimitive.Root>
   );
 };
 
 export const ImagePartView: React.FC = () => {
-  const image = useMessagePartImage();
   const [expanded, setExpanded] = useState(false);
   return (
-    <div
-      className="rounded-lg overflow-hidden border border-white/[0.06] cursor-pointer"
+    <AttachmentPrimitive.Root
+      className={`rounded-lg overflow-hidden border border-white/[0.06] cursor-pointer`}
       onClick={() => setExpanded(!expanded)}
     >
-      <img
-        src={image.image}
-        alt="图片"
-        className={`max-w-full transition-all duration-200 ${expanded ? "max-w-[300px]" : "max-w-[160px] max-h-[120px]"} object-cover`}
-      />
-    </div>
+      <AttachmentPrimitive.unstable_Thumb className="overflow-hidden">
+        <img
+          alt="图片"
+          className={`max-w-full transition-all duration-200 ${expanded ? "max-w-[300px]" : "max-w-[160px] max-h-[120px]"} object-cover`}
+        />
+      </AttachmentPrimitive.unstable_Thumb>
+    </AttachmentPrimitive.Root>
   );
 };

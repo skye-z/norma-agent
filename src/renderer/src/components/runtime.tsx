@@ -5,6 +5,10 @@ import {
   useAui,
   Suggestions,
   WebSpeechDictationAdapter,
+  WebSpeechSynthesisAdapter,
+  SimpleImageAttachmentAdapter,
+  SimpleTextAttachmentAdapter,
+  CompositeAttachmentAdapter,
 } from "@assistant-ui/react";
 import { createIpcChatModel } from "../lib/ipc-chat";
 import { getActiveThreadId } from "../lib/shared";
@@ -92,12 +96,29 @@ export function IpcRuntime({ children }: { children: React.ReactNode }) {
 export function NormaRuntime({ children }: { children: React.ReactNode }) {
   const ipcModel = React.useMemo(() => createIpcChatModel(() => getActiveThreadId()), []);
   const dictationAdapter = React.useMemo(() => new WebSpeechDictationAdapter(), []);
+  const speechAdapter = React.useMemo(() => new WebSpeechSynthesisAdapter(), []);
+  const imageAttachmentAdapter = React.useMemo(() => new SimpleImageAttachmentAdapter(), []);
+  const textAttachmentAdapter = React.useMemo(() => new SimpleTextAttachmentAdapter(), []);
+  const attachmentAdapter = React.useMemo(
+    () => new CompositeAttachmentAdapter([imageAttachmentAdapter, textAttachmentAdapter]),
+    [imageAttachmentAdapter, textAttachmentAdapter],
+  );
   const maxSteps = useMaxSteps(5);
   useConfigSync();
+
+  const feedbackAdapter = React.useMemo(() => ({
+    submit: ({ type }: { message: any; type: "positive" | "negative" }) => {
+      console.log(`[Feedback] ${type}`);
+    },
+  }), []);
+
   const runtime = useLocalRuntime(ipcModel, {
     maxSteps,
     adapters: {
       dictation: dictationAdapter,
+      speech: speechAdapter,
+      attachments: attachmentAdapter,
+      feedback: feedbackAdapter,
     },
   });
 
