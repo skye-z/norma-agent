@@ -2,8 +2,6 @@ import React, { useState, useEffect } from "react";
 import { ComposerPrimitive } from "@assistant-ui/react";
 import { lastUsage, onUsageUpdate, UsageData } from "../../lib/ipc-chat";
 
-const CONTEXT_WINDOW = 128000;
-
 const formatTokens = (n: number): string => {
   if (n >= 1000) {
     return (n / 1000).toFixed(1).replace(/\.0$/, "") + "k";
@@ -50,17 +48,39 @@ const ComposerAttachmentItem: React.FC = () => {
 
 const ContextRing: React.FC = () => {
   const [usage, setUsage] = useState<UsageData>(lastUsage);
+  const [contextWindow, setContextWindow] = useState(128000);
 
   useEffect(() => {
     setUsage(lastUsage);
     return onUsageUpdate((u) => setUsage({ ...u }));
   }, []);
 
+  useEffect(() => {
+    const fetchContextWindow = async () => {
+      const activeModel = await window.electronAPI?.getActiveModel?.();
+      if (!activeModel) return;
+      const modelId = activeModel.includes("/") ? activeModel.split("/").pop()! : activeModel;
+      const caps = await window.electronAPI?.getCapabilitiesWithOverride?.(modelId);
+      if (caps && caps.contextLength > 0) {
+        setContextWindow(caps.contextLength);
+      }
+    };
+    fetchContextWindow();
+    const unsub = window.electronAPI?.onConfigChanged?.((key) => {
+      if (key === "norma-active-model" || key === "norma-enabled-models") {
+        fetchContextWindow();
+      }
+    });
+    return () => {
+      unsub?.();
+    };
+  }, []);
+
   const promptTokens = usage.promptTokens;
   const completionTokens = usage.completionTokens;
   const cachedTokens = usage.cachedTokens ?? 0;
   const totalUsed = promptTokens + completionTokens;
-  const percentage = Math.min(100, (promptTokens / CONTEXT_WINDOW) * 100);
+  const percentage = Math.min(100, (promptTokens / contextWindow) * 100);
   const circumference = 2 * Math.PI * 16;
   const strokeDashoffset = circumference * (1 - percentage / 100);
 
@@ -116,7 +136,7 @@ const ContextRing: React.FC = () => {
         </div>
         <div className="mt-2 pt-2 border-t border-white/[0.06] flex justify-between text-[10px] font-mono text-norma-textDim">
           <span>Total</span>
-          <span>{totalUsed > 0 ? `${formatTokens(totalUsed)} / ${formatTokens(CONTEXT_WINDOW)}` : "—"}</span>
+          <span>{totalUsed > 0 ? `${formatTokens(totalUsed)} / ${formatTokens(contextWindow)}` : "—"}</span>
         </div>
       </div>
     </div>

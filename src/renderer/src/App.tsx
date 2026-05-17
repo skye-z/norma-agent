@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { IpcRuntime, NormaRuntime } from "./components/runtime";
 import { ChatAreaInner } from "./components/ChatArea";
 import { CommandBarInner } from "./components/CommandBar";
+
 import "./index.css";
 
 const App = () => {

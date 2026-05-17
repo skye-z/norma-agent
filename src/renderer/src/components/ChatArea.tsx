@@ -25,6 +25,7 @@ import { CapabilitiesPage } from "./pages/CapabilitiesPage";
 import { KnowledgePage } from "./pages/KnowledgePage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { useDbState, setActiveThreadId } from "../lib/shared";
+import { onThreadCreated, onRunningChange, isCurrentlyRunning } from "../lib/ipc-chat";
 
 const AutoQueueSender: React.FC = () => {
   const thread = useThread();
@@ -65,6 +66,13 @@ const ChatAreaInner: React.FC = () => {
   const [sessions, setSessions] = useDbState<Session[]>("norma-sessions", []);
   const [activeSessionId, setActiveSessionId] = useState<string>("");
   const [synced, setSynced] = useState(false);
+  const [isRunning, setIsRunning] = useState(isCurrentlyRunning);
+  const [threadKey, setThreadKey] = useState(0);
+  const prevActiveIdRef = useRef(activeSessionId);
+
+  useEffect(() => {
+    return onRunningChange(setIsRunning);
+  }, []);
 
   useEffect(() => {
     if (synced) return;
@@ -84,8 +92,8 @@ const ChatAreaInner: React.FC = () => {
               title: t.title || "新会话",
               preview: "",
               time: formatTimeAgo(t.createdAt),
-              active: false,
               threadId: t.id,
+              status: "idle" as const,
             }));
           const merged = prev.map((s) => {
             if (!s.threadId) return s;
@@ -108,33 +116,41 @@ const ChatAreaInner: React.FC = () => {
   }, [synced]);
 
   useEffect(() => {
-    const activeSession = sessions.find((s) => s.active);
+    const activeSession = sessions.find((s) => s.id === activeSessionId);
     setActiveThreadId(activeSession?.threadId);
   }, [sessions, activeSessionId]);
 
-  const handleNewSession = async () => {
-    let threadId: string | undefined;
-    try {
-      if (window.electronAPI?.createThread) {
-        const thread = await window.electronAPI.createThread("新会话");
-        threadId = thread.id;
-      }
-    } catch (e) {
-      console.error("Failed to create thread:", e);
+  useEffect(() => {
+    if (prevActiveIdRef.current && prevActiveIdRef.current !== activeSessionId && isRunning) {
+      setSessions((prev) =>
+        prev.map((s) =>
+          s.id === prevActiveIdRef.current ? { ...s, status: "unread" as const } : s,
+        ),
+      );
     }
-    const newSession: Session = {
-      id: Date.now().toString(),
-      title: "新会话",
-      preview: "开始新的对话...",
-      time: "刚刚",
-      active: true,
-      threadId,
-    };
-    setSessions((prev) =>
-      prev.map((s) => ({ ...s, active: false })).concat(newSession),
-    );
-    setActiveSessionId(newSession.id);
+    prevActiveIdRef.current = activeSessionId;
+  }, [activeSessionId, isRunning]);
+
+  useEffect(() => {
+    return onThreadCreated((threadId, title, preview) => {
+      const newSession: Session = {
+        id: `thread-${threadId}`,
+        title: title || "新会话",
+        preview: preview || "",
+        time: "刚刚",
+        threadId,
+        status: "running",
+      };
+      setSessions((prev) => [...prev, newSession]);
+      setActiveSessionId(newSession.id);
+    });
+  }, []);
+
+  const handleNewSession = () => {
+    setActiveSessionId("");
+    setActiveThreadId(undefined);
     setActiveNav("chat");
+    setThreadKey((k) => k + 1);
   };
 
   const handleDeleteSession = async (id: string) => {
@@ -153,7 +169,6 @@ const ChatAreaInner: React.FC = () => {
         return next;
       }
       if (id === activeSessionId) {
-        next[0].active = true;
         setActiveSessionId(next[0].id);
         setActiveThreadId(next[0].threadId);
       }
@@ -162,11 +177,13 @@ const ChatAreaInner: React.FC = () => {
   };
 
   const handleSwitchSession = (id: string) => {
-    setSessions((prev) => prev.map((s) => ({ ...s, active: s.id === id })));
     setActiveSessionId(id);
     const session = sessions.find((s) => s.id === id);
     setActiveThreadId(session?.threadId);
     setActiveNav("chat");
+    setSessions((prev) =>
+      prev.map((s) => (s.id === id && s.status === "unread" ? { ...s, status: "idle" as const } : s)),
+    );
   };
 
   const isChatPage = activeNav === "chat";
@@ -193,6 +210,7 @@ const ChatAreaInner: React.FC = () => {
         onNavChange={setActiveNav}
         sessions={sessions}
         activeSessionId={activeSessionId}
+        isRunning={isRunning}
         onNewSession={handleNewSession}
         onDeleteSession={handleDeleteSession}
         onSwitchSession={handleSwitchSession}
@@ -204,7 +222,7 @@ const ChatAreaInner: React.FC = () => {
             <ReadScreenTool />
             <ExecuteActionTool />
 
-            <ThreadPrimitive.Root className="flex-1 flex flex-col min-h-0">
+            <ThreadPrimitive.Root key={threadKey} className="flex-1 flex flex-col min-h-0">
               <AutoQueueSender />
               <ThreadPrimitive.Viewport className="flex-1 overflow-y-auto px-5 py-3 flex flex-col gap-3 min-h-0 scroll-smooth">
                 <AutoScrollHelper />

@@ -1,3 +1,5 @@
+import { setActiveThreadId } from "./shared";
+
 type ContentPart =
   | { type: "text"; text: string }
   | { type: "reasoning"; text: string }
@@ -28,6 +30,21 @@ export interface UsageData {
 
 export let lastUsage: UsageData = { promptTokens: 0, completionTokens: 0 };
 export let lastMetadata: { model: string; totalStreamMs: number; firstTokenMs: number; promptTokens: number; completionTokens: number; totalTokens: number } | null = null;
+
+export let isCurrentlyRunning = false;
+const _runningListeners = new Set<(running: boolean) => void>();
+
+export function onRunningChange(cb: (running: boolean) => void): () => void {
+  _runningListeners.add(cb);
+  return () => { _runningListeners.delete(cb); };
+}
+
+const _threadCreatedListeners = new Set<(threadId: string, title: string, preview: string) => void>();
+
+export function onThreadCreated(cb: (threadId: string, title: string, preview: string) => void): () => void {
+  _threadCreatedListeners.add(cb);
+  return () => { _threadCreatedListeners.delete(cb); };
+}
 
 const messageMetaStore = new Map<number, typeof lastMetadata>();
 
@@ -120,7 +137,19 @@ export function createIpcChatModel(getThreadId?: () => string | undefined) {
       );
 
       const threadId = getThreadId?.();
-      window.electronAPI.chatSend(threadId ? { message: text, threadId } : text);
+      if (!threadId) {
+        try {
+          const thread = await window.electronAPI?.createThread?.("新会话");
+          if (thread?.id) {
+            setActiveThreadId(thread.id);
+            for (const cb of _threadCreatedListeners) {
+              try { cb(thread.id, thread.title || "新会话", text.slice(0, 50)); } catch {}
+            }
+          }
+        } catch {}
+      }
+      const resolvedThreadId = getThreadId?.();
+      window.electronAPI.chatSend(resolvedThreadId ? { message: text, threadId: resolvedThreadId } : text);
 
       if (abortSignal) {
         const onAbort = () => {
@@ -153,6 +182,8 @@ export function createIpcChatModel(getThreadId?: () => string | undefined) {
       };
 
       try {
+        isCurrentlyRunning = true;
+        for (const cb of _runningListeners) { try { cb(true); } catch {} }
         while (true) {
           if (abortSignal?.aborted) {
             break;
@@ -226,6 +257,8 @@ export function createIpcChatModel(getThreadId?: () => string | undefined) {
           }
         }
       } finally {
+        isCurrentlyRunning = false;
+        for (const cb of _runningListeners) { try { cb(false); } catch {} }
         unsubscribeChunk();
         unsubscribeDone();
         unsubscribeError();

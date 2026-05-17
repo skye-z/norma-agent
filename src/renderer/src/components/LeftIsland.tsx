@@ -35,8 +35,8 @@ export interface Session {
   title: string;
   preview: string;
   time: string;
-  active: boolean;
   threadId?: string;
+  status: "idle" | "running" | "unread";
 }
 
 interface LeftIslandProps {
@@ -44,6 +44,7 @@ interface LeftIslandProps {
   onNavChange?: (id: string) => void;
   sessions?: Session[];
   activeSessionId?: string;
+  isRunning?: boolean;
   onNewSession?: () => void;
   onDeleteSession?: (id: string) => void;
   onSwitchSession?: (id: string) => void;
@@ -54,6 +55,7 @@ export const LeftIsland: React.FC<LeftIslandProps> = ({
   onNavChange,
   sessions = [],
   activeSessionId,
+  isRunning = false,
   onNewSession,
   onDeleteSession,
   onSwitchSession,
@@ -96,40 +98,53 @@ export const LeftIsland: React.FC<LeftIslandProps> = ({
           </div>
         </div>
         <div className="flex flex-col gap-1">
-          {sessions.map((session) => (
-            <div
-              key={session.id}
-              className={`session-card group ${session.id === activeSessionId ? "active" : ""}`}
-              onClick={() => onSwitchSession?.(session.id)}
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex-1 min-w-0">
-                  <div className="text-[12px] font-medium text-norma-text leading-tight truncate">
-                    {session.title}
+          {sessions.map((session) => {
+            const isActive = session.id === activeSessionId;
+            const isSessionRunning = isActive && isRunning;
+            const isUnread = session.status === "unread";
+            return (
+              <div
+                key={session.id}
+                className={`session-card group ${isActive ? "active" : ""}`}
+                onClick={() => onSwitchSession?.(session.id)}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      {isSessionRunning && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-norma-accent animate-pulse flex-none" />
+                      )}
+                      {isUnread && !isSessionRunning && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-sky-400 flex-none" />
+                      )}
+                      <span className="text-[12px] font-medium text-norma-text leading-tight truncate">
+                        {session.title}
+                      </span>
+                    </div>
+                    <div className="text-[10px] text-norma-textMuted leading-tight truncate mt-0.5">
+                      {session.preview}
+                    </div>
+                    <div className="text-[9px] text-norma-textDim mt-0.5 font-mono">
+                      {session.time}前
+                    </div>
                   </div>
-                  <div className="text-[10px] text-norma-textMuted leading-tight truncate mt-0.5">
-                    {session.preview}
-                  </div>
-                  <div className="text-[9px] text-norma-textDim mt-0.5 font-mono">
-                    {session.time}前
-                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeleteSession?.(session.id);
+                    }}
+                    className="p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-white/[0.08] text-norma-textDim hover:text-red-400 transition-all flex-none ml-1"
+                    title="删除会话"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
                 </div>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDeleteSession?.(session.id);
-                  }}
-                  className="p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-white/[0.08] text-norma-textDim hover:text-red-400 transition-all flex-none ml-1"
-                  title="删除会话"
-                >
-                  <Trash2 className="w-3 h-3" />
-                </button>
               </div>
-            </div>
-          ))}
+            );
+          })}
           {sessions.length === 0 && (
             <div className="text-[10px] text-norma-textDim px-1 py-3 text-center">
-              暂无会话，点击 + 新建
+              开始对话后将自动创建会话
             </div>
           )}
         </div>
