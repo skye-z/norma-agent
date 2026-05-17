@@ -8,8 +8,10 @@ export const PROVIDER_COLORS: Record<string, string> = {
   openai: "#10a37f",
   anthropic: "#d4a27f",
   deepseek: "#4d6bfe",
-  openrouter: "#6d28d9",
   google: "#4285f4",
+  longcat: "#ff6a00",
+  mimo: "#ff6900",
+  openrouter: "#6d28d9",
   ollama: "#6366f1",
   custom: "#8b8b8b",
 };

@@ -96,13 +96,28 @@ export const ReasoningBlock: React.FC<{ text: string; isRunning?: boolean }> = (
   );
 };
 
-export const ToolFallbackDisplay: React.FC<any> = ({
+export const ToolFallbackDisplay: React.FC<{
+  toolName: string;
+  args: Record<string, unknown>;
+  result?: unknown;
+  isError?: boolean;
+  toolCallId: string;
+  argsText: string;
+  status?: { type: string };
+  toolUI?: React.ReactNode;
+  addResult?: (result: unknown) => void;
+  resume?: (payload: unknown) => void;
+}> = ({
   toolName,
   args,
   result,
+  isError,
+  toolCallId,
+  argsText,
   status,
+  toolUI,
 }) => {
-  const isRunning = status?.type === "running";
+  const isRunning = !result && status?.type !== "completed";
   const isSubAgent = toolName === "systemAgent" || toolName === "researchAgent" || toolName === "system-agent" || toolName === "research-agent";
   const displayName = isSubAgent ? (toolName.includes("system") ? "System Agent" : "Research Agent") : toolName;
 

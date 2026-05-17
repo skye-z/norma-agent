@@ -30,6 +30,9 @@ declare global {
       getModels: () => Promise<Array<{ id: string; modelId: string; provider: string }>>;
       getActiveModel: () => Promise<string | null>;
       setActiveModel: (modelString: string, providerConfig?: { providerType: string; baseUrl: string; apiKey: string }) => Promise<{ success: boolean }>;
+      getModelCapabilities: (modelId: string) => Promise<{ vision: boolean; contextLength: number; known: boolean }>;
+      getModelDisplayName: (modelId: string) => Promise<string | null>;
+      getCapabilitiesWithOverride: (modelId: string) => Promise<{ vision: boolean; contextLength: number; known: boolean }>;
       getSystemVersion: () => Promise<{ version: string; electron: string; node: string; chrome: string }>;
       knowledgeIngest: (name: string, text: string) => Promise<{ success: boolean; docId?: string; chunks?: number; error?: string }>;
       knowledgeIngestFile: () => Promise<{ success: boolean; documents?: Array<{ name: string; docId: string; chunks: number }>; error?: string }>;

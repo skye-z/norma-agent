@@ -41,7 +41,9 @@ if (!gotTheLock) {
     createCommandBarWindow();
 
     const { initAgent } = await import('./agent');
-    initAgent(app.getPath('userData')).catch((err) => {
+    const { getConfig } = await import('./config');
+    const savedModel = await getConfig('norma-active-model');
+    initAgent(app.getPath('userData'), typeof savedModel === 'string' ? savedModel : undefined).catch((err) => {
       console.error('[Agent] Failed to initialize:', err);
     });
 

@@ -11,6 +11,30 @@ let _activeModel: string | null = null;
 let _providerConfig: { providerType: string; baseUrl: string; apiKey: string } | null = null;
 let _activeChatSender: Electron.WebContents | null = null;
 
+const MAX_RESULT_STR = 2000;
+
+function sanitizeToolResult(result: unknown): unknown {
+  if (result === null || result === undefined) return result;
+  if (typeof result === 'string') {
+    return result.length > MAX_RESULT_STR ? result.slice(0, MAX_RESULT_STR) + '...[truncated]' : result;
+  }
+  if (typeof result !== 'object') return result;
+  const obj = result as Record<string, unknown>;
+  if ('image_base64' in obj && typeof obj.image_base64 === 'string') {
+    const sizeKb = Math.round(obj.image_base64.length / 1024);
+    return { ...obj, image_base64: `[截图数据已省略 ~${sizeKb}KB]` };
+  }
+  const cleaned: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(obj)) {
+    if (typeof v === 'string' && v.length > MAX_RESULT_STR) {
+      cleaned[k] = v.slice(0, 200) + '...[truncated]';
+    } else {
+      cleaned[k] = v;
+    }
+  }
+  return cleaned;
+}
+
 export type StreamChunk =
   | { type: 'text-delta'; text: string }
   | { type: 'tool-call'; toolCallId: string; toolName: string; args: Record<string, unknown> }
@@ -72,6 +96,26 @@ export async function setupIpc() {
     } catch {
       return [];
     }
+  });
+
+  ipcMain.handle('model:capabilities', async (_event, modelId: string) => {
+    const { getModelCapabilities } = await import('../tools/model-capabilities');
+    return getModelCapabilities(modelId);
+  });
+
+  ipcMain.handle('model:displayName', async (_event, modelId: string) => {
+    const { getDisplayModelName } = await import('../tools/model-capabilities');
+    return getDisplayModelName(modelId);
+  });
+
+  ipcMain.handle('model:capabilitiesWithOverride', async (_event, modelId: string) => {
+    const { getCapabilitiesWithOverride } = await import('../tools/model-capabilities');
+    const raw = await getConfig('norma-model-overrides');
+    let overrides: Record<string, any> | null = null;
+    if (raw) {
+      try { overrides = typeof raw === 'string' ? JSON.parse(raw) : raw; } catch { overrides = null; }
+    }
+    return getCapabilitiesWithOverride(modelId, overrides);
   });
 
   ipcMain.handle('model:getActive', () => {
@@ -196,6 +240,17 @@ export async function setupIpc() {
 
       appendLog('info', 'chat', `开始流式请求 model=${_activeModel || 'default'} threadId=${threadId || 'none'} provider=${_providerConfig?.providerType || 'none'} hasKey=${!!(_providerConfig?.apiKey || process.env.OPENAI_API_KEY || process.env.ANTHROPIC_API_KEY)}`);
 
+      const { setVisionCheckModel } = await import('../tools/read-screen');
+      setVisionCheckModel(_activeModel);
+
+      const { setModelOverrides } = await import('../tools/read-screen');
+      try {
+        const rawOvr = await getConfig('norma-model-overrides');
+        if (rawOvr) {
+          try { setModelOverrides(typeof rawOvr === 'string' ? JSON.parse(rawOvr) : rawOvr); } catch { setModelOverrides(null); }
+        } else { setModelOverrides(null); }
+      } catch { setModelOverrides(null); }
+
       const response = await agent.stream(message, streamOptions);
       let chunkCount = 0;
       let textLen = 0;
@@ -224,13 +279,15 @@ export async function setupIpc() {
         } else if (chunk.type === 'tool-result') {
           const c = chunk as any;
           const payload = c.payload ?? c;
+          const cleanResult = sanitizeToolResult(payload.result);
           event.sender.send('chat:chunk', JSON.stringify({
             type: 'tool-result',
             toolCallId: payload.toolCallId,
             toolName: payload.toolName,
-            result: payload.result,
+            result: cleanResult,
             isError: payload.isError,
           }));
+          appendLog('info', 'tool', `工具结果: ${payload.toolName} ${payload.isError ? '(错误)' : '(成功)'}`);
         } else if (chunk.type === 'tool-error') {
           const c = chunk as any;
           const payload = c.payload ?? c;
@@ -249,8 +306,8 @@ export async function setupIpc() {
           appendLog('error', 'chat', `Stream 错误: ${errMsg}`);
           event.sender.send('chat:error', errMsg.slice(0, 500));
           break;
-        } else if (chunk.type === 'start' || chunk.type === 'step-start' || chunk.type === 'step-finish' || chunk.type === 'finish') {
-          // known non-text chunk types, skip silently
+        } else if (chunk.type === 'start' || chunk.type === 'step-start' || chunk.type === 'step-finish' || chunk.type === 'finish' || chunk.type === 'text-start' || chunk.type === 'text-end' || chunk.type === 'reasoning-start' || chunk.type === 'reasoning-end' || chunk.type === 'source-start' || chunk.type === 'source-end') {
+          // known structural chunk types, skip silently
         } else {
           appendLog('warn', 'chat', `未知 chunk 类型: ${chunk.type} data=${JSON.stringify(chunk).slice(0, 200)}`);
         }

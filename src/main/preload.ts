@@ -62,6 +62,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getModels: () => ipcRenderer.invoke('models:list'),
   getActiveModel: () => ipcRenderer.invoke('model:getActive'),
   setActiveModel: (modelString: string, providerConfig?: { providerType: string; baseUrl: string; apiKey: string }) => ipcRenderer.invoke('model:setActive', modelString, providerConfig),
+  getModelCapabilities: (modelId: string) => ipcRenderer.invoke('model:capabilities', modelId),
+  getModelDisplayName: (modelId: string) => ipcRenderer.invoke('model:displayName', modelId),
+  getCapabilitiesWithOverride: (modelId: string) => ipcRenderer.invoke('model:capabilitiesWithOverride', modelId),
   getSystemVersion: () => ipcRenderer.invoke('system:version'),
 
   knowledgeIngest: (name: string, text: string) => ipcRenderer.invoke('knowledge:ingest', { name, text }),

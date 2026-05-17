@@ -1,11 +1,35 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
-import { desktopCapturer, BrowserWindow } from 'electron';
+import { desktopCapturer } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import { modelSupportsVision, getCapabilitiesWithOverride } from './model-capabilities';
 
 const SCREENSHOT_DIR = path.join(os.tmpdir(), 'norma-screenshots');
+
+let _lastModelId: string | null = null;
+let _cachedVision: boolean | null = null;
+let _overrides: Record<string, any> | null = null;
+
+export function setVisionCheckModel(modelId: string | null): void {
+  if (modelId !== _lastModelId) {
+    _lastModelId = modelId;
+    _cachedVision = null;
+  }
+}
+
+export function setModelOverrides(overrides: Record<string, any> | null): void {
+  _overrides = overrides;
+  _cachedVision = null;
+}
+
+function checkVision(): boolean {
+  if (_cachedVision !== null) return _cachedVision;
+  const caps = getCapabilitiesWithOverride(_lastModelId, _overrides);
+  _cachedVision = caps.vision;
+  return _cachedVision;
+}
 
 async function ensureScreenshotDir() {
   if (!fs.existsSync(SCREENSHOT_DIR)) {
@@ -60,6 +84,7 @@ export const readScreenTool = createTool({
     success: z.boolean(),
     timestamp: z.string(),
     message: z.string(),
+    image_base64: z.string().optional(),
   }),
   execute: async ({ targetWindow }) => {
     const base64 = await captureScreen(targetWindow);
@@ -79,11 +104,16 @@ export const readScreenTool = createTool({
     }
 
     if (output.timestamp !== lastCaptureTimestamp) {
-      // This is an old screenshot from history. We drop the image to save context tokens.
       return { type: 'text' as const, text: `[Old screenshot captured at ${output.timestamp} removed from context to save tokens]` };
     }
 
-    // This is the latest screenshot
+    if (!checkVision()) {
+      return {
+        type: 'text' as const,
+        text: `Screenshot captured at ${output.timestamp}. [当前模型不支持图像输入，截图已保存但无法进行视觉分析。请切换到支持视觉的模型（如 GPT-4o、Claude 3.5、Gemini）以启用屏幕分析功能。]`,
+      };
+    }
+
     return {
       type: 'content' as const,
       value: [

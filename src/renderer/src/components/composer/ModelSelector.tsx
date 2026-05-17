@@ -54,25 +54,29 @@ const ModelSelector: React.FC = () => {
 
             (window as any).electronAPI
               ?.configGet?.("norma-cached-models")
-              .then((cachedRaw: any) => {
+              .then(async (cachedRaw: any) => {
                 const cached: Record<string, any[]> =
                   cachedRaw && typeof cachedRaw === "object" ? cachedRaw : {};
 
-                const result = enabled.map((em) => {
+                const result = await Promise.all(enabled.map(async (em) => {
                   const prov = providers.find((p) => p.id === em.providerId);
                   const modelCache = cached[em.providerId] || [];
                   const modelInfo = modelCache.find(
                     (m: any) => m.id === em.modelId,
                   );
+                  let displayName = modelInfo?.display_name || modelInfo?.name || '';
+                  if (!displayName) {
+                    const ipcName = await window.electronAPI?.getModelDisplayName?.(em.modelId);
+                    displayName = ipcName || em.modelId.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                  }
                   return {
                     modelId: em.modelId,
-                    displayName:
-                      modelInfo?.display_name || modelInfo?.name || em.modelId,
+                    displayName,
                     providerName: prov?.name || "未知",
                     providerPreset: prov?.presetId || "custom",
                     providerId: em.providerId,
                   };
-                });
+                }));
 
                 if (result.length > 0) setModels(result);
               });
@@ -180,8 +184,8 @@ const ModelSelector: React.FC = () => {
                   >
                     {model.displayName}
                   </div>
-                  <div className="text-[9px] text-norma-textDim font-mono">
-                    {model.modelId}
+                  <div className="text-[9px] text-norma-textDim truncate">
+                    {model.providerName} · <span className="font-mono">{model.modelId}</span>
                   </div>
                 </div>
                 {idx === selectedIdx && (

@@ -48,7 +48,7 @@ let _mastra: Mastra | null = null;
 let _memory: Memory | null = null;
 let _activeModel: string | null = null;
 
-export async function initAgent(dbDir?: string) {
+export async function initAgent(dbDir?: string, defaultModel?: string) {
   const mcpTools = await initMcpClient();
 
   const allTools = { ...baseTools, ...mcpTools };
@@ -109,18 +109,9 @@ export async function initAgent(dbDir?: string) {
   _agent = new Agent({
     id: 'norma-router',
     name: 'Norma Router',
-    instructions: `你是 Norma，一个高度智能的桌面助手。你通过协调专业 Agent 来完成用户的任务。
+    instructions: `你是 Norma，一个高度智能的桌面助手。
 
-## 可用 Agent
-- systemAgent: 与用户本地系统交互（屏幕截图、鼠标键盘、窗口管理、文件操作）
-- researchAgent: 处理网页浏览、信息检索、外部 MCP 工具调用
-
-## 核心原则: 截图驱动，逐步确认
-1. **永远不要盲操作** — 每一步鼠标/键盘操作前必须先 read_screen 截图确认当前界面
-2. **只保留最新截图** — 历史截图会自动被丢弃以节省 token，这是正常的
-3. **小步快跑** — 每执行1-2个动作后重新截图确认结果，而不是一口气执行所有步骤
-
-## 可用工具 (通过 systemAgent 调用)
+## 可用工具
 - **system_info**: 获取系统信息（桌面路径、OS版本、当前活跃窗口）
 - **list_directory**: 列出目录下的文件（用于查找桌面文件）
 - **list_windows**: 列出所有打开的窗口标题
@@ -129,6 +120,11 @@ export async function initAgent(dbDir?: string) {
 - **read_screen**: 截图（可截全屏或指定窗口）
 - **execute_action**: 鼠标和键盘操作
 - **system_tray**: 与系统托盘交互（列出/点击托盘图标）
+
+## 核心原则: 截图驱动，逐步确认
+1. **永远不要盲操作** — 每一步鼠标/键盘操作前必须先 read_screen 截图确认当前界面
+2. **只保留最新截图** — 历史截图会自动被丢弃以节省 token，这是正常的
+3. **小步快跑** — 每执行1-2个动作后重新截图确认结果，而不是一口气执行所有步骤
 
 ## 桌面自动化标准流程（重要！）
 
@@ -193,7 +189,7 @@ export async function initAgent(dbDir?: string) {
 - 使用 key_tap 动作按单个键如 enter, tab, escape, backspace
 
 ## 输出格式
-在委派子Agent之前，用 <plan>...</plan> 标签包裹你的步骤推理。
+用 <plan>...</plan> 标签包裹你的步骤推理。
 直接回复用户时用中文，简洁友好。
 
 ## 错误处理与自愈
@@ -205,13 +201,13 @@ export async function initAgent(dbDir?: string) {
 5. 只有多次尝试失败后才向用户报告
 
 保持专业和共情的语气。`,
-    model: 'openai/gpt-4o',
-    agents: { systemAgent, researchAgent },
+    model: defaultModel || 'openai/gpt-4o-mini',
+    tools: { ...baseTools, ...mcpTools },
     memory: _memory,
   });
 
   _mastra = new Mastra({
-    agents: { normaRouter: _agent, systemAgent, researchAgent },
+    agents: { normaRouter: _agent },
     workflows: { automationWorkflow },
   });
 
@@ -259,7 +255,7 @@ export async function getCapabilities(): Promise<Array<{ id: string; name: strin
       return {
         id,
         name: meta?.name || id,
-        description: tool.description || meta?.description || '',
+        description: meta?.description || tool.description?.slice(0, 30) || '',
         category: meta?.category || '工具',
       };
     });

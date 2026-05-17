@@ -1,10 +1,9 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   MessagePrimitive,
   BranchPickerPrimitive,
   ActionBarPrimitive,
   ErrorPrimitive,
-  useMessage,
 } from "@assistant-ui/react";
 import { MarkdownTextPrimitive } from "@assistant-ui/react-markdown";
 import remarkGfm from "remark-gfm";
@@ -18,53 +17,24 @@ import {
 } from "./parts";
 
 export const AssistantMessage: React.FC = () => {
-  const message = useMessage();
-  const toolCallCount = message.content.filter(
-    (p: any) => p.type === "tool-call",
-  ).length;
-  const [toolsCollapsed, setToolsCollapsed] = useState(false);
-
   return (
     <MessagePrimitive.Root className="flex justify-start group">
       <div className="max-w-[80%] relative">
         <div className="bubble bubble-assistant">
-          {toolCallCount > 1 && (
-            <button
-              onClick={() => setToolsCollapsed(!toolsCollapsed)}
-              className="w-full flex items-center gap-2 px-3 py-1.5 mb-1 rounded-lg bg-white/[0.02] border border-white/[0.05] text-[10px] text-norma-textMuted hover:text-norma-text transition-colors whitespace-nowrap"
-            >
-              <svg
-                className={`w-3 h-3 transition-transform ${toolsCollapsed ? "" : "rotate-90"}`}
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="m9 18 6-6-6-6" />
-              </svg>
-              <span>{toolCallCount} 个工具调用</span>
-              <span className="ml-auto text-norma-textDim">
-                {toolsCollapsed ? "展开" : "折叠"}
-              </span>
-            </button>
-          )}
           <div className="flex flex-col gap-[5px] w-full min-w-0">
             <MessagePrimitive.Content
               components={{
-                Text: (props: any) => (
+                Text: ({ text }) => (
                   <div className="text-[12px] leading-relaxed">
                     <MarkdownTextPrimitive
-                      {...props}
                       components={MarkdownComponents}
                       remarkPlugins={[remarkGfm]}
                     />
                   </div>
                 ),
                 Reasoning: ({ text }) => <ReasoningBlock text={text} />,
-                ToolCall: ({ ...props }) => {
-                  if (toolsCollapsed) return null;
-                  if (props.toolUI) return props.toolUI;
-                  return <ToolFallbackDisplay {...props} />;
+                tools: {
+                  Fallback: ToolFallbackDisplay,
                 },
                 Source: ({ url, title }) => (
                   <a

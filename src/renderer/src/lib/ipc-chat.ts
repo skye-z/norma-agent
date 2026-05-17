@@ -118,28 +118,25 @@ export function createIpcChatModel(getThreadId?: () => string | undefined) {
       }
 
       let fullText = "";
-      const toolCalls: Map<string, { toolName: string; args: Record<string, unknown>; result?: unknown; isError?: boolean }> = new Map();
+      let flushedTextLen = 0;
+      const contentParts: ContentPart[] = [];
 
-      const buildContent = (): ContentPart[] => {
-        const content: ContentPart[] = [];
-
-        for (const [tcId, tc] of toolCalls) {
-          content.push({
-            type: "tool-call",
-            toolCallId: tcId,
-            toolName: tc.toolName,
-            args: tc.args,
-            argsText: JSON.stringify(tc.args),
-            ...(tc.result !== undefined ? { result: tc.result } : {}),
-            ...(tc.isError !== undefined ? { isError: tc.isError } : {}),
-          });
+      const flushText = () => {
+        if (fullText.length > flushedTextLen) {
+          const newText = fullText.slice(flushedTextLen);
+          flushedTextLen = fullText.length;
+          return newText;
         }
+        return null;
+      };
 
-        if (fullText) {
-          content.push({ type: "text", text: fullText });
-        }
-
-        return content;
+      let yieldScheduled = false;
+      const scheduleYield = () => {
+        if (yieldScheduled) return;
+        yieldScheduled = true;
+        Promise.resolve().then(() => {
+          yieldScheduled = false;
+        });
       };
 
       try {
@@ -170,19 +167,29 @@ export function createIpcChatModel(getThreadId?: () => string | undefined) {
           if (chunk.type === "text-delta") {
             fullText += chunk.text;
           } else if (chunk.type === "tool-call") {
-            toolCalls.set(chunk.toolCallId, {
+            flushedTextLen = fullText.length;
+            contentParts.push({
+              type: "tool-call",
+              toolCallId: chunk.toolCallId,
               toolName: chunk.toolName,
               args: chunk.args,
+              argsText: JSON.stringify(chunk.args),
             });
           } else if (chunk.type === "tool-result") {
-            const existing = toolCalls.get(chunk.toolCallId);
-            if (existing) {
-              existing.result = chunk.result;
-              existing.isError = chunk.isError;
+            flushedTextLen = fullText.length;
+            const existing = contentParts.find(
+              (p) => p.type === "tool-call" && p.toolCallId === chunk.toolCallId,
+            );
+            if (existing && existing.type === "tool-call") {
+              (existing as any).result = chunk.result;
+              (existing as any).isError = chunk.isError;
             } else {
-              toolCalls.set(chunk.toolCallId, {
+              contentParts.push({
+                type: "tool-call",
+                toolCallId: chunk.toolCallId,
                 toolName: chunk.toolName,
                 args: {},
+                argsText: "{}",
                 result: chunk.result,
                 isError: chunk.isError,
               });
@@ -191,7 +198,10 @@ export function createIpcChatModel(getThreadId?: () => string | undefined) {
             notifyUsage(chunk.usage);
           }
 
-          const content = buildContent();
+          const content: ContentPart[] = [...contentParts];
+          if (fullText) {
+            content.push({ type: "text", text: fullText });
+          }
           if (content.length > 0) {
             yield { content };
           }

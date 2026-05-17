@@ -22,6 +22,8 @@ const ModelTab: React.FC = () => {
   const [cachedModels, setCachedModels, cachedLoaded] = useDbState<Record<string, any[]>>("norma-cached-models", {});
   const [selectedProviderId, setSelectedProviderId] = useState<string>("");
   const [showAddMenu, setShowAddMenu] = useState(false);
+  const [modelCaps, setModelCaps] = useState<Record<string, { vision: boolean; contextLength: number; known: boolean }>>({});
+  const [modelOverrides, setModelOverrides, overridesLoaded] = useDbState<Record<string, { vision?: boolean; contextLength?: number }>>("norma-model-overrides", {});
 
   const [testingConn, setTestingConn] = useState(false);
   const [connResult, setConnResult] = useState<{ success: boolean; latency?: number; error?: string } | null>(null);
@@ -37,9 +39,22 @@ const ModelTab: React.FC = () => {
   const enabledForSelected = enabledModels.filter((m) => m.providerId === selectedProviderId);
   const fetchedModels = cachedModels[selectedProviderId] || [];
 
+  const fetchCaps = async (modelId: string) => {
+    if (modelCaps[modelId]) return;
+    try {
+      const caps = await window.electronAPI?.getCapabilitiesWithOverride?.(modelId);
+      if (caps) setModelCaps((prev) => ({ ...prev, [modelId]: caps }));
+    } catch {}
+  };
+
   useEffect(() => {
     window.electronAPI?.invokeProviderPresets?.().then(setPresets).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    enabledForSelected.forEach((em) => fetchCaps(em.modelId));
+    fetchedModels.forEach((m: any) => fetchCaps(m.id));
+  }, [enabledForSelected, fetchedModels]);
 
   const handleSelectProvider = (id: string) => {
     setSelectedProviderId(id);
@@ -141,6 +156,85 @@ const ModelTab: React.FC = () => {
   const notEnabledModels = fetchedModels.filter((m: any) => !isModelOn(m.id));
 
   const loaded = providersLoaded && enabledLoaded && cachedLoaded;
+
+  const fmtCtx = (tokens: number) => {
+    if (tokens <= 0) return '';
+    if (tokens >= 1048576) return `${Math.round(tokens / 1048576)}M`;
+    if (tokens >= 1024) return `${Math.round(tokens / 1024)}K`;
+    return String(tokens);
+  };
+
+  const toggleOverrideVision = (modelId: string) => {
+    setModelOverrides((prev) => {
+      const cur = prev[modelId] || {};
+      return { ...prev, [modelId]: { ...cur, vision: !cur.vision } };
+    });
+    setModelCaps((prev) => {
+      const c = prev[modelId];
+      if (!c) return prev;
+      return { ...prev, [modelId]: { ...c, vision: !c.vision } };
+    });
+  };
+
+  const setOverrideCtx = (modelId: string, val: number) => {
+    setModelOverrides((prev) => {
+      const cur = prev[modelId] || {};
+      return { ...prev, [modelId]: { ...cur, contextLength: val } };
+    });
+    setModelCaps((prev) => {
+      const c = prev[modelId];
+      if (!c) return prev;
+      return { ...prev, [modelId]: { ...c, contextLength: val } };
+    });
+  };
+
+  const CapBadges: React.FC<{ modelId: string }> = ({ modelId }) => {
+    const caps = modelCaps[modelId];
+    if (!caps) return null;
+    return (
+      <span className="inline-flex items-center gap-1 flex-none">
+        {caps.known && (
+          <span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-emerald-500/20 text-emerald-300" title="已验证（官方清单）">
+            <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+          </span>
+        )}
+        {caps.known ? (
+          <>
+            {caps.vision && (
+              <span className="inline-flex items-center gap-0.5 px-1 py-px rounded bg-violet-500/20 text-violet-300 text-[8px] font-medium">
+                <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                视觉
+              </span>
+            )}
+            {caps.contextLength > 0 && (
+              <span className="px-1 py-px rounded bg-sky-500/20 text-sky-300 text-[8px] font-mono">
+                {fmtCtx(caps.contextLength)}
+              </span>
+            )}
+          </>
+        ) : (
+          <>
+            <button
+              onClick={(e) => { e.stopPropagation(); toggleOverrideVision(modelId); }}
+              className={`px-1 py-px rounded text-[8px] transition-colors ${caps.vision ? 'bg-violet-500/20 text-violet-300' : 'bg-white/[0.06] text-norma-textDim'}`}
+              title={caps.vision ? '点击标记为不支持视觉' : '点击标记为支持视觉'}
+            >
+              {caps.vision ? '视觉 ✓' : '视觉 ✗'}
+            </button>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={caps.contextLength || ''}
+              onChange={(e) => { e.stopPropagation(); setOverrideCtx(modelId, parseInt(e.target.value.replace(/\D/g, '')) || 0); }}
+              onClick={(e) => e.stopPropagation()}
+              placeholder="上下文"
+              className="w-[48px] px-1 py-px rounded bg-white/[0.06] text-[8px] text-norma-textMuted font-mono text-center outline-none border border-white/[0.06] focus:border-sky-500/40"
+            />
+          </>
+        )}
+      </span>
+    );
+  };
 
   if (!loaded) {
     return (
@@ -285,7 +379,10 @@ const ModelTab: React.FC = () => {
                       <div key={em.modelId} className="flex items-center gap-2 rounded-lg border border-norma-accent/30 bg-norma-accent/10 px-3 py-1.5">
                         <div className="w-1.5 h-1.5 rounded-full bg-norma-accent flex-none" />
                           <div className="flex-1 min-w-0">
-                            <div className="text-[11px] text-norma-text truncate">{info?.display_name || em.modelId}</div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[11px] text-norma-text truncate">{info?.display_name || em.modelId.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
+                              <CapBadges modelId={em.modelId} />
+                            </div>
                             <div className="text-[9px] text-norma-textDim font-mono truncate">{em.modelId}</div>
                         </div>
                         <button
@@ -324,8 +421,11 @@ const ModelTab: React.FC = () => {
                       const result = modelResults[model.id];
                       return (
                         <div key={model.id} className="flex items-center gap-2 rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-1.5 hover:border-white/[0.1] transition-colors">
-                           <div className="flex-1 min-w-0">
-                            <div className="text-[11px] text-norma-text truncate">{model.display_name || model.id}</div>
+                         <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[11px] text-norma-text truncate">{model.display_name || model.id.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
+                              <CapBadges modelId={model.id} />
+                            </div>
                             <div className="text-[9px] text-norma-textDim font-mono truncate">{model.id}</div>
                           </div>
                           {model.owned_by && <span className="text-[9px] text-norma-textDim flex-none">{model.owned_by}</span>}

@@ -1,28 +1,18 @@
+import { getDisplayModelName } from '../tools/model-capabilities';
+
 const FRIENDLY_NAMES: Record<string, string> = {
-  'gpt-4o': 'GPT-4o',
-  'gpt-4o-mini': 'GPT-4o Mini',
-  'gpt-4-turbo': 'GPT-4 Turbo',
-  'gpt-4': 'GPT-4',
-  'gpt-4.1': 'GPT-4.1',
-  'gpt-4.1-mini': 'GPT-4.1 Mini',
-  'gpt-4.1-nano': 'GPT-4.1 Nano',
-  'gpt-3.5-turbo': 'GPT-3.5 Turbo',
-  'o1': 'o1',
-  'o1-mini': 'o1 Mini',
-  'o1-pro': 'o1 Pro',
-  'o3': 'o3',
-  'o3-mini': 'o3 Mini',
-  'o4-mini': 'o4 Mini',
-  'chatgpt-4o-latest': 'ChatGPT-4o Latest',
-  'deepseek-chat': 'DeepSeek V3',
-  'deepseek-reasoner': 'DeepSeek R1',
+  "chatgpt-4o-latest": "ChatGPT-4o Latest",
 };
 
 export function friendlyModelName(id: string): string {
+  const ipcName = getDisplayModelName(id);
+  if (ipcName) return ipcName;
   if (FRIENDLY_NAMES[id]) return FRIENDLY_NAMES[id];
-  const base = id.replace(/-(?:20\d{2})(?:\d{2})?(?:\d{2})?$/, '');
+  const base = id.replace(/-(?:20\d{2})(?:\d{2})?(?:\d{2})?$/, "");
+  const ipcBase = getDisplayModelName(base);
+  if (ipcBase) return ipcBase;
   if (FRIENDLY_NAMES[base]) return FRIENDLY_NAMES[base];
-  return id;
+  return id.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
 export interface ProviderPreset {
@@ -43,7 +33,7 @@ export const PROVIDER_PRESETS: ProviderPreset[] = [
     baseUrl: "https://api.openai.com/v1",
     keyPrefix: "sk-",
     keyHint: "sk-...",
-    description: "GPT-4o, GPT-4o-mini, o3 等",
+    description: "GPT-4o, GPT-5.4, o3 等",
   },
   {
     id: "anthropic",
@@ -52,7 +42,7 @@ export const PROVIDER_PRESETS: ProviderPreset[] = [
     baseUrl: "https://api.anthropic.com",
     keyPrefix: "sk-ant-",
     keyHint: "sk-ant-...",
-    description: "Claude Sonnet 4, Claude 3.5 等",
+    description: "Claude Sonnet 4, Claude Opus 等",
   },
   {
     id: "deepseek",
@@ -61,16 +51,7 @@ export const PROVIDER_PRESETS: ProviderPreset[] = [
     baseUrl: "https://api.deepseek.com",
     keyPrefix: "sk-",
     keyHint: "sk-...",
-    description: "DeepSeek-V3, DeepSeek-R1 等",
-  },
-  {
-    id: "openrouter",
-    name: "OpenRouter",
-    type: "openai",
-    baseUrl: "https://openrouter.ai/api/v1",
-    keyPrefix: "sk-or-",
-    keyHint: "sk-or-...",
-    description: "聚合多供应商模型网关",
+    description: "DeepSeek V4, DeepSeek R1 等",
   },
   {
     id: "google",
@@ -80,6 +61,33 @@ export const PROVIDER_PRESETS: ProviderPreset[] = [
     keyPrefix: "AI",
     keyHint: "AIza...",
     description: "Gemini 2.5 Pro, Gemini Flash 等",
+  },
+  {
+    id: "longcat",
+    name: "LongCat (美团)",
+    type: "openai",
+    baseUrl: "https://api.longcat.chat/openai",
+    keyPrefix: "",
+    keyHint: "输入 App Key",
+    description: "LongCat Flash, LongCat 2.0 等",
+  },
+  {
+    id: "mimo",
+    name: "MIMO (小米)",
+    type: "openai",
+    baseUrl: "https://api.mimo-v2.com/v1",
+    keyPrefix: "",
+    keyHint: "输入 API Key",
+    description: "MIMO V2.5 Pro, MIMO V2 Omni 等",
+  },
+  {
+    id: "openrouter",
+    name: "OpenRouter",
+    type: "openai",
+    baseUrl: "https://openrouter.ai/api/v1",
+    keyPrefix: "sk-or-",
+    keyHint: "sk-or-...",
+    description: "聚合多供应商模型网关",
   },
   {
     id: "ollama",
@@ -92,7 +100,7 @@ export const PROVIDER_PRESETS: ProviderPreset[] = [
   },
   {
     id: "custom",
-    name: "自定义 (OpenAI 兼容)",
+    name: "自定义",
     type: "openai",
     baseUrl: "",
     keyPrefix: "",
@@ -201,8 +209,9 @@ export async function fetchModels(
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         return (data.data || []).map((m: any) => {
-          const id = m.id || '';
-          const display = m.name && m.name !== id ? m.name : friendlyModelName(id);
+          const id = m.id || "";
+          const display =
+            m.name && m.name !== id ? m.name : friendlyModelName(id);
           return {
             id,
             name: id,
@@ -217,11 +226,36 @@ export async function fetchModels(
       }
       case "anthropic": {
         return [
-          { id: "claude-sonnet-4-20250514", name: "claude-sonnet-4-20250514", display_name: "Claude Sonnet 4", owned_by: "anthropic" },
-          { id: "claude-3-7-sonnet-20250219", name: "claude-3-7-sonnet-20250219", display_name: "Claude 3.7 Sonnet", owned_by: "anthropic" },
-          { id: "claude-3-5-sonnet-20241022", name: "claude-3-5-sonnet-20241022", display_name: "Claude 3.5 Sonnet", owned_by: "anthropic" },
-          { id: "claude-3-5-haiku-20241022", name: "claude-3-5-haiku-20241022", display_name: "Claude 3.5 Haiku", owned_by: "anthropic" },
-          { id: "claude-3-opus-20240229", name: "claude-3-opus-20240229", display_name: "Claude 3 Opus", owned_by: "anthropic" },
+          {
+            id: "claude-sonnet-4-20250514",
+            name: "claude-sonnet-4-20250514",
+            display_name: "Claude Sonnet 4",
+            owned_by: "anthropic",
+          },
+          {
+            id: "claude-3-7-sonnet-20250219",
+            name: "claude-3-7-sonnet-20250219",
+            display_name: "Claude 3.7 Sonnet",
+            owned_by: "anthropic",
+          },
+          {
+            id: "claude-3-5-sonnet-20241022",
+            name: "claude-3-5-sonnet-20241022",
+            display_name: "Claude 3.5 Sonnet",
+            owned_by: "anthropic",
+          },
+          {
+            id: "claude-3-5-haiku-20241022",
+            name: "claude-3-5-haiku-20241022",
+            display_name: "Claude 3.5 Haiku",
+            owned_by: "anthropic",
+          },
+          {
+            id: "claude-3-opus-20240229",
+            name: "claude-3-opus-20240229",
+            display_name: "Claude 3 Opus",
+            owned_by: "anthropic",
+          },
         ];
       }
       case "google": {
@@ -238,7 +272,9 @@ export async function fetchModels(
             name: m.name,
             display_name: m.displayName || friendlyModelName(id),
             owned_by: "google",
-            created: m.createTime ? Math.floor(new Date(m.createTime).getTime() / 1000) : undefined,
+            created: m.createTime
+              ? Math.floor(new Date(m.createTime).getTime() / 1000)
+              : undefined,
             object: "model",
           };
         });
@@ -250,11 +286,13 @@ export async function fetchModels(
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         return (data.models || []).map((m: any) => {
-          const id = m.name || m.model || '';
+          const id = m.name || m.model || "";
           return {
             id,
             name: id,
-            display_name: m.details?.family ? `${m.details.family} (${id})` : friendlyModelName(id),
+            display_name: m.details?.family
+              ? `${m.details.family} (${id})`
+              : friendlyModelName(id),
             owned_by: "local",
           };
         });
@@ -360,8 +398,7 @@ export async function testModel(
         const data = await res.json();
         return {
           success: true,
-          response:
-            data.candidates?.[0]?.content?.parts?.[0]?.text || "",
+          response: data.candidates?.[0]?.content?.parts?.[0]?.text || "",
           latency: Date.now() - start,
         };
       }
