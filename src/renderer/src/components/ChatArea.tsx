@@ -1,10 +1,20 @@
 import React, { useState, useEffect, useRef } from "react";
-import { ThreadPrimitive, AuiIf, ComposerPrimitive, useThread, useThreadRuntime } from "@assistant-ui/react";
+import {
+  ThreadPrimitive,
+  AuiIf,
+  ComposerPrimitive,
+  useThread,
+  useThreadRuntime,
+} from "@assistant-ui/react";
 import { LeftIsland, type Session } from "./LeftIsland";
 import { WindowControls } from "./WindowControls";
 import { ReadScreenTool } from "./tools/ReadScreenTool";
 import { ExecuteActionTool } from "./tools/ExecuteActionTool";
-import { ContextDisplay, AutoScrollHelper, WelcomeSuggestions } from "./chat-helpers";
+import {
+  ContextDisplay,
+  AutoScrollHelper,
+  WelcomeSuggestions,
+} from "./chat-helpers";
 import { ThreadMessage } from "./messages/ThreadMessage";
 import { ComposerPill } from "./composer/ComposerPill";
 import { QueueDisplay } from "./composer/QueueDisplay";
@@ -27,7 +37,10 @@ const AutoQueueSender: React.FC = () => {
     if (prevRunning.current && !thread.isRunning && queue.length > 0) {
       const msg = dequeueFirst();
       if (msg) {
-        runtime.append({ role: 'user', content: [{ type: 'text', text: msg }] });
+        runtime.append({
+          role: "user",
+          content: [{ type: "text", text: msg }],
+        });
       }
     }
     prevRunning.current = thread.isRunning;
@@ -54,50 +67,46 @@ const ChatAreaInner: React.FC = () => {
   const [activeSessionId, setActiveSessionId] = useState<string>("");
   const [synced, setSynced] = useState(false);
 
-  const syncThreads = React.useCallback(async () => {
-    try {
-      const threads = await window.electronAPI?.listThreads?.() || [];
-      setSessions((prev) => {
-        const existingThreadIds = new Set(prev.filter((s) => s.threadId).map((s) => s.threadId));
-        const newFromThreads = threads
-          .filter((t) => !existingThreadIds.has(t.id))
-          .map((t) => ({
-            id: `thread-${t.id}`,
-            title: t.title || "新会话",
-            preview: "",
-            time: formatTimeAgo(t.createdAt),
-            active: false,
-            threadId: t.id,
-          }));
-        const merged = prev.map((s) => {
-          if (!s.threadId) return s;
-          const thread = threads.find((t) => t.id === s.threadId);
-          if (thread && thread.title && thread.title !== "新会话") {
-            return { ...s, title: thread.title };
-          }
-          return s;
-        });
-        return [...merged, ...newFromThreads];
-      });
-    } catch (e) {
-      console.error("Failed to sync threads:", e);
-    }
-  }, []);
-
   useEffect(() => {
     if (synced) return;
     let cancelled = false;
     (async () => {
-      await syncThreads();
+      try {
+        const threads = (await window.electronAPI?.listThreads?.()) || [];
+        if (cancelled) return;
+        setSessions((prev) => {
+          const existingThreadIds = new Set(
+            prev.filter((s) => s.threadId).map((s) => s.threadId),
+          );
+          const newFromThreads = threads
+            .filter((t) => !existingThreadIds.has(t.id))
+            .map((t) => ({
+              id: `thread-${t.id}`,
+              title: t.title || "新会话",
+              preview: "",
+              time: formatTimeAgo(t.createdAt),
+              active: false,
+              threadId: t.id,
+            }));
+          const merged = prev.map((s) => {
+            if (!s.threadId) return s;
+            const thread = threads.find((t) => t.id === s.threadId);
+            if (thread && thread.title && thread.title !== "新会话") {
+              return { ...s, title: thread.title };
+            }
+            return s;
+          });
+          return [...merged, ...newFromThreads];
+        });
+      } catch (e) {
+        console.error("Failed to sync threads:", e);
+      }
       if (!cancelled) setSynced(true);
     })();
-    return () => { cancelled = true; };
-  }, [synced, syncThreads]);
-
-  useEffect(() => {
-    const interval = setInterval(() => { syncThreads(); }, 30000);
-    return () => { clearInterval(interval); };
-  }, [syncThreads]);
+    return () => {
+      cancelled = true;
+    };
+  }, [synced]);
 
   useEffect(() => {
     const activeSession = sessions.find((s) => s.active);
@@ -154,13 +163,10 @@ const ChatAreaInner: React.FC = () => {
   };
 
   const handleSwitchSession = (id: string) => {
-    setSessions((prev) => {
-      const next = prev.map((s) => ({ ...s, active: s.id === id }));
-      const session = next.find((s) => s.id === id);
-      setActiveThreadId(session?.threadId);
-      return next;
-    });
+    setSessions((prev) => prev.map((s) => ({ ...s, active: s.id === id })));
     setActiveSessionId(id);
+    const session = sessions.find((s) => s.id === id);
+    setActiveThreadId(session?.threadId);
     setActiveNav("chat");
   };
 
@@ -259,7 +265,7 @@ const ChatAreaInner: React.FC = () => {
                     <QueueDisplay />
                   </div>
                 </div>
-                <div className="grid grid-cols-[120px_1fr_120px] items-end w-full">
+                <div className="grid grid-cols-[160px_1fr_100px] items-end w-full">
                   <div className="flex justify-start mb-2">
                     <ModelSelector />
                   </div>
@@ -267,28 +273,28 @@ const ChatAreaInner: React.FC = () => {
                     <div className="flex items-end gap-2 w-full max-w-[620px]">
                       <ComposerPill />
                       <ComposerPrimitive.AddAttachment
-                      className="flex-none p-2 mb-1 rounded-full text-norma-textDim hover:text-norma-textMuted hover:bg-white/[0.06] transition-colors"
-                      title="添加附件"
-                    >
-                      <svg
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
+                        className="flex-none p-2 mb-1 rounded-full text-norma-textDim hover:text-norma-textMuted hover:bg-white/[0.06] transition-colors"
+                        title="添加附件"
                       >
-                        <path d="M5 12h14" />
-                        <path d="M12 5v14" />
-                      </svg>
-                    </ComposerPrimitive.AddAttachment>
+                        <svg
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M5 12h14" />
+                          <path d="M12 5v14" />
+                        </svg>
+                      </ComposerPrimitive.AddAttachment>
+                    </div>
                   </div>
+                  <div />
                 </div>
-                <div />
               </div>
-            </div>
             </ThreadPrimitive.Root>
           </>
         ) : (

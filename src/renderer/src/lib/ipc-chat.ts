@@ -162,10 +162,7 @@ export function createIpcChatModel(getThreadId?: () => string | undefined) {
           }
 
           if (item.type === "error") {
-            yield {
-              content: [{ type: "text", text: `错误: ${item.message}` }],
-            };
-            break;
+            throw new Error(item.message);
           }
 
           const { chunk } = item;

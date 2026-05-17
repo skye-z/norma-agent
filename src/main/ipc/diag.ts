@@ -4,7 +4,7 @@ import { setConfig, getConfig } from '../config';
 const MAX_LOG_ENTRIES = 2000;
 const LOG_KEY = 'norma-diag-logs';
 let logBuffer: Array<{ ts: string; level: string; source: string; message: string }> = [];
-let loggingEnabled = false;
+let loggingEnabled = true;
 let logSubscribers: Set<number> = new Set();
 let dirty = false;
 let flushTimer: ReturnType<typeof setTimeout> | null = null;

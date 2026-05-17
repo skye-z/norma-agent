@@ -5,6 +5,7 @@ import { setupKnowledgeIpc } from './knowledge';
 import { setupAutomationIpc } from './automation';
 import { setupDiagIpc, appendLog } from './diag';
 import { setupConfigIpc } from './config';
+import { getConfig, setConfig } from '../config';
 
 let _activeModel: string | null = null;
 let _providerConfig: { providerType: string; baseUrl: string; apiKey: string } | null = null;
@@ -25,6 +26,19 @@ export function setupIpc() {
   setupAutomationIpc();
   setupConfigIpc();
   setupDiagIpc();
+
+  (async () => {
+    try {
+      const savedModel = await getConfig('norma-active-model');
+      if (savedModel && typeof savedModel === 'string') {
+        _activeModel = savedModel;
+      }
+      const savedConfig = await getConfig('norma-active-provider-config');
+      if (savedConfig && typeof savedConfig === 'object') {
+        _providerConfig = savedConfig;
+      }
+    } catch {}
+  })();
 
   ipcMain.handle('system:version', () => {
     return {
@@ -66,9 +80,15 @@ export function setupIpc() {
     return _activeModel;
   });
 
-  ipcMain.handle('model:setActive', (_event, modelString: string, providerConfig?: { providerType: string; baseUrl: string; apiKey: string }) => {
+  ipcMain.handle('model:setActive', async (_event, modelString: string, providerConfig?: { providerType: string; baseUrl: string; apiKey: string }) => {
     _activeModel = modelString;
     if (providerConfig) _providerConfig = providerConfig;
+    try {
+      await setConfig('norma-active-model', modelString);
+      if (providerConfig) {
+        await setConfig('norma-active-provider-config', providerConfig);
+      }
+    } catch {}
     return { success: true };
   });
 
@@ -140,12 +160,20 @@ export function setupIpc() {
 
       if (_providerConfig?.apiKey) {
         const pt = _providerConfig.providerType;
-        if (pt === 'openai' || pt === 'deepseek' || pt === 'openrouter' || pt === 'custom') {
+        if (pt === 'openai' || pt === 'openrouter' || pt === 'custom') {
           savedEnv.OPENAI_API_KEY = process.env.OPENAI_API_KEY;
           savedEnv.OPENAI_BASE_URL = process.env.OPENAI_BASE_URL;
           process.env.OPENAI_API_KEY = _providerConfig.apiKey;
           if (_providerConfig.baseUrl) process.env.OPENAI_BASE_URL = _providerConfig.baseUrl;
           else delete process.env.OPENAI_BASE_URL;
+        }
+        if (pt === 'deepseek') {
+          savedEnv.DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
+          savedEnv.OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+          savedEnv.OPENAI_BASE_URL = process.env.OPENAI_BASE_URL;
+          process.env.DEEPSEEK_API_KEY = _providerConfig.apiKey;
+          process.env.OPENAI_API_KEY = _providerConfig.apiKey;
+          process.env.OPENAI_BASE_URL = _providerConfig.baseUrl || 'https://api.deepseek.com';
         }
         if (pt === 'anthropic') {
           savedEnv.ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
@@ -168,14 +196,19 @@ export function setupIpc() {
         streamOptions.model = _activeModel;
       }
 
-      appendLog('info', 'chat', `开始流式请求 model=${_activeModel || 'default'} threadId=${threadId || 'none'}`);
+      appendLog('info', 'chat', `开始流式请求 model=${_activeModel || 'default'} threadId=${threadId || 'none'} provider=${_providerConfig?.providerType || 'none'} hasKey=${!!(_providerConfig?.apiKey || process.env.OPENAI_API_KEY || process.env.ANTHROPIC_API_KEY)}`);
 
       const response = await agent.stream(message, streamOptions);
+      let chunkCount = 0;
+      let textLen = 0;
 
       for await (const chunk of response.fullStream) {
+        chunkCount++;
         if (abort.signal.aborted) break;
         if (chunk.type === 'text-delta') {
           const c = chunk as any;
+          const text = c.payload?.text ?? c.text ?? '';
+          textLen += text.length;
           event.sender.send('chat:chunk', JSON.stringify({
             type: 'text-delta',
             text: c.payload?.text ?? c.text ?? '',
@@ -210,6 +243,18 @@ export function setupIpc() {
             result: { error: String(payload.error) },
             isError: true,
           }));
+        } else if (chunk.type === 'error') {
+          const c = chunk as any;
+          const errObj = c.payload ?? c;
+          const errMsg = typeof errObj === 'string' ? errObj
+            : (errObj?.message ?? (typeof errObj?.text === 'string' ? errObj.text : JSON.stringify(errObj)));
+          appendLog('error', 'chat', `Stream 错误: ${errMsg}`);
+          event.sender.send('chat:error', errMsg.slice(0, 500));
+          break;
+        } else if (chunk.type === 'start' || chunk.type === 'step-start' || chunk.type === 'step-finish' || chunk.type === 'finish') {
+          // known non-text chunk types, skip silently
+        } else {
+          appendLog('warn', 'chat', `未知 chunk 类型: ${chunk.type} data=${JSON.stringify(chunk).slice(0, 200)}`);
         }
       }
 
@@ -229,7 +274,10 @@ export function setupIpc() {
         }));
       }
 
-      appendLog('info', 'chat', `流式完成 input=${usage?.inputTokens ?? '?'} output=${usage?.outputTokens ?? '?'}`);
+      appendLog('info', 'chat', `流式完成 ${chunkCount} chunks, textLen=${textLen}, input=${usage?.inputTokens ?? '?'} output=${usage?.outputTokens ?? '?'}`);
+      if (chunkCount === 0) {
+        appendLog('warn', 'chat', '流式响应为空，无任何 chunk');
+      }
       event.sender.send('chat:done');
     } catch (error) {
       console.error('Agent error:', error);
