@@ -284,18 +284,19 @@ const ModelTab: React.FC = () => {
             添加供应商
           </button>
           {showAddMenu && (
-            <div className="absolute bottom-full left-2 right-2 mb-1 glass-popover py-1 max-h-[260px] overflow-y-auto z-50">
+            <div className="absolute bottom-full left-2 right-2 mb-1 glass-popover py-1.5 px-2 z-50">
+              <div className="grid grid-cols-2 gap-x-2 gap-y-0.5">
               {presets.map((preset) => (
                 <button
                   key={preset.id}
                   onClick={() => handleAddProvider(preset)}
-                  className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-norma-textMuted hover:bg-white/[0.06] hover:text-norma-text transition-colors text-left"
+                  className="flex items-center gap-1.5 px-2 py-1.5 text-[10px] text-norma-textMuted hover:bg-white/[0.06] hover:text-norma-text transition-colors text-left rounded-md"
                 >
-                  <div className="w-2 h-2 rounded-full flex-none" style={{ backgroundColor: PROVIDER_COLORS[preset.id] || "#888" }} />
-                  <span className="flex-1">{preset.name}</span>
-                  <span className="text-[9px] text-norma-textDim font-mono">{preset.type}</span>
+                  <div className="w-1.5 h-1.5 rounded-full flex-none" style={{ backgroundColor: PROVIDER_COLORS[preset.id] || "#888" }} />
+                  <span className="flex-1 truncate">{preset.name}</span>
                 </button>
               ))}
+              </div>
             </div>
           )}
         </div>

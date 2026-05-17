@@ -251,6 +251,10 @@ export async function setupIpc() {
         } else { setModelOverrides(null); }
       } catch { setModelOverrides(null); }
 
+      const streamStartAt = Date.now();
+      let firstTokenAt = 0;
+      const activeModelName = _activeModel || 'openai/gpt-4o-mini';
+
       const response = await agent.stream(message, streamOptions);
       let chunkCount = 0;
       let textLen = 0;
@@ -262,6 +266,7 @@ export async function setupIpc() {
           const c = chunk as any;
           const text = c.payload?.text ?? c.text ?? '';
           textLen += text.length;
+          if (firstTokenAt === 0 && text.length > 0) firstTokenAt = Date.now();
           event.sender.send('chat:chunk', JSON.stringify({
             type: 'text-delta',
             text: c.payload?.text ?? c.text ?? '',
@@ -307,7 +312,6 @@ export async function setupIpc() {
           event.sender.send('chat:error', errMsg.slice(0, 500));
           break;
         } else if (chunk.type === 'start' || chunk.type === 'step-start' || chunk.type === 'step-finish' || chunk.type === 'finish' || chunk.type === 'text-start' || chunk.type === 'text-end' || chunk.type === 'reasoning-start' || chunk.type === 'reasoning-end' || chunk.type === 'source-start' || chunk.type === 'source-end') {
-          // known structural chunk types, skip silently
         } else {
           appendLog('warn', 'chat', `未知 chunk 类型: ${chunk.type} data=${JSON.stringify(chunk).slice(0, 200)}`);
         }
@@ -328,6 +332,21 @@ export async function setupIpc() {
           },
         }));
       }
+
+      const totalStreamMs = Date.now() - streamStartAt;
+      const firstTokenMs = firstTokenAt > 0 ? firstTokenAt - streamStartAt : 0;
+      event.sender.send('chat:chunk', JSON.stringify({
+        type: 'metadata',
+        metadata: {
+          model: activeModelName,
+          totalStreamMs,
+          firstTokenMs,
+          promptTokens: usage?.inputTokens ?? 0,
+          completionTokens: usage?.outputTokens ?? 0,
+          totalTokens: usage?.totalTokens ?? 0,
+          toolCallCount: chunkCount > 0 ? undefined : 0,
+        },
+      }));
 
       appendLog('info', 'chat', `流式完成 ${chunkCount} chunks, textLen=${textLen}, input=${usage?.inputTokens ?? '?'} output=${usage?.outputTokens ?? '?'}`);
       if (chunkCount === 0) {

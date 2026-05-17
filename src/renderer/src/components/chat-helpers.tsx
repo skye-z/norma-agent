@@ -1,5 +1,6 @@
-import React from "react";
-import { ThreadPrimitive, SuggestionPrimitive, useThreadModelContext, useThreadViewportAutoScroll } from "@assistant-ui/react";
+import React, { useState } from "react";
+import { ThreadPrimitive, SuggestionPrimitive, useThreadViewportAutoScroll } from "@assistant-ui/react";
+import { lastUsage, lastMetadata, onUsageUpdate } from "../lib/ipc-chat";
 
 const WelcomeSuggestions: React.FC = () => {
   return (
@@ -33,17 +34,35 @@ const AutoScrollHelper: React.FC = () => {
 };
 
 const ContextDisplay: React.FC = () => {
-  const ctx = useThreadModelContext();
-  if (!ctx) return null;
-  const text = typeof ctx === "string" ? ctx : ((ctx as any).system ?? "");
-  if (!text) return null;
+  const [usage, setUsage] = useState(lastUsage);
+  const [meta, setMeta] = useState(lastMetadata);
+
+  React.useEffect(() => {
+    const unsub = onUsageUpdate((u) => setUsage({ ...u }));
+    return unsub;
+  }, []);
+
+  React.useEffect(() => {
+    const id = setInterval(() => {
+      if (lastMetadata !== meta) setMeta(lastMetadata);
+      if (lastUsage !== usage) setUsage(lastUsage);
+    }, 500);
+    return () => clearInterval(id);
+  }, [meta, usage]);
+
+  const modelShort = meta?.model ? meta.model.split('/').pop() || meta.model : '';
+  const fmtTok = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(1)}K` : String(n);
+
   return (
-    <div
-      className="px-3 py-1 text-[9px] text-norma-textDim font-mono truncate border-b border-white/[0.04]"
-      title={text}
-    >
-      上下文: {text.slice(0, 80)}
-      {text.length > 80 ? "..." : ""}
+    <div className="px-3 py-1 text-[9px] text-norma-textDim font-mono truncate border-b border-white/[0.04] flex items-center gap-2">
+      {modelShort && <span>{modelShort}</span>}
+      {usage.promptTokens > 0 && (
+        <>
+          {modelShort && <span className="text-white/[0.08]">|</span>}
+          <span>↑{fmtTok(usage.promptTokens)}</span>
+          <span>↓{fmtTok(usage.completionTokens)}</span>
+        </>
+      )}
     </div>
   );
 };

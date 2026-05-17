@@ -1,28 +1,48 @@
 import React, { useState } from "react";
 import {
-  useMessageTiming,
   useMessage,
   useMessagePartFile,
   useMessagePartImage,
 } from "@assistant-ui/react";
 import { getToolLabel } from "../../lib/tool-registry";
+import { getMessageMeta } from "../../lib/ipc-chat";
 
-export const MessageTimingDisplay: React.FC = () => {
-  const timing = useMessageTiming();
+export const MessageMetaDisplay: React.FC = () => {
+  const [showInfo, setShowInfo] = useState(false);
   const message = useMessage();
-  const model = (message as any).metadata?.custom?.model;
-  if (!timing?.totalStreamTime) return null;
+  const msgIdx = (message as any).index ?? 0;
+  const meta = getMessageMeta(msgIdx) ?? (message as any).metadata?.custom;
+  if (!meta) return null;
+
   const formatMs = (ms: number) =>
     ms < 1000 ? `${Math.round(ms)}ms` : `${(ms / 1000).toFixed(1)}s`;
+  const modelShort = meta.model ? meta.model.split('/').pop() || meta.model : '';
+  const fmtTok = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(1)}K` : String(n);
+
   return (
-    <span className="text-[9px] text-norma-textDim font-mono">
-      {model}
-      {model && " · "}
-      {formatMs(timing.totalStreamTime)}
-      {timing.tokensPerSecond
-        ? ` · ${Math.round(timing.tokensPerSecond)} tok/s`
-        : ""}
-      {timing.toolCallCount ? ` · ${timing.toolCallCount} 工具` : ""}
+    <span className="inline-flex items-center gap-1 relative">
+      <span className="text-[9px] text-norma-textDim font-mono">
+        {formatMs(meta.totalStreamMs)}
+      </span>
+      <button
+        onClick={(e) => { e.stopPropagation(); setShowInfo(!showInfo); }}
+        className="win-btn !w-3.5 !h-3.5"
+        title="详细信息"
+      >
+        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
+        </svg>
+      </button>
+      {showInfo && (
+        <div className="absolute left-0 bottom-full mb-1 rounded-lg bg-[#1a1a1f] border border-white/[0.08] shadow-xl px-3 py-2 z-50 text-[9px] font-mono space-y-1 min-w-[160px]" onClick={(e) => e.stopPropagation()}>
+          {modelShort && <div className="flex justify-between gap-3"><span className="text-norma-textDim">模型</span><span className="text-norma-text">{modelShort}</span></div>}
+          {meta.promptTokens > 0 && <div className="flex justify-between gap-3"><span className="text-norma-textDim">输入</span><span className="text-norma-text">{fmtTok(meta.promptTokens)}</span></div>}
+          {meta.completionTokens > 0 && <div className="flex justify-between gap-3"><span className="text-norma-textDim">输出</span><span className="text-norma-text">{fmtTok(meta.completionTokens)}</span></div>}
+          {meta.totalTokens > 0 && <div className="flex justify-between gap-3"><span className="text-norma-textDim">总计</span><span className="text-norma-text">{fmtTok(meta.totalTokens)}</span></div>}
+          {meta.firstTokenMs > 0 && <div className="flex justify-between gap-3"><span className="text-norma-textDim">首字延迟</span><span className="text-norma-text">{formatMs(meta.firstTokenMs)}</span></div>}
+          <div className="flex justify-between gap-3"><span className="text-norma-textDim">总耗时</span><span className="text-norma-text">{formatMs(meta.totalStreamMs)}</span></div>
+        </div>
+      )}
     </span>
   );
 };

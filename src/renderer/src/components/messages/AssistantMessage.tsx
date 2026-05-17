@@ -1,9 +1,10 @@
-import React from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   MessagePrimitive,
   BranchPickerPrimitive,
   ActionBarPrimitive,
   ErrorPrimitive,
+  useMessage,
 } from "@assistant-ui/react";
 import { MarkdownTextPrimitive } from "@assistant-ui/react-markdown";
 import remarkGfm from "remark-gfm";
@@ -13,13 +14,25 @@ import {
   ToolFallbackDisplay,
   FilePartView,
   ImagePartView,
-  MessageTimingDisplay,
+  MessageMetaDisplay,
 } from "./parts";
 
 export const AssistantMessage: React.FC = () => {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = useCallback(() => {
+    const el = document.activeElement?.closest('.bubble') as HTMLElement;
+    const textEl = el?.querySelector('[data-message-text]') || el;
+    const text = textEl?.textContent || '';
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  }, []);
+
   return (
     <MessagePrimitive.Root className="flex justify-start group">
-      <div className="max-w-[80%] relative">
+      <div className="max-w-[80%] relative" data-message-text>
         <div className="bubble bubble-assistant">
           <div className="flex flex-col gap-[5px] w-full min-w-0">
             <MessagePrimitive.Content
@@ -69,7 +82,7 @@ export const AssistantMessage: React.FC = () => {
           </MessagePrimitive.Error>
         </div>
         <div className="flex items-center gap-1 absolute -bottom-5 left-0 right-0 px-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none group-hover:pointer-events-auto">
-          <MessageTimingDisplay />
+          <MessageMetaDisplay />
           <div className="flex-1" />
           <BranchPickerPrimitive.Root
             hideWhenSingleBranch

@@ -15,6 +15,35 @@ interface SavedProviderFull {
   apiKey: string;
 }
 
+const fmtCtx = (tokens: number) => {
+  if (tokens <= 0) return '';
+  if (tokens >= 1048576) return `${Math.round(tokens / 1048576)}M`;
+  if (tokens >= 1024) return `${Math.round(tokens / 1024)}K`;
+  return String(tokens);
+};
+
+const MiniCapBadges: React.FC<{ modelId: string }> = ({ modelId }) => {
+  const [caps, setCaps] = React.useState<{ vision: boolean; contextLength: number } | null>(null);
+  React.useEffect(() => {
+    window.electronAPI?.getCapabilitiesWithOverride?.(modelId).then((c: any) => {
+      if (c) setCaps({ vision: c.vision, contextLength: c.contextLength });
+    }).catch(() => {});
+  }, [modelId]);
+  if (!caps) return null;
+  return (
+    <span className="inline-flex items-center gap-0.5 flex-none">
+      {caps.vision && (
+        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-violet-400" title="支持视觉">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+        </svg>
+      )}
+      {caps.contextLength > 0 && (
+        <span className="text-[7px] font-mono text-sky-400">{fmtCtx(caps.contextLength)}</span>
+      )}
+    </span>
+  );
+};
+
 const ModelSelector: React.FC = () => {
   const [open, setOpen] = useState(false);
   const [models, setModels] = useState<
@@ -179,10 +208,13 @@ const ModelSelector: React.FC = () => {
                   }}
                 />
                 <div className="flex-1 text-left min-w-0">
-                  <div
-                    className={`font-medium truncate ${idx === selectedIdx ? "text-norma-accent" : "text-norma-text"}`}
-                  >
-                    {model.displayName}
+                  <div className="flex items-center gap-1">
+                    <span
+                      className={`font-medium truncate ${idx === selectedIdx ? "text-norma-accent" : "text-norma-text"}`}
+                    >
+                      {model.displayName}
+                    </span>
+                    <MiniCapBadges modelId={model.modelId} />
                   </div>
                   <div className="text-[9px] text-norma-textDim truncate">
                     {model.providerName} · <span className="font-mono">{model.modelId}</span>

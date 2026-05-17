@@ -11,7 +11,8 @@ type StreamChunk =
   | { type: "text-delta"; text: string }
   | { type: "tool-call"; toolCallId: string; toolName: string; args: Record<string, unknown> }
   | { type: "tool-result"; toolCallId: string; toolName: string; result: unknown; isError?: boolean }
-  | { type: "usage"; usage: { promptTokens: number; completionTokens: number; totalTokens?: number; cachedTokens?: number } };
+  | { type: "usage"; usage: { promptTokens: number; completionTokens: number; totalTokens?: number; cachedTokens?: number } }
+  | { type: "metadata"; metadata: { model: string; totalStreamMs: number; firstTokenMs: number; promptTokens: number; completionTokens: number; totalTokens: number } };
 
 type QueueItem =
   | { type: "chunk"; chunk: StreamChunk }
@@ -26,6 +27,17 @@ export interface UsageData {
 }
 
 export let lastUsage: UsageData = { promptTokens: 0, completionTokens: 0 };
+export let lastMetadata: { model: string; totalStreamMs: number; firstTokenMs: number; promptTokens: number; completionTokens: number; totalTokens: number } | null = null;
+
+const messageMetaStore = new Map<number, typeof lastMetadata>();
+
+export function storeMessageMeta(index: number, meta: typeof lastMetadata) {
+  if (meta) messageMetaStore.set(index, meta);
+}
+
+export function getMessageMeta(index: number) {
+  return messageMetaStore.get(index) ?? null;
+}
 
 const usageListeners = new Set<(usage: UsageData) => void>();
 
@@ -42,6 +54,7 @@ function notifyUsage(usage: UsageData) {
 }
 
 export function createIpcChatModel(getThreadId?: () => string | undefined) {
+  let msgCounter = 0;
   return {
     async *run({
       messages,
@@ -155,6 +168,10 @@ export function createIpcChatModel(getThreadId?: () => string | undefined) {
           }
 
           if (item.type === "done") {
+            if (lastMetadata) {
+              storeMessageMeta(msgCounter, { ...lastMetadata });
+            }
+            msgCounter++;
             break;
           }
 
@@ -196,6 +213,8 @@ export function createIpcChatModel(getThreadId?: () => string | undefined) {
             }
           } else if (chunk.type === "usage") {
             notifyUsage(chunk.usage);
+          } else if (chunk.type === "metadata") {
+            lastMetadata = chunk.metadata;
           }
 
           const content: ContentPart[] = [...contentParts];
