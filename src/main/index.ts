@@ -16,18 +16,14 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 app.commandLine.appendSwitch("enable-features", "CSSBackdropFilter");
-app.commandLine.appendSwitch("enable-gpu-rasterization");
-app.commandLine.appendSwitch("enable-zero-copy");
-app.disableHardwareAcceleration();
-app.commandLine.appendSwitch("disable-gpu");
-app.commandLine.appendSwitch("disable-software-rasterizer");
 app.commandLine.appendSwitch("no-sandbox");
 
 let mainWindow: BrowserWindow | null = null;
 let commandBarWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 
-const isTestMode = !!process.env.PLAYWRIGHT_TEST || !!process.env.NODE_ENV?.includes('test');
+const isTestMode =
+  !!process.env.PLAYWRIGHT_TEST || !!process.env.NODE_ENV?.includes("test");
 const gotTheLock = isTestMode || app.requestSingleInstanceLock();
 
 if (!gotTheLock) {
@@ -38,17 +34,20 @@ if (!gotTheLock) {
   });
 
   app.whenReady().then(async () => {
-    await initConfig(app.getPath('userData'));
+    await initConfig(app.getPath("userData"));
     await setupIpc();
     createTray();
     createWindow();
     createCommandBarWindow();
 
-    const { initAgent } = await import('./agent');
-    const { getConfig } = await import('./config');
-    const savedModel = await getConfig('norma-active-model');
-    initAgent(app.getPath('userData'), typeof savedModel === 'string' ? savedModel : undefined).catch((err) => {
-      console.error('[Agent] Failed to initialize:', err);
+    const { initAgent } = await import("./agent");
+    const { getConfig } = await import("./config");
+    const savedModel = await getConfig("norma-active-model");
+    initAgent(
+      app.getPath("userData"),
+      typeof savedModel === "string" ? savedModel : undefined,
+    ).catch((err) => {
+      console.error("[Agent] Failed to initialize:", err);
     });
 
     const isMac = process.platform === "darwin";

@@ -207,7 +207,17 @@ export function createIpcChatModel(getThreadId?: () => string | undefined) {
           }
 
           if (item.type === "error") {
-            throw new Error(item.message);
+            let msg = item.message;
+            for (let attempt = 0; attempt < 3; attempt++) {
+              try {
+                const parsed = JSON.parse(msg);
+                msg = parsed?.message || parsed?.error?.message || parsed?.error || msg;
+                if (typeof msg !== 'object') break;
+                msg = JSON.stringify(msg);
+              } catch { break; }
+            }
+            msg = msg.replace(/^Error:\s*/i, '');
+            throw new Error(msg);
           }
 
           const { chunk } = item;

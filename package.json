@@ -10,7 +10,8 @@
     "dev": "concurrently \"pnpm dev:renderer\" \"pnpm dev:main\"",
     "build:main": "tsup",
     "build:renderer": "vite build",
-    "build": "pnpm build:renderer && pnpm build:main",
+    "build:ocr": "node scripts/build-ocr.mjs",
+    "build": "pnpm build:ocr && pnpm build:renderer && pnpm build:main",
     "pack": "electron-builder --dir",
     "dist": "pnpm build && electron-builder",
     "dist:win": "pnpm build && electron-builder --win",
@@ -92,6 +93,13 @@
         "to": ".",
         "filter": [
           "**/*"
+        ]
+      },
+      {
+        "from": "resources/norma-ocr-macos",
+        "to": ".",
+        "filter": [
+          "norma-ocr-macos"
         ]
       }
     ],

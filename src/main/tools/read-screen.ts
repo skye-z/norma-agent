@@ -4,32 +4,10 @@ import { desktopCapturer } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { modelSupportsVision, getCapabilitiesWithOverride } from './model-capabilities';
+import { runOCR, inferWindowTitle, formatOCRForLLM } from '../ocr';
+import type { TextMatch } from '../ocr';
 
 const SCREENSHOT_DIR = path.join(os.tmpdir(), 'norma-screenshots');
-
-let _lastModelId: string | null = null;
-let _cachedVision: boolean | null = null;
-let _overrides: Record<string, any> | null = null;
-
-export function setVisionCheckModel(modelId: string | null): void {
-  if (modelId !== _lastModelId) {
-    _lastModelId = modelId;
-    _cachedVision = null;
-  }
-}
-
-export function setModelOverrides(overrides: Record<string, any> | null): void {
-  _overrides = overrides;
-  _cachedVision = null;
-}
-
-function checkVision(): boolean {
-  if (_cachedVision !== null) return _cachedVision;
-  const caps = getCapabilitiesWithOverride(_lastModelId, _overrides);
-  _cachedVision = caps.vision;
-  return _cachedVision;
-}
 
 async function ensureScreenshotDir() {
   if (!fs.existsSync(SCREENSHOT_DIR)) {
@@ -37,9 +15,7 @@ async function ensureScreenshotDir() {
   }
 }
 
-let lastCaptureTimestamp: string = '';
-
-async function captureScreen(targetWindow?: string): Promise<string> {
+async function captureScreen(targetWindow?: string): Promise<{ pngBuffer: Buffer; sourceName: string }> {
   await ensureScreenshotDir();
 
   const types = targetWindow ? ['window', 'screen'] : ['screen'];
@@ -58,18 +34,13 @@ async function captureScreen(targetWindow?: string): Promise<string> {
   }
 
   const pngBuffer = targetSource.thumbnail.toPNG();
-  const filename = `screen_${Date.now()}.png`;
-  const filepath = path.join(SCREENSHOT_DIR, filename);
-  fs.writeFileSync(filepath, pngBuffer);
-
-  const base64 = pngBuffer.toString('base64');
-  return base64;
+  return { pngBuffer, sourceName: targetSource.name };
 }
 
 export const readScreenTool = createTool({
   id: 'read_screen',
   description:
-    'Capture a screenshot of the current screen or a specific window. For vision-capable models, returns the actual image. For text-only models, returns a text placeholder. Use this tool when you need to check what is currently displayed on the user\'s screen.',
+    'Capture a screenshot of the current screen or a specific window and run native OCR to extract all visible text with clickable coordinates. Returns structured text data instead of images to save tokens. Use this tool when you need to check what is currently displayed on the user\'s screen.',
   inputSchema: z.object({
     reason: z
       .string()
@@ -79,47 +50,117 @@ export const readScreenTool = createTool({
       .string()
       .optional()
       .describe('Optional title of a specific window to capture. If omitted, captures the entire primary screen.'),
+    includeImage: z
+      .boolean()
+      .optional()
+      .describe('If true, also include the screenshot image for vision-capable models. Default is false (OCR only).'),
   }),
   outputSchema: z.object({
     success: z.boolean(),
     timestamp: z.string(),
-    message: z.string(),
+    mode: z.string(),
+    ocr_results: z.array(z.object({
+      text: z.string(),
+      x: z.number(),
+      y: z.number(),
+      confidence: z.number(),
+      bounds: z.object({
+        x: z.number(),
+        y: z.number(),
+        width: z.number(),
+        height: z.number(),
+      }),
+    })),
+    summary: z.object({
+      window_title: z.string().nullable(),
+      source_name: z.string(),
+      text_count: z.number(),
+      text_lines: z.array(z.string()),
+    }),
     image_base64: z.string().optional(),
+    error: z.string().optional(),
   }),
-  execute: async ({ targetWindow }) => {
-    const base64 = await captureScreen(targetWindow);
+  execute: async ({ targetWindow, includeImage }) => {
     const timestamp = new Date().toISOString();
-    lastCaptureTimestamp = timestamp;
 
-    return {
-      success: true,
-      image_base64: base64,
-      timestamp,
-      message: targetWindow ? `Captured window matching "${targetWindow}"` : 'Screen captured successfully',
-    };
-  },
-  toModelOutput: (output: any) => {
-    if (!output.success || !output.image_base64) {
-      return { type: 'text' as const, text: output.message || 'Failed to capture screen' };
-    }
+    try {
+      const { pngBuffer, sourceName } = await captureScreen(targetWindow);
 
-    if (output.timestamp !== lastCaptureTimestamp) {
-      return { type: 'text' as const, text: `[Old screenshot captured at ${output.timestamp} removed from context to save tokens]` };
-    }
+      const ocrResult = await runOCR(pngBuffer);
 
-    if (!checkVision()) {
+      if (!ocrResult.success) {
+        return {
+          success: false,
+          timestamp,
+          mode: 'ocr',
+          ocr_results: [],
+          summary: {
+            window_title: null,
+            source_name: sourceName,
+            text_count: 0,
+            text_lines: [],
+          },
+          error: ocrResult.error || 'OCR failed',
+        };
+      }
+
+      const windowTitle = inferWindowTitle(ocrResult.matches);
+
+      let imageBase64: string | undefined;
+      if (includeImage) {
+        imageBase64 = pngBuffer.toString('base64');
+      }
+
       return {
-        type: 'text' as const,
-        text: `Screenshot captured at ${output.timestamp}. [当前模型不支持图像输入，截图已保存但无法进行视觉分析。请切换到支持视觉的模型（如 GPT-4o、Claude 3.5、Gemini）以启用屏幕分析功能。]`,
+        success: true,
+        timestamp,
+        mode: 'ocr',
+        ocr_results: ocrResult.matches,
+        summary: {
+          window_title: windowTitle,
+          source_name: sourceName,
+          text_count: ocrResult.matches.length,
+          text_lines: ocrResult.matches.map(m => m.text),
+        },
+        image_base64: imageBase64,
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        timestamp,
+        mode: 'ocr',
+        ocr_results: [],
+        summary: {
+          window_title: null,
+          source_name: '',
+          text_count: 0,
+          text_lines: [],
+        },
+        error: err.message || 'Unknown error',
       };
     }
+  },
+  toModelOutput: (output: any) => {
+    if (!output.success) {
+      return { type: 'text' as const, text: `Screen capture failed: ${output.error || 'Unknown error'}` };
+    }
 
-    return {
-      type: 'content' as const,
-      value: [
-        { type: 'text' as const, text: `Screenshot captured at ${output.timestamp}. Analyze this image to understand what is on the user's screen.` },
-        { type: 'image-data' as const, data: output.image_base64, mimeType: 'image/png' },
-      ],
-    };
+    const parts: string[] = [];
+
+    const ocrText = formatOCRForLLM(
+      output.ocr_results || [],
+      output.summary?.window_title || null,
+      output.timestamp,
+    );
+    parts.push(ocrText);
+
+    if (output.summary?.text_lines?.length) {
+      parts.push('');
+      parts.push('### Full Text Content (reading order):');
+      parts.push(output.summary.text_lines.join(' | '));
+    }
+
+    const text = parts.join('\n');
+    return { type: 'text' as const, text };
   },
 });

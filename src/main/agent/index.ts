@@ -22,7 +22,7 @@ import { automationWorkflow } from '../automation';
 dotenv.config({ path: path.join(process.cwd(), '.env') });
 
 const TOOL_DISPLAY_META: Record<string, { name: string; description: string; category: string }> = {
-  read_screen: { name: '屏幕感知', description: '截取全屏或指定窗口截图', category: '感知' },
+  read_screen: { name: '屏幕感知', description: '截屏 + 原生OCR识别屏幕文本坐标', category: '感知' },
   execute_action: { name: '系统操控', description: '模拟鼠标键盘操作', category: '控制' },
   list_windows: { name: '窗口列表', description: '列出所有窗口标题', category: '控制' },
   window_control: { name: '窗口管理', description: '聚焦/最大化/最小化/关闭窗口', category: '控制' },
@@ -117,14 +117,34 @@ export async function initAgent(dbDir?: string, defaultModel?: string) {
 - **list_windows**: 列出所有打开的窗口标题
 - **window_control**: 聚焦/最大化/最小化/还原/关闭窗口
 - **open_file**: 用默认应用打开文件或URL
-- **read_screen**: 截图（可截全屏或指定窗口）
+- **read_screen**: 截屏 + 原生 OCR 识别屏幕文本（返回带坐标的文本列表，而非图片）
 - **execute_action**: 鼠标和键盘操作
 - **system_tray**: 与系统托盘交互（列出/点击托盘图标）
 
-## 核心原则: 截图驱动，逐步确认
-1. **永远不要盲操作** — 每一步鼠标/键盘操作前必须先 read_screen 截图确认当前界面
-2. **只保留最新截图** — 历史截图会自动被丢弃以节省 token，这是正常的
-3. **小步快跑** — 每执行1-2个动作后重新截图确认结果，而不是一口气执行所有步骤
+## 核心原则: OCR 驱动，逐步确认
+1. **永远不要盲操作** — 每一步操作前必须先 read_screen 获取当前屏幕文本和坐标
+2. **OCR 返回文本坐标** — read_screen 使用原生 OCR (macOS Vision / Windows OCR) 提取屏幕上所有可见文本及其可点击坐标
+3. **坐标可直接使用** — OCR 返回的 (x, y) 坐标可直接传给 execute_action 的 click 操作，无需额外转换
+4. **小步快跑** — 每执行1-2个动作后重新 read_screen 确认结果，而不是一口气执行所有步骤
+5. **按文本定位元素** — 通过 OCR 识别到的文本内容定位按钮、菜单、输入框等 UI 元素，然后使用其坐标进行点击
+
+## 如何使用 read_screen OCR 结果
+read_screen 返回格式示例:
+\`\`\`
+## Screen OCR Results (15 text elements detected)
+Window: Calculator
+Timestamp: 2026-05-18T10:30:00Z
+
+### Detected Text (coordinates are screen points, use directly with execute_action click):
+- "File" at (45, 12) bounds: {x:20, y:4, w:50, h:16}
+- "Edit" at (110, 12) bounds: {x:85, y:4, w:50, h:16}
+- "Submit" at (450, 500) bounds: {x:400, y:480, w:100, h:40}
+\`\`\`
+
+使用方法:
+- 要点击 "Submit" 按钮: execute_action(click, x:450, y:500)
+- bounds 的 x,y,w,h 可用于判断元素大小和相对位置
+- 置信度低于 0.5 的结果会被过滤掉
 
 ## 桌面自动化标准流程（重要！）
 
@@ -139,12 +159,12 @@ export async function initAgent(dbDir?: string, defaultModel?: string) {
 4. 调用 list_windows 确认目标窗口已出现
 5. 调用 window_control(focus) 将目标窗口调到前台
 6. 调用 window_control(maximize) 最大化窗口（确保内容完整显示）
-7. 调用 read_screen 截图确认窗口内容
+7. 调用 read_screen OCR 识别窗口内容
 
 ### 阶段3: 内容操作
-8. 分析截图，定位要操作的UI元素坐标
-9. 执行 execute_action 操作（点击、输入等）
-10. **立即 read_screen 截图确认操作结果**
+8. 从 OCR 结果中找到目标文本元素的坐标
+9. 执行 execute_action 操作（点击坐标、输入等）
+10. **立即 read_screen OCR 确认操作结果**
 11. 如操作未达预期，分析原因并调整（自愈重试）
 
 ### 阶段4: 切换目标应用
@@ -152,12 +172,12 @@ export async function initAgent(dbDir?: string, defaultModel?: string) {
 13. 如果目标窗口不在列表中:
     - 调用 system_tray(list) 检查系统托盘
     - 调用 system_tray(click, trayName) 从托盘唤出
-    - read_screen 截图确认
+    - read_screen OCR 确认
 14. window_control(focus) + window_control(maximize)
-15. read_screen 截图确认目标应用界面
+15. read_screen OCR 确认目标应用界面
 
 ### 阶段5: 完成交互
-16. 在目标应用中定位输入区域
+16. 从 OCR 结果定位输入区域坐标
 17. execute_action 执行输入/粘贴/发送
 18. read_screen 最终确认结果
 
@@ -170,16 +190,16 @@ export async function initAgent(dbDir?: string, defaultModel?: string) {
 4. list_windows → 确认Excel窗口已出现
 5. window_control("招聘要求", focus) → 将Excel调到前台
 6. window_control("招聘要求", maximize) → 最大化窗口
-7. read_screen → 截图查看Excel内容
+7. read_screen → OCR 识别 Excel 内容和坐标
 8. execute_action(shortcut: selectAll) → 全选内容
 9. execute_action(shortcut: copy) → 复制到剪贴板
 10. list_windows → 查找QQ窗口
 11. [如果QQ不在窗口列表] system_tray(click, "QQ") → 从托盘唤出QQ
-12. read_screen → 截图查看QQ界面
-13. 定位搜索框 → execute_action(click) → 输入"Modred"
-14. read_screen → 截图确认搜索结果
-15. 点击Modred → read_screen 确认会话窗口
-16. execute_action(click 输入框) → execute_action(shortcut: paste) → 发送
+12. read_screen → OCR 识别 QQ 界面
+13. 定位搜索框坐标 → execute_action(click) → 输入"Modred"
+14. read_screen → OCR 确认搜索结果
+15. 点击 Modred 搜索结果坐标 → read_screen 确认会话窗口
+16. execute_action(click 输入框坐标) → execute_action(shortcut: paste) → 发送
 17. read_screen → 最终确认
 </plan>
 
@@ -196,7 +216,7 @@ export async function initAgent(dbDir?: string, defaultModel?: string) {
 如果工具返回错误或任务未完成:
 1. 不要立即放弃
 2. 分析错误原因
-3. 调整策略（换坐标、换工具、重新截图确认）
+3. 调整策略（换坐标、换工具、重新 read_screen 确认）
 4. 最多重试3次
 5. 只有多次尝试失败后才向用户报告
 

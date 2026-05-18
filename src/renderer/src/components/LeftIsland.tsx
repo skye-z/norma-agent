@@ -62,7 +62,7 @@ export const LeftIsland: React.FC<LeftIslandProps> = ({
 }) => {
   return (
     <div className="glass-island-left titlebar-no-drag w-[240px] flex-none h-full flex flex-col overflow-hidden">
-      {isMac && <div className="titlebar-drag h-[36px] flex-none" />}
+      {isMac && <div className="titlebar-drag h-[24px] flex-none" />}
 
       <nav className="flex-none px-2 py-2 flex flex-col gap-[5px]">
         {navItems.map((item) => (
