@@ -85,4 +85,29 @@ contextBridge.exposeInMainWorld('electronAPI', {
   diagClearLogs: () => ipcRenderer.invoke('diag:clearLogs'),
   diagSubscribe: () => ipcRenderer.invoke('diag:subscribe'),
   diagUnsubscribe: () => ipcRenderer.invoke('diag:unsubscribe'),
+
+  speechAvailable: () => ipcRenderer.invoke('speech:available'),
+  speechStart: (timeoutSec?: number) => ipcRenderer.invoke('speech:start', timeoutSec),
+  speechStop: () => ipcRenderer.invoke('speech:stop'),
+  speechRecognize: (timeoutSec?: number) => ipcRenderer.invoke('speech:recognize', timeoutSec),
+  onSpeechPartial: (cb: (data: { confidence: number; text: string }) => void) => {
+    const handler = (_e: any, data: any) => cb(data);
+    ipcRenderer.on('speech:partial', handler);
+    return () => { ipcRenderer.removeListener('speech:partial', handler); };
+  },
+  onSpeechResult: (cb: (data: { success: boolean; confidence: number; text: string }) => void) => {
+    const handler = (_e: any, data: any) => cb(data);
+    ipcRenderer.on('speech:result', handler);
+    return () => { ipcRenderer.removeListener('speech:result', handler); };
+  },
+  onSpeechDone: (cb: () => void) => {
+    const handler = () => cb();
+    ipcRenderer.on('speech:done', handler);
+    return () => { ipcRenderer.removeListener('speech:done', handler); };
+  },
+  onSpeechError: (cb: (err: string) => void) => {
+    const handler = (_e: any, err: string) => cb(err);
+    ipcRenderer.on('speech:error', handler);
+    return () => { ipcRenderer.removeListener('speech:error', handler); };
+  },
 });

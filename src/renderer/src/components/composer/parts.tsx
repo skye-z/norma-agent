@@ -144,10 +144,55 @@ const ContextRing: React.FC = () => {
 };
 
 const VoiceButton: React.FC = () => {
+  const [listening, setListening] = React.useState(false);
+  const unsubRef = React.useRef<(() => void)[]>([]);
+
+  React.useEffect(() => {
+    return () => { unsubRef.current.forEach(u => u()); };
+  }, []);
+
+  const toggleListen = React.useCallback(async () => {
+    if (listening) {
+      window.electronAPI?.speechStop?.();
+      setListening(false);
+      unsubRef.current.forEach(u => u());
+      unsubRef.current = [];
+      return;
+    }
+
+    const available = await window.electronAPI?.speechAvailable?.();
+    if (!available) {
+      return;
+    }
+
+    setListening(true);
+    const onPartial = window.electronAPI?.onSpeechPartial?.((data) => {});
+    const onResult = window.electronAPI?.onSpeechResult?.((data) => {
+      if (data.success && data.text) {
+        const textarea = document.querySelector<HTMLTextAreaElement>('[data-testid="composer-textarea"], textarea.composer-input, textarea');
+        if (textarea) {
+          const nativeSetter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')?.set;
+          if (nativeSetter) {
+            nativeSetter.call(textarea, textarea.value + (textarea.value ? ' ' : '') + data.text);
+            textarea.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+        }
+      }
+      setListening(false);
+    });
+    const onDone = window.electronAPI?.onSpeechDone?.(() => { setListening(false); });
+    const onError = window.electronAPI?.onSpeechError?.(() => { setListening(false); });
+
+    unsubRef.current = [onPartial, onResult, onDone, onError].filter(Boolean) as (() => void)[];
+
+    window.electronAPI?.speechStart?.(60);
+  }, [listening]);
+
   return (
-    <ComposerPrimitive.Dictate
-      className="flex-none p-1.5 rounded-full text-norma-textDim hover:text-norma-textMuted hover:bg-white/[0.06] transition-colors"
-      title="语音输入"
+    <button
+      onClick={toggleListen}
+      className={`flex-none p-1.5 rounded-full transition-colors ${listening ? 'text-red-400 bg-red-400/10 animate-pulse' : 'text-norma-textDim hover:text-norma-textMuted hover:bg-white/[0.06]'}`}
+      title={listening ? '停止录音' : '语音输入'}
     >
       <svg
         width="14"
@@ -163,7 +208,7 @@ const VoiceButton: React.FC = () => {
         <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
         <line x1="12" x2="12" y1="19" y2="22" />
       </svg>
-    </ComposerPrimitive.Dictate>
+    </button>
   );
 };
 

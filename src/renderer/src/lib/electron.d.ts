@@ -50,6 +50,14 @@ declare global {
       diagUnsubscribe: () => Promise<boolean>;
       testTool: (toolId: string, userArgs?: Record<string, any>) => Promise<{ success: boolean; output: any; duration: number; error?: string }>;
       getToolInputFields: (toolId: string) => Promise<Array<{ name: string; type: 'string' | 'boolean' | 'number' | 'enum'; required: boolean; description: string; defaultVal: any; enumOptions?: string[] }>>;
+      speechAvailable: () => Promise<boolean>;
+      speechStart: (timeoutSec?: number) => Promise<{ started: boolean; error?: string }>;
+      speechStop: () => Promise<{ stopped: boolean }>;
+      speechRecognize: (timeoutSec?: number) => Promise<{ success: boolean; confidence: number; text: string }>;
+      onSpeechPartial: (cb: (data: { confidence: number; text: string }) => void) => () => void;
+      onSpeechResult: (cb: (data: { success: boolean; confidence: number; text: string }) => void) => () => void;
+      onSpeechDone: (cb: () => void) => () => void;
+      onSpeechError: (cb: (err: string) => void) => () => void;
     };
   }
 }

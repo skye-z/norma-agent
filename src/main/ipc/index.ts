@@ -6,6 +6,7 @@ import { setupAutomationIpc } from './automation';
 import { setupDiagIpc, appendLog } from './diag';
 import { setupConfigIpc } from './config';
 import { getConfig, setConfig } from '../config';
+import { isSpeechAvailable, startDictation, stopDictation, recognizeOnce } from '../speech';
 
 let _activeModel: string | null = null;
 let _providerConfig: { providerType: string; baseUrl: string; apiKey: string } | null = null;
@@ -68,7 +69,42 @@ export async function setupIpc() {
       electron: process.versions.electron,
       node: process.versions.node,
       chrome: process.versions.chrome,
+      speechAvailable: isSpeechAvailable(),
     };
+  });
+
+  ipcMain.handle('speech:available', () => isSpeechAvailable());
+
+  ipcMain.handle('speech:start', async (_event, timeoutSec?: number) => {
+    if (!isSpeechAvailable()) return { started: false, error: 'Speech not available' };
+    try {
+      const emitter = startDictation(timeoutSec || 60);
+      const sender = _activeChatSender || BrowserWindow.getFocusedWindow()?.webContents;
+      emitter.on('partial', (data: { confidence: number; text: string }) => {
+        sender?.send('speech:partial', data);
+      });
+      emitter.on('result', (data: { success: boolean; confidence: number; text: string }) => {
+        sender?.send('speech:result', data);
+      });
+      emitter.on('done', () => {
+        sender?.send('speech:done');
+      });
+      emitter.on('error', (err: Error) => {
+        sender?.send('speech:error', err.message);
+      });
+      return { started: true };
+    } catch (e: any) {
+      return { started: false, error: e.message };
+    }
+  });
+
+  ipcMain.handle('speech:stop', () => {
+    stopDictation();
+    return { stopped: true };
+  });
+
+  ipcMain.handle('speech:recognize', async (_event, timeoutSec?: number) => {
+    return await recognizeOnce(timeoutSec || 30);
   });
 
   ipcMain.handle('capabilities:list', async () => {

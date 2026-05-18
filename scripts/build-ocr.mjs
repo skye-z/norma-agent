@@ -92,6 +92,22 @@ if (process.platform === 'darwin') {
     process.exit(0);
   }
 
+  const speechSource = join(root, 'src', 'main', 'speech', 'win-speech.cs');
+  if (existsSync(speechSource)) {
+    console.log('[build:speech] Compiling Windows Speech bridge (C# → System.Speech)...');
+    const speechOutput = join(resourcesDir, 'norma-speech-win.exe');
+    const speechRefs = `/reference:"C:\\Windows\\Microsoft.NET\\assembly\\GAC_MSIL\\System.Speech\\v4.0_4.0.0.0__31bf3856ad364e35\\System.Speech.dll"`;
+    try {
+      const cmd = `"${csc}" /nologo /out:"${speechOutput}" /platform:anycpu ${speechRefs} "${speechSource}"`;
+      console.log(`[build:speech] Running: ${cmd}`);
+      execSync(cmd, { stdio: 'inherit' });
+      console.log(`[build:speech] Windows Speech bridge compiled: ${speechOutput}`);
+    } catch (err) {
+      console.warn('[build:speech] Failed to compile Speech bridge. STT will not be available.');
+      console.warn('[build:speech] Error:', err.message);
+    }
+  }
+
 } else {
   console.log(`[build:ocr] Unsupported platform: ${process.platform}`);
   process.exit(0);
