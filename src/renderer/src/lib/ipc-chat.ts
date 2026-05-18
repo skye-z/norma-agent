@@ -161,7 +161,7 @@ export function createIpcChatModel(getThreadId?: () => string | undefined) {
 
       let fullText = "";
       let flushedTextLen = 0;
-      const contentParts: ContentPart[] = [];
+      const interleaved: ContentPart[] = [];
 
       const flushText = () => {
         if (fullText.length > flushedTextLen) {
@@ -170,6 +170,13 @@ export function createIpcChatModel(getThreadId?: () => string | undefined) {
           return newText;
         }
         return null;
+      };
+
+      const flushPendingText = () => {
+        if (fullText.length > flushedTextLen) {
+          interleaved.push({ type: "text", text: fullText.slice(flushedTextLen, fullText.length) });
+          flushedTextLen = fullText.length;
+        }
       };
 
       let yieldScheduled = false;
@@ -199,6 +206,7 @@ export function createIpcChatModel(getThreadId?: () => string | undefined) {
           }
 
           if (item.type === "done") {
+            flushPendingText();
             if (lastMetadata) {
               storeMessageMeta(msgCounter, { ...lastMetadata });
             }
@@ -225,8 +233,8 @@ export function createIpcChatModel(getThreadId?: () => string | undefined) {
           if (chunk.type === "text-delta") {
             fullText += chunk.text;
           } else if (chunk.type === "tool-call") {
-            flushedTextLen = fullText.length;
-            contentParts.push({
+            flushPendingText();
+            interleaved.push({
               type: "tool-call",
               toolCallId: chunk.toolCallId,
               toolName: chunk.toolName,
@@ -234,15 +242,15 @@ export function createIpcChatModel(getThreadId?: () => string | undefined) {
               argsText: JSON.stringify(chunk.args),
             });
           } else if (chunk.type === "tool-result") {
-            flushedTextLen = fullText.length;
-            const existing = contentParts.find(
+            flushPendingText();
+            const existing = interleaved.find(
               (p) => p.type === "tool-call" && p.toolCallId === chunk.toolCallId,
             );
             if (existing && existing.type === "tool-call") {
               (existing as any).result = chunk.result;
               (existing as any).isError = chunk.isError;
             } else {
-              contentParts.push({
+              interleaved.push({
                 type: "tool-call",
                 toolCallId: chunk.toolCallId,
                 toolName: chunk.toolName,
@@ -258,8 +266,8 @@ export function createIpcChatModel(getThreadId?: () => string | undefined) {
             lastMetadata = chunk.metadata;
           }
 
-          const content: ContentPart[] = [...contentParts];
-          if (fullText) {
+          const content: ContentPart[] = [...interleaved];
+          if (fullText.length > flushedTextLen) {
             content.push({ type: "text", text: fullText });
           }
           if (content.length > 0) {

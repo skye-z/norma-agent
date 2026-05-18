@@ -67,7 +67,20 @@ const ThreadSwitchHandler: React.FC = () => {
               if (content && typeof content === 'object' && Array.isArray(content.parts)) {
                 content = content.parts.map((p: any) => {
                   if (p.type === 'text') return { type: 'text', text: p.text };
-                  if (p.type === 'tool-invocation') return { type: 'tool-call', toolCallId: p.toolInvocation?.toolCallId ?? p.toolCallId, toolName: p.toolInvocation?.toolName ?? p.toolName, args: p.toolInvocation?.args ?? p.args ?? {} };
+                  if (p.type === 'tool-invocation') {
+                    const inv = p.toolInvocation ?? {};
+                    const part: any = {
+                      type: 'tool-call',
+                      toolCallId: inv.toolCallId ?? p.toolCallId,
+                      toolName: inv.toolName ?? p.toolName,
+                      args: inv.args ?? p.args ?? {},
+                    };
+                    if (inv.state === 'result' && inv.result !== undefined) {
+                      part.result = inv.result;
+                    }
+                    return part;
+                  }
+                  if (p.type === 'step-start' || p.type === 'reasoning') return null;
                   return p;
                 }).filter(Boolean);
               } else if (typeof content === 'string') {

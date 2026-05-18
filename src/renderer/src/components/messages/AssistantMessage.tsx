@@ -227,7 +227,7 @@ const ErrorDisplay: React.FC = () => {
 
 export const AssistantMessage: React.FC = () => {
   return (
-    <MessagePrimitive.Root className="flex justify-start group mb-6">
+    <MessagePrimitive.Root className="flex justify-start group mb-2">
       <div className="max-w-[80%] relative">
         <SelectionToolbarPrimitive.Root className="absolute z-50 -top-10 left-1/2 -translate-x-1/2 glass-popover px-1.5 py-1 flex gap-0.5 shadow-xl">
           <SelectionToolbarPrimitive.Quote className="win-btn !w-6 !h-5 text-[9px] text-norma-textMuted hover:text-norma-text">
@@ -282,7 +282,7 @@ export const AssistantMessage: React.FC = () => {
             <ErrorDisplay />
           </MessagePrimitive.Error>
         </div>
-        <div className="flex items-center gap-1 absolute -bottom-5 left-0 right-0 px-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none group-hover:pointer-events-auto">
+        <div className="flex items-center gap-1 mt-1 px-1">
           <ModelNameBadge />
           <MessageTimingBadge />
           <div className="flex-1" />
@@ -320,7 +320,6 @@ export const AssistantMessage: React.FC = () => {
           </BranchPickerPrimitive.Root>
           <ActionBarPrimitive.Root
             hideWhenRunning
-            autohide="not-last"
             className="flex gap-0.5"
           >
             <ActionBarPrimitive.Copy className="win-btn !w-4 !h-4" title="复制">

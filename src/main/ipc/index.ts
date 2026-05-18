@@ -235,7 +235,15 @@ export async function setupIpc() {
         };
       }
       if (_activeModel) {
-        streamOptions.model = _activeModel;
+        if (_providerConfig?.baseUrl) {
+          streamOptions.model = {
+            id: _activeModel,
+            url: _providerConfig.baseUrl,
+            apiKey: _providerConfig.apiKey,
+          };
+        } else {
+          streamOptions.model = _activeModel;
+        }
       }
 
       appendLog('info', 'chat', `开始流式请求 model=${_activeModel || 'default'} threadId=${threadId || 'none'} provider=${_providerConfig?.providerType || 'none'} hasKey=${!!(_providerConfig?.apiKey || process.env.OPENAI_API_KEY || process.env.ANTHROPIC_API_KEY)}`);
@@ -245,29 +253,57 @@ export async function setupIpc() {
       const activeModelName = _activeModel || 'openai/gpt-4o-mini';
 
       const originalFetch = globalThis.fetch;
+      const needsResponsesFallback = providerType !== 'openai' || !!_providerConfig?.baseUrl;
       globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
         const url = typeof input === 'string' ? input : input.toString();
-        if (!url.includes('/responses') || !init?.body) {
+        if (!url.includes('/responses') || !init?.body || !needsResponsesFallback) {
           return originalFetch(input, init);
         }
         try {
           const bodyText = typeof init.body === 'string' ? init.body : await new Response(init.body).text();
           const body = JSON.parse(bodyText);
+          const messages: any[] = [];
+          if (body.instructions) {
+            messages.push({ role: 'system', content: body.instructions });
+          }
           if (body.input && Array.isArray(body.input)) {
             for (const msg of body.input) {
               if (msg.content === undefined || msg.content === null) {
                 msg.content = '';
               }
-            }
-            const devIdx = body.input.findIndex((m: any) => m.role === 'developer');
-            if (devIdx >= 0) {
-              const devMsg = body.input[devIdx];
-              body.instructions = typeof devMsg.content === 'string' ? devMsg.content : JSON.stringify(devMsg.content);
-              body.input.splice(devIdx, 1);
+              if (msg.role === 'developer') {
+                messages.push({ role: 'system', content: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content) });
+              } else {
+                messages.push(msg);
+              }
             }
           }
-          return originalFetch(input, { ...init, body: JSON.stringify(body) });
-        } catch {
+          const chatBody: any = {
+            model: body.model,
+            messages,
+            stream: body.stream ?? true,
+          };
+          if (body.tools && Array.isArray(body.tools)) {
+            chatBody.tools = body.tools.map((t: any) => {
+              if (t.type === 'function' && t.function) return t;
+              if (t.name && t.parameters) {
+                return { type: 'function', function: { name: t.name, description: t.description, parameters: t.parameters } };
+              }
+              return t;
+            });
+          }
+          if (body.tool_choice) {
+            chatBody.tool_choice = body.tool_choice === 'auto' || body.tool_choice === 'required' || body.tool_choice === 'none'
+              ? body.tool_choice
+              : { type: 'function', function: { name: body.tool_choice } };
+          }
+          if (body.temperature !== undefined) chatBody.temperature = body.temperature;
+          if (body.max_output_tokens !== undefined) chatBody.max_tokens = body.max_output_tokens;
+          const chatUrl = url.replace('/responses', '/chat/completions');
+          appendLog('info', 'chat', `Responses→ChatCompletions 转换: ${url} → ${chatUrl}`);
+          return originalFetch(chatUrl, { ...init, body: JSON.stringify(chatBody) });
+        } catch (e) {
+          appendLog('error', 'chat', `Responses 转换失败: ${e}`);
           return originalFetch(input, init);
         }
       };
