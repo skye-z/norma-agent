@@ -20,6 +20,8 @@ function getBridgePath(): string {
     return path.join(projectResources, 'norma-ocr-macos');
   }
   if (IS_WIN) {
+    const exePath = path.join(process.cwd(), 'resources', 'norma-ocr-win.exe');
+    if (fs.existsSync(exePath)) return exePath;
     return path.join(process.cwd(), 'src', 'main', 'ocr', 'win-ocr.ps1');
   }
   throw new Error(`OCR not supported on platform: ${process.platform}`);
@@ -50,21 +52,31 @@ async function runMacOSOCR(pngBuffer: Buffer, scale: number): Promise<OCRResult>
 }
 
 async function runWindowsOCR(pngBuffer: Buffer, scale: number): Promise<OCRResult> {
-  const scriptPath = getBridgePath();
+  const bridgePath = getBridgePath();
   const tmpDir = path.join(os.tmpdir(), 'norma-ocr');
   if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
 
   const tmpFile = path.join(tmpDir, `ocr_input_${Date.now()}.png`);
   fs.writeFileSync(tmpFile, pngBuffer);
 
+  const isExe = bridgePath.endsWith('.exe');
+
   try {
-    const result = await execFileAsync('powershell.exe', [
-      '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
-      '-File', scriptPath, tmpFile, String(scale),
-    ], {
-      maxBuffer: 50 * 1024 * 1024,
-      timeout: 30000,
-    });
+    let result: { stdout: string; stderr: string };
+    if (isExe) {
+      result = await execFileAsync(bridgePath, [tmpFile, String(scale)], {
+        maxBuffer: 50 * 1024 * 1024,
+        timeout: 15000,
+      });
+    } else {
+      result = await execFileAsync('powershell.exe', [
+        '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
+        '-File', bridgePath, tmpFile, String(scale),
+      ], {
+        maxBuffer: 50 * 1024 * 1024,
+        timeout: 30000,
+      });
+    }
 
     return JSON.parse(result.stdout) as OCRResult;
   } catch (err: any) {
@@ -115,11 +127,8 @@ export function formatOCRForLLM(matches: TextMatch[], windowTitle: string | null
   });
 
   return [
-    `## Screen OCR Results (${filtered.length} text elements detected)`,
-    `Window: ${windowTitle || 'Unknown'}`,
-    `Timestamp: ${timestamp}`,
-    '',
-    '### Detected Text (coordinates are screen points, use directly with execute_action click):',
+    `Detected ${filtered.length} text elements. Window: ${windowTitle || 'Unknown'}`,
+    'Coordinates are screen points, use directly with execute_action click:',
     ...lines,
   ].join('\n');
 }

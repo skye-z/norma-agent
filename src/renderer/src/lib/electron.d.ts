@@ -48,6 +48,8 @@ declare global {
       diagClearLogs: () => Promise<boolean>;
       diagSubscribe: () => Promise<boolean>;
       diagUnsubscribe: () => Promise<boolean>;
+      testTool: (toolId: string, userArgs?: Record<string, any>) => Promise<{ success: boolean; output: any; duration: number; error?: string }>;
+      getToolInputFields: (toolId: string) => Promise<Array<{ name: string; type: 'string' | 'boolean' | 'number' | 'enum'; required: boolean; description: string; defaultVal: any; enumOptions?: string[] }>>;
     };
   }
 }

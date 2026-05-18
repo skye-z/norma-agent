@@ -29,7 +29,7 @@ export interface UsageData {
 }
 
 export let lastUsage: UsageData = { promptTokens: 0, completionTokens: 0 };
-export let lastMetadata: { model: string; totalStreamMs: number; firstTokenMs: number; promptTokens: number; completionTokens: number; totalTokens: number } | null = null;
+export let lastMetadata: { model: string; displayName?: string; totalStreamMs: number; firstTokenMs: number; promptTokens: number; completionTokens: number; totalTokens: number; cachedTokens?: number } | null = null;
 
 export let isCurrentlyRunning = false;
 const _runningListeners = new Set<(running: boolean) => void>();

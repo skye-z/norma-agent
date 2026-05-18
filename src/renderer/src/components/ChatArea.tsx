@@ -16,6 +16,7 @@ import {
 import { ThreadMessage } from "./messages/ThreadMessage";
 import { ComposerPill } from "./composer/ComposerPill";
 import { QueueDisplay } from "./composer/QueueDisplay";
+import { PlanTodo } from "./composer/PlanTodo";
 import { useMessageQueue } from "../lib/queue";
 
 import { ModelSelector } from "./composer/ModelSelector";
@@ -106,13 +107,13 @@ const ThreadSwitchHandler: React.FC = () => {
 function formatTimeAgo(dateStr?: string): string {
   if (!dateStr) return "刚刚";
   const diff = Date.now() - new Date(dateStr).getTime();
+  if (diff < 60000) return "刚刚";
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "刚刚";
-  if (mins < 60) return `${mins}分钟`;
+  if (mins < 60) return `${mins}分钟前`;
   const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}小时`;
+  if (hours < 24) return `${hours}小时前`;
   const days = Math.floor(hours / 24);
-  return `${days}天`;
+  return `${days}天前`;
 }
 
 const WelcomeScreen = () => (
@@ -221,9 +222,12 @@ const ChatAreaInner: React.FC = () => {
 
   useEffect(() => {
     return onThreadCreated((threadId, title, preview) => {
+      const displayTitle = (!title || title === "新会话") && preview
+        ? preview.slice(0, 30) + (preview.length > 30 ? "..." : "")
+        : (title || "新会话");
       const newSession: Session = {
         id: `thread-${threadId}`,
-        title: title || "新会话",
+        title: displayTitle,
         preview: preview || "",
         time: "刚刚",
         threadId,
@@ -245,7 +249,18 @@ const ChatAreaInner: React.FC = () => {
     requestThreadSwitch({ type: "new" });
   };
 
-  const handleDeleteSession = async (id: string) => {
+  const handleDeleteSession = async (id: string, confirm?: boolean) => {
+    if (!confirm) {
+      setSessions((prev) =>
+        prev.map((s) => s.id === id ? { ...s, confirmDelete: true } : s),
+      );
+      setTimeout(() => {
+        setSessions((prev) =>
+          prev.map((s) => s.id === id ? { ...s, confirmDelete: false } : s),
+        );
+      }, 3000);
+      return;
+    }
     const session = sessions.find((s) => s.id === id);
     if (session?.threadId) {
       try {
@@ -345,8 +360,9 @@ const ChatAreaInner: React.FC = () => {
 
               <div className="flex-none px-5 pb-3 pt-1 flex flex-col w-full">
                 <div className="flex justify-center w-full">
-                  <div className="w-full max-w-[620px]">
+                  <div className="w-full max-w-[620px] flex flex-col">
                     <QueueDisplay />
+                    <PlanTodo />
                   </div>
                 </div>
                 <div className="grid grid-cols-[160px_1fr_100px] items-end w-full">

@@ -58,6 +58,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getThreadMessages: (threadId: string) => ipcRenderer.invoke('memory:getThreadMessages', threadId),
 
   getCapabilities: () => ipcRenderer.invoke('capabilities:list'),
+  testTool: (toolId: string, userArgs?: Record<string, any>) => ipcRenderer.invoke('tool:test', toolId, userArgs),
+  getToolInputFields: (toolId: string) => ipcRenderer.invoke('tool:inputFields', toolId),
   getAgentsList: () => ipcRenderer.invoke('agents:list'),
   getModels: () => ipcRenderer.invoke('models:list'),
   getActiveModel: () => ipcRenderer.invoke('model:getActive'),

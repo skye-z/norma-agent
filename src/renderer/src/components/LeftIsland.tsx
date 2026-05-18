@@ -37,6 +37,7 @@ export interface Session {
   time: string;
   threadId?: string;
   status: "idle" | "running" | "unread";
+  confirmDelete?: boolean;
 }
 
 interface LeftIslandProps {
@@ -46,7 +47,7 @@ interface LeftIslandProps {
   activeSessionId?: string;
   isRunning?: boolean;
   onNewSession?: () => void;
-  onDeleteSession?: (id: string) => void;
+  onDeleteSession?: (id: string, confirm?: boolean) => void;
   onSwitchSession?: (id: string) => void;
 }
 
@@ -122,16 +123,16 @@ export const LeftIsland: React.FC<LeftIslandProps> = ({
                       </span>
                     </div>
                     <div className="text-[9px] text-norma-textDim mt-0.5 font-mono">
-                      {session.time}前
+                      {session.time}
                     </div>
                   </div>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      onDeleteSession?.(session.id);
+                      onDeleteSession?.(session.id, !session.confirmDelete);
                     }}
-                    className="p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-white/[0.08] text-norma-textDim hover:text-red-400 transition-all flex-none ml-1"
-                    title="删除会话"
+                    className={`p-0.5 rounded opacity-0 group-hover:opacity-100 transition-all flex-none ml-1 ${session.confirmDelete ? "opacity-100 bg-red-500/20 text-red-400" : "hover:bg-white/[0.08] text-norma-textDim hover:text-red-400"}`}
+                    title={session.confirmDelete ? "再次点击确认删除" : "删除会话"}
                   >
                     <Trash2 className="w-3 h-3" />
                   </button>

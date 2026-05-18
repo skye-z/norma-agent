@@ -148,18 +148,20 @@ const MessageMetaBadge: React.FC = () => {
     return ms < 1000 ? `${Math.round(ms)}ms` : `${(ms / 1000).toFixed(1)}s`;
   };
   if (!meta) return null;
-  const modelShort = meta.model ? meta.model.split('/').pop() || meta.model : '';
-  const hasContent = meta.totalStreamMs > 0 || modelShort || (meta.totalTokens ?? 0) > 0;
+  const modelDisplay = meta.displayName || (meta.model ? meta.model.split('/').pop() || meta.model : '');
+  const hasContent = meta.totalStreamMs > 0 || modelDisplay || (meta.totalTokens ?? 0) > 0;
   if (!hasContent) return null;
+  const cached = meta.cachedTokens ?? 0;
   return (
     <span className="text-[9px] text-norma-textDim font-mono">
       {meta.totalStreamMs > 0 && <span className="mr-1.5">{formatMs(meta.totalStreamMs)}</span>}
-      {modelShort && <span>{modelShort}</span>}
+      {modelDisplay && <span>{modelDisplay}</span>}
       {(meta.totalTokens ?? 0) > 0 && (
         <>
           <span className="mx-1 text-white/[0.15]">|</span>
           <span>↑{fmtTok(meta.promptTokens)}</span>
           <span className="mx-0.5">↓{fmtTok(meta.completionTokens)}</span>
+          {cached > 0 && <span className="ml-0.5">⚡{fmtTok(cached)}</span>}
         </>
       )}
     </span>
@@ -232,9 +234,34 @@ const ErrorDisplay: React.FC = () => {
   );
 };
 
+const CopyButton: React.FC = () => {
+  const message = useMessage();
+  const [copied, setCopied] = useState(false);
+  const handleCopy = () => {
+    const text = (message as any).content
+      ?.filter((p: any) => p.type === "text")
+      .map((p: any) => p.text)
+      .join("\n") || "";
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  };
+  return (
+    <button onClick={handleCopy} className={`win-btn !w-4 !h-4 ${copied ? "text-emerald-400" : ""}`} title={copied ? "已复制" : "复制"}>
+      {copied ? (
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12" /></svg>
+      ) : (
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+      )}
+    </button>
+  );
+};
+
 export const AssistantMessage: React.FC = () => {
   return (
-    <MessagePrimitive.Root className="flex justify-start mb-2">
+    <MessagePrimitive.Root className="flex justify-start mb-3">
       <div className="max-w-[80%] relative">
         <SelectionToolbarPrimitive.Root className="absolute z-50 -top-10 left-1/2 -translate-x-1/2 glass-popover px-1.5 py-1 flex gap-0.5 shadow-xl">
           <SelectionToolbarPrimitive.Quote className="win-btn !w-6 !h-5 text-[9px] text-norma-textMuted hover:text-norma-text">
@@ -329,19 +356,7 @@ export const AssistantMessage: React.FC = () => {
           <ActionBarPrimitive.Root
             className="flex gap-0.5"
           >
-            <ActionBarPrimitive.Copy className="win-btn !w-4 !h-4" title="复制">
-              <svg
-                width="10"
-                height="10"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-              </svg>
-            </ActionBarPrimitive.Copy>
+            <CopyButton />
             <ActionBarPrimitive.Reload
               className="win-btn !w-4 !h-4"
               title="重新生成"

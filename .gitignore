@@ -43,3 +43,10 @@ test-results/
 playwright-report/
 blob-report/
 playwright/.cache/
+
+# Roslyn compiler cache
+.roslyn/
+
+# Compiled OCR binaries
+resources/norma-ocr-win.exe
+resources/norma-ocr-macos

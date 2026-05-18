@@ -115,7 +115,7 @@ const ContextRing: React.FC = () => {
         />
       </svg>
 
-      <div className="absolute bottom-full left-0 mb-3 w-48 p-3 rounded-xl bg-norma-panel border border-norma-border shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+      <div className="absolute bottom-full left-0 mb-3 w-48 p-3 rounded-xl bg-[#1c1c20] border border-white/[0.08] shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
         <div className="flex items-center justify-between text-[11px] text-norma-text font-medium mb-2">
           <span>Usage</span>
           <span>{promptTokens > 0 ? `${Math.round(percentage)}%` : "—"}</span>

@@ -80,6 +80,24 @@ export async function setupIpc() {
     }
   });
 
+  ipcMain.handle('tool:test', async (_event, toolId: string, userArgs?: Record<string, any>) => {
+    try {
+      const { testTool } = await import('../agent');
+      return await testTool(toolId, userArgs);
+    } catch (e: any) {
+      return { success: false, output: null, duration: 0, error: e.message };
+    }
+  });
+
+  ipcMain.handle('tool:inputFields', async (_event, toolId: string) => {
+    try {
+      const { getToolInputFields } = await import('../agent');
+      return getToolInputFields(toolId);
+    } catch {
+      return [];
+    }
+  });
+
   ipcMain.handle('agents:list', async () => {
     try {
       const { getAgentsList } = await import('../agent');
@@ -199,6 +217,17 @@ export async function setupIpc() {
 
       const { getAgent } = await import('../agent');
       const agent = getAgent();
+
+      let disabledTools: string[] = [];
+      try {
+        const { configStore } = await import('../config');
+        disabledTools = (await configStore.get('tools:disabled')) || [];
+      } catch {}
+      if (Array.isArray(disabledTools) && disabledTools.length > 0) {
+        const allToolIds = Object.keys((agent as any).tools || {});
+        streamOptions.activeTools = allToolIds.filter((id: string) => !disabledTools.includes(id));
+        appendLog('info', 'chat', `已禁用工具: ${disabledTools.join(', ')}, 可用: ${streamOptions.activeTools.length}`);
+      }
 
       if (_providerConfig?.apiKey) {
         const pt = _providerConfig.providerType;
@@ -531,6 +560,7 @@ export async function setupIpc() {
           promptTokens: usage?.inputTokens ?? 0,
           completionTokens: usage?.outputTokens ?? 0,
           totalTokens: usage?.totalTokens ?? 0,
+          cachedTokens: usage?.cachedInputTokens ?? 0,
           toolCallCount: chunkCount > 0 ? undefined : 0,
         },
       }));

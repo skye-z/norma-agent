@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev:main": "cross-env NODE_ENV=development tsup --watch",
-    "dev:renderer": "vite",
+    "dev:renderer": "vite build --watch",
     "dev:electron": "wait-on dist/main/index.js && electronmon .",
     "dev": "concurrently \"pnpm dev:renderer\" \"pnpm dev:main\" \"pnpm dev:electron\"",
     "build:main": "tsup",

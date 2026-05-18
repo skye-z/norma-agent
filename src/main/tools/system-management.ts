@@ -1,6 +1,6 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
-import { desktopCapturer, shell } from 'electron';
+import { desktopCapturer, shell, screen } from 'electron';
 import { exec } from 'child_process';
 import * as util from 'util';
 import * as fs from 'fs';
@@ -10,20 +10,38 @@ const execAsync = util.promisify(exec);
 
 export const listWindowsTool = createTool({
   id: 'list_windows',
-  description: '列出当前所有打开的窗口标题。在聚焦窗口或截图之前使用此工具来确认窗口是否存在。',
+  description: '列出当前所有可见窗口的标题、位置和大小。返回的 bounds 可用于判断窗口在屏幕上的位置和尺寸。在 read_screen 之前使用此工具来确定要截取哪个窗口。',
   inputSchema: z.object({}),
   outputSchema: z.object({
     windows: z.array(z.object({
       name: z.string(),
       id: z.string(),
+      bounds: z.object({
+        x: z.number(),
+        y: z.number(),
+        width: z.number(),
+        height: z.number(),
+      }).optional(),
+      isActive: z.boolean().optional(),
     })),
   }),
   execute: async () => {
     try {
       const sources = await desktopCapturer.getSources({ types: ['window'] as any });
-      const windows = sources
-        .filter(s => s.name.trim().length > 0)
-        .map(s => ({ name: s.name, id: s.id }));
+      const filtered = sources.filter(s => s.name.trim().length > 0);
+
+      const boundsMap = await getWindowBoundsNative();
+
+      const activeWindowTitle = await getActiveWindowTitle();
+
+      const windows = filtered.map(s => {
+        const entry: any = { name: s.name, id: s.id };
+        const bounds = boundsMap[s.name] || boundsMap[findPartialMatch(s.name, Object.keys(boundsMap))];
+        if (bounds) entry.bounds = bounds;
+        entry.isActive = !!(activeWindowTitle && (s.name === activeWindowTitle || s.name.includes(activeWindowTitle)));
+        return entry;
+      });
+
       return { windows };
     } catch (e) {
       throw new Error(`Failed to list windows: ${e}`);
@@ -262,13 +280,100 @@ export const systemInfoTool = createTool({
     return {
       platform: process.platform,
       osVersion: os.version(),
-      screenResolution: `${os.hostname()}`,
+      screenResolution: (() => { try { const d = screen.getPrimaryDisplay(); return `${d.size.width}x${d.size.height}`; } catch { return 'unknown'; } })(),
       desktopPath: getDesktopPath(),
       homePath: os.homedir(),
       activeWindow: activeWindow || '未知',
     };
   },
 });
+
+async function getWindowBoundsNative(): Promise<Record<string, { x: number; y: number; width: number; height: number }>> {
+  try {
+    if (process.platform === 'win32') {
+      const ps = `$src = @'
+using System;
+using System.Runtime.InteropServices;
+using System.Text;
+using System.Collections.Generic;
+public class WL {
+  [DllImport("user32.dll")] public static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
+  [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr hWnd);
+  [DllImport("user32.dll")] public static extern int GetWindowText(IntPtr hWnd, StringBuilder text, int count);
+  [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+  public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+  [StructLayout(LayoutKind.Sequential)] public struct RECT { public int Left, Top, Right, Bottom; }
+  public static string Get() {
+    var r = new List<string>();
+    EnumWindows((hWnd, _) => {
+      if (!IsWindowVisible(hWnd)) return true;
+      var t = new StringBuilder(512); GetWindowText(hWnd, t, 512);
+      var s = t.ToString().Trim(); if (string.IsNullOrEmpty(s)) return true;
+      RECT rc; GetWindowRect(hWnd, out rc);
+      if (rc.Right - rc.Left < 10 || rc.Bottom - rc.Top < 10) return true;
+      r.Add(s + "|" + rc.Left + "," + rc.Top + "," + (rc.Right - rc.Left) + "," + (rc.Bottom - rc.Top));
+      return true;
+    }, IntPtr.Zero);
+    return string.Join("\\n", r);
+  }
+}
+'@; Add-Type -TypeDefinition $src -Language CSharp; [WL]::Get()`;
+      const { stdout } = await execAsync(`powershell -NoProfile -Command "${ps.replace(/\n/g, ' ')}"`, { timeout: 8000 });
+      const result: Record<string, { x: number; y: number; width: number; height: number }> = {};
+      for (const line of stdout.trim().split('\n')) {
+        const sep = line.lastIndexOf('|');
+        if (sep < 0) continue;
+        const title = line.substring(0, sep);
+        const parts = line.substring(sep + 1).split(',').map(Number);
+        if (parts.length === 4 && parts.every(n => !isNaN(n))) {
+          result[title] = { x: parts[0], y: parts[1], width: parts[2], height: parts[3] };
+        }
+      }
+      return result;
+    }
+
+    if (process.platform === 'darwin') {
+      const script = `
+tell application "System Events"
+  set output to ""
+  repeat with p in (every process whose visible is true)
+    repeat with w in (every window of p)
+      try
+        set wName to name of w
+        set wPos to position of w
+        set wSize to size of w
+        set output to output & wName & "|" & (item 1 of wPos) & "," & (item 2 of wPos) & "," & (item 1 of wSize) & "," & (item 2 of wSize) & linefeed
+      end try
+    end repeat
+  end repeat
+  return output
+end tell
+`;
+      const { stdout } = await execAsync(`osascript -e '${script}'`, { timeout: 8000 });
+      const result: Record<string, { x: number; y: number; width: number; height: number }> = {};
+      for (const line of stdout.trim().split('\n')) {
+        const sep = line.lastIndexOf('|');
+        if (sep < 0) continue;
+        const title = line.substring(0, sep);
+        const parts = line.substring(sep + 1).split(', ').map(Number);
+        if (parts.length === 4 && parts.every(n => !isNaN(n))) {
+          result[title] = { x: parts[0], y: parts[1], width: parts[2], height: parts[3] };
+        }
+      }
+      return result;
+    }
+  } catch {}
+  return {};
+}
+
+function findPartialMatch(name: string, candidates: string[]): string | null {
+  for (const c of candidates) {
+    if (c.toLowerCase().includes(name.toLowerCase()) || name.toLowerCase().includes(c.toLowerCase())) {
+      return c;
+    }
+  }
+  return null;
+}
 
 async function getActiveWindowTitle(): Promise<string> {
   try {

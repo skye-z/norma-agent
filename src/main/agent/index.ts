@@ -24,7 +24,7 @@ dotenv.config({ path: path.join(process.cwd(), '.env') });
 const TOOL_DISPLAY_META: Record<string, { name: string; description: string; category: string }> = {
   read_screen: { name: '屏幕感知', description: '截屏 + 原生OCR识别屏幕文本坐标', category: '感知' },
   execute_action: { name: '系统操控', description: '模拟鼠标键盘操作', category: '控制' },
-  list_windows: { name: '窗口列表', description: '列出所有窗口标题', category: '控制' },
+  list_windows: { name: '窗口列表', description: '列出所有可见窗口（含位置和大小）', category: '感知' },
   window_control: { name: '窗口管理', description: '聚焦/最大化/最小化/关闭窗口', category: '控制' },
   open_file: { name: '打开文件', description: '用默认应用打开文件或URL', category: '工具' },
   list_directory: { name: '目录浏览', description: '列出目录文件', category: '工具' },
@@ -112,115 +112,95 @@ export async function initAgent(dbDir?: string, defaultModel?: string) {
     instructions: `你是 Norma，一个高度智能的桌面助手。
 
 ## 可用工具
-- **system_info**: 获取系统信息（桌面路径、OS版本、当前活跃窗口）
-- **list_directory**: 列出目录下的文件（用于查找桌面文件）
-- **list_windows**: 列出所有打开的窗口标题
+- **system_info**: 获取系统信息（桌面路径、OS版本、屏幕分辨率）
+- **list_directory**: 列出目录下的文件
+- **list_windows**: 列出所有可见窗口（含位置和大小）
 - **window_control**: 聚焦/最大化/最小化/还原/关闭窗口
 - **open_file**: 用默认应用打开文件或URL
-- **read_screen**: 截屏 + 原生 OCR 识别屏幕文本（返回带坐标的文本列表，而非图片）
+- **read_screen**: 截屏 + 原生 OCR，提取屏幕文本和坐标（支持 targetWindow 参数截取特定窗口）
 - **execute_action**: 鼠标和键盘操作
-- **system_tray**: 与系统托盘交互（列出/点击托盘图标）
+- **system_tray**: 与系统托盘交互
 
-## 核心原则: OCR 驱动，逐步确认
-1. **永远不要盲操作** — 每一步操作前必须先 read_screen 获取当前屏幕文本和坐标
-2. **OCR 返回文本坐标** — read_screen 使用原生 OCR (macOS Vision / Windows OCR) 提取屏幕上所有可见文本及其可点击坐标
-3. **坐标可直接使用** — OCR 返回的 (x, y) 坐标可直接传给 execute_action 的 click 操作，无需额外转换
-4. **小步快跑** — 每执行1-2个动作后重新 read_screen 确认结果，而不是一口气执行所有步骤
-5. **按文本定位元素** — 通过 OCR 识别到的文本内容定位按钮、菜单、输入框等 UI 元素，然后使用其坐标进行点击
+## 核心原则: 按需感知，精准操作
 
-## 如何使用 read_screen OCR 结果
-read_screen 返回格式示例:
+1. **必须先 list_windows** — 任何截屏操作前，先调用 list_windows 获取窗口列表和布局
+2. **必须指定 targetWindow** — read_screen 的 targetWindow 参数是必需的，全屏 OCR 产生大量噪声基本不可用
+3. **OCR 返回文本坐标** — (x, y) 坐标可直接传给 execute_action 的 click 操作
+4. **小步快跑** — 每执行1-2个动作后重新 read_screen(targetWindow="...") 确认结果
+
+## 禁止行为（严格遵守）
+
+- **禁止**不指定 targetWindow 就调用 read_screen（除非用户明确要求"看看我整个屏幕"）
+- **禁止**连续多次 read_screen（每次截屏前先想清楚要看哪个窗口）
+- **禁止**在已知目标窗口的情况下仍然全屏 OCR
+
+## 感知优先级（从低成本到高成本）
+
+1. **list_windows** — 最快，仅返回窗口列表和位置。先调用它了解屏幕布局
+2. **read_screen(targetWindow="...")** — 中等成本，OCR 单个窗口，结果精确
+3. **read_screen()** — 最昂贵，全屏 OCR，结果包含大量噪声，仅在需要了解整个桌面布局时使用
+
+## 标准工作流
+
+### 场景1: 用户闲聊或通用问答
+直接回答，不需要调用任何工具。
+
+### 场景2: 用户提到屏幕上的内容
+1. \`list_windows\` → 了解当前有哪些窗口
+2. 根据用户描述判断目标窗口
+3. \`read_screen(targetWindow="窗口名")\` → OCR 该窗口
+4. 回答用户问题
+
+### 场景3: 桌面自动化任务
+1. \`system_info\` → 获取桌面路径和屏幕分辨率
+2. \`list_windows\` → 查看当前窗口布局
+3. 如需打开文件: \`list_directory\` → \`open_file\`
+4. \`read_screen(targetWindow="目标窗口")\` → OCR 目标窗口内容
+5. 找到目标元素的坐标 → \`execute_action\` 操作
+6. 操作后 \`read_screen(targetWindow="...")\` 确认结果
+7. 如需切换应用: \`list_windows\` → \`window_control(focus)\` → \`read_screen(targetWindow="...")\`
+
+## read_screen 使用规则
+
+**必须指定 targetWindow 的情况:**
+- 你知道要操作哪个窗口时
+- 用户提到了特定应用或窗口
+- 需要精确的 OCR 结果来定位 UI 元素
+
+**可以省略 targetWindow 的情况（极少）:**
+- 用户明确说"看看我整个屏幕上有什么"
+- 你完全不知道屏幕布局且 list_windows 无法提供足够信息
+
+**正确示例:**
+- list_windows → 看到 "Calculator" → read_screen(targetWindow="Calculator")
+- list_windows → 看到 "Edge" → read_screen(targetWindow="Edge")
+
+## OCR 结果格式
 \`\`\`
-## Screen OCR Results (15 text elements detected)
-Window: Calculator
+## OCR Results for window "Calculator" (15 text elements)
 Timestamp: 2026-05-18T10:30:00Z
 
 ### Detected Text (coordinates are screen points, use directly with execute_action click):
 - "File" at (45, 12) bounds: {x:20, y:4, w:50, h:16}
-- "Edit" at (110, 12) bounds: {x:85, y:4, w:50, h:16}
 - "Submit" at (450, 500) bounds: {x:400, y:480, w:100, h:40}
 \`\`\`
 
-使用方法:
-- 要点击 "Submit" 按钮: execute_action(click, x:450, y:500)
-- bounds 的 x,y,w,h 可用于判断元素大小和相对位置
-- 置信度低于 0.5 的结果会被过滤掉
+使用: execute_action(click, x:450, y:500)
 
-## 桌面自动化标准流程（重要！）
+## 键盘操作
+- shortcut: selectAll(Ctrl+A), copy(Ctrl+C), paste(Ctrl+V), cut(Ctrl+X)
+- type: 输入文本
+- key_tap: 单键 (enter, tab, escape, backspace)
 
-当用户要求执行涉及其他应用的自动化任务时，遵循以下流程:
-
-### 阶段1: 定位目标
-1. 调用 system_info 获取桌面路径和当前状态
-2. 如需打开文件: list_directory 找到文件 → open_file 打开
-3. 等待应用启动（open_file 会等待1秒）→ read_screen 确认
-
-### 阶段2: 窗口管理
-4. 调用 list_windows 确认目标窗口已出现
-5. 调用 window_control(focus) 将目标窗口调到前台
-6. 调用 window_control(maximize) 最大化窗口（确保内容完整显示）
-7. 调用 read_screen OCR 识别窗口内容
-
-### 阶段3: 内容操作
-8. 从 OCR 结果中找到目标文本元素的坐标
-9. 执行 execute_action 操作（点击坐标、输入等）
-10. **立即 read_screen OCR 确认操作结果**
-11. 如操作未达预期，分析原因并调整（自愈重试）
-
-### 阶段4: 切换目标应用
-12. 如需操作另一个应用（如QQ）→ list_windows 查找
-13. 如果目标窗口不在列表中:
-    - 调用 system_tray(list) 检查系统托盘
-    - 调用 system_tray(click, trayName) 从托盘唤出
-    - read_screen OCR 确认
-14. window_control(focus) + window_control(maximize)
-15. read_screen OCR 确认目标应用界面
-
-### 阶段5: 完成交互
-16. 从 OCR 结果定位输入区域坐标
-17. execute_action 执行输入/粘贴/发送
-18. read_screen 最终确认结果
-
-## 示例: "请打开桌面上的招聘要求复制里面的内容在QQ中发给Modred"
-
-<plan>
-1. system_info → 获取桌面路径
-2. list_directory(桌面路径) → 找到"招聘要求.xlsx"
-3. open_file(招聘要求.xlsx) → 用Excel打开
-4. list_windows → 确认Excel窗口已出现
-5. window_control("招聘要求", focus) → 将Excel调到前台
-6. window_control("招聘要求", maximize) → 最大化窗口
-7. read_screen → OCR 识别 Excel 内容和坐标
-8. execute_action(shortcut: selectAll) → 全选内容
-9. execute_action(shortcut: copy) → 复制到剪贴板
-10. list_windows → 查找QQ窗口
-11. [如果QQ不在窗口列表] system_tray(click, "QQ") → 从托盘唤出QQ
-12. read_screen → OCR 识别 QQ 界面
-13. 定位搜索框坐标 → execute_action(click) → 输入"Modred"
-14. read_screen → OCR 确认搜索结果
-15. 点击 Modred 搜索结果坐标 → read_screen 确认会话窗口
-16. execute_action(click 输入框坐标) → execute_action(shortcut: paste) → 发送
-17. read_screen → 最终确认
-</plan>
-
-## 键盘操作提示
-- 使用 shortcut 动作来执行常用快捷键: selectAll(Ctrl+A), copy(Ctrl+C), paste(Ctrl+V), cut(Ctrl+X)
-- 使用 type 动作输入中文或英文文本
-- 使用 key_tap 动作按单个键如 enter, tab, escape, backspace
-
-## 输出格式
-用 <plan>...</plan> 标签包裹你的步骤推理。
-直接回复用户时用中文，简洁友好。
-
-## 错误处理与自愈
-如果工具返回错误或任务未完成:
+## 错误处理
 1. 不要立即放弃
 2. 分析错误原因
-3. 调整策略（换坐标、换工具、重新 read_screen 确认）
+3. 调整策略（换坐标、重新 OCR 确认）
 4. 最多重试3次
-5. 只有多次尝试失败后才向用户报告
 
-保持专业和共情的语气。`,
+## 输出格式
+用 <plan>...</plan> 标签包裹步骤推理。
+直接回复用户时用中文，简洁友好。`,
     model: defaultModel || 'openai/gpt-4o-mini',
     tools: { ...baseTools, ...mcpTools },
     memory: _memory,
@@ -248,6 +228,18 @@ export function getMastra(): Mastra {
 
 export function getMemory(): Memory | null {
   return _memory;
+}
+
+export function getEnabledTools(allTools: Record<string, any>, disabledIds: string[]): Record<string, any> {
+  const result: Record<string, any> = {};
+  for (const [id, tool] of Object.entries(allTools)) {
+    if (!disabledIds.includes(id)) result[id] = tool;
+  }
+  return result;
+}
+
+export function getBaseTools(): Record<string, any> {
+  return baseTools;
 }
 
 export function getActiveModel(): string | null {
@@ -317,5 +309,87 @@ export async function getModelList(): Promise<Array<{ id: string; modelId: strin
     }];
   } catch {
     return [{ id: 'default', modelId: 'gpt-4o', provider: 'openai' }];
+  }
+}
+
+const TOOL_TEST_DEFAULTS: Record<string, Record<string, any>> = {
+  read_screen: { targetWindow: '', includeImage: false },
+  execute_action: { actions: [{ type: 'get_mouse_pos' }] },
+  list_windows: {},
+  window_control: { windowTitle: 'norma', action: 'focus' },
+  open_file: { path: process.cwd() },
+  list_directory: { directoryPath: process.cwd() },
+  system_tray: { action: 'list' },
+  system_info: {},
+};
+
+interface ToolInputField {
+  name: string;
+  type: 'string' | 'boolean' | 'number' | 'enum';
+  required: boolean;
+  description: string;
+  defaultVal: any;
+  enumOptions?: string[];
+}
+
+function extractFields(schema: any): ToolInputField[] {
+  if (!schema || !schema.shape) return [];
+  const entries = Object.entries(schema.shape) as [string, any][];
+  return entries.map(([name, field]) => {
+    const isOptional = field instanceof (field.constructor as any).Optional || field._def?.typeName === 'ZodOptional';
+    const inner = isOptional ? field._def?.innerType || field.unwrap?.() : field;
+    const typeName = inner?._def?.typeName || inner?.constructor?.name || '';
+    let type: ToolInputField['type'] = 'string';
+    let enumOptions: string[] | undefined;
+    if (typeName === 'ZodString') type = 'string';
+    else if (typeName === 'ZodBoolean') type = 'boolean';
+    else if (typeName === 'ZodNumber') type = 'number';
+    else if (typeName === 'ZodEnum' || typeName === 'ZodNativeEnum') {
+      type = 'enum';
+      enumOptions = inner._def?.values || (inner._def?.entries ? Object.values(inner._def.entries) : undefined);
+      if (!enumOptions && typeName === 'ZodNativeEnum') {
+        try { enumOptions = Object.values(inner._def.values); } catch {}
+      }
+    }
+    return {
+      name,
+      type,
+      required: !isOptional,
+      description: inner?.description || field?.description || '',
+      defaultVal: TOOL_TEST_DEFAULTS[name] ?? (type === 'boolean' ? false : type === 'number' ? 0 : ''),
+      enumOptions,
+    };
+  });
+}
+
+export function getToolInputFields(toolId: string): ToolInputField[] {
+  const tool = baseTools[toolId as keyof typeof baseTools] as any;
+  if (!tool?.inputSchema) return [];
+  return extractFields(tool.inputSchema);
+}
+
+export async function testTool(toolId: string, userArgs?: Record<string, any>): Promise<{ success: boolean; output: any; duration: number; error?: string }> {
+  const tool = baseTools[toolId as keyof typeof baseTools];
+  if (!tool) {
+    const mcp = await initMcpClient();
+    const mcpTool = mcp[toolId];
+    if (!mcpTool) return { success: false, output: null, duration: 0, error: `Tool "${toolId}" not found` };
+    try {
+      const start = Date.now();
+      const result = await (mcpTool as any).execute({});
+      return { success: true, output: result, duration: Date.now() - start };
+    } catch (e: any) {
+      return { success: false, output: null, duration: 0, error: e.message };
+    }
+  }
+
+  const defaultArgs = TOOL_TEST_DEFAULTS[toolId] ?? {};
+  const mergedArgs = { ...defaultArgs, ...userArgs };
+  const start = Date.now();
+  try {
+    const result = await (tool as any).execute(defaultArgs);
+    return { success: true, output: result, duration: Date.now() - start };
+  } catch (e: any) {
+    return { success: false, output: null, duration: Date.now() - start, error: e.message };
   }
 }

@@ -1,145 +1,86 @@
 param(
     [Parameter(Mandatory=$true)]
     [string]$PngPath,
-    
     [double]$Scale = 1.0
 )
 
-Add-Type -AssemblyName System.Runtime
+Add-Type -AssemblyName System.Runtime.WindowsRuntime
 
-$code = @"
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Runtime.InteropServices;
+$null = [Windows.Media.Ocr.OcrEngine,Windows.Media.Ocr,ContentType=WindowsRuntime]
+$null = [Windows.Graphics.Imaging.BitmapDecoder,Windows.Graphics.Imaging,ContentType=WindowsRuntime]
+$null = [Windows.Storage.StorageFile,Windows.Storage,ContentType=WindowsRuntime]
+$null = [Windows.Storage.FileAccessMode,Windows.Storage,ContentType=WindowsRuntime]
 
-public class WinOcrResult
-{
-    public bool Success;
-    public List<TextMatch> Matches;
-    public string Error;
+$asTask = [System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object {
+    $_.Name -eq 'AsTask' -and $_.IsGenericMethod -and $_.GetParameters().Count -eq 1
 }
 
-public class TextMatch
-{
-    public string Text;
-    public double X;
-    public double Y;
-    public double Confidence;
-    public TextBounds Bounds;
-}
+function Invoke-Async($asyncOp) {
+    $opType = $asyncOp.GetType()
+    $interfaces = $opType.GetInterfaces()
+    $iasync = $interfaces | Where-Object { $_.IsGenericType -and $_.GetGenericTypeDefinition().Name -match 'IAsyncOperation`1' } | Select-Object -First 1
+    
+    if ($iasync) {
+        $resultType = $iasync.GetGenericArguments()[0]
+        $method = ($asTask | Where-Object {
+            $_.GetParameters()[0].ParameterType.IsGenericType
+        })[0]
+        $genericMethod = $method.MakeGenericMethod($resultType)
+        $task = $genericMethod.Invoke($null, @([object]$asyncOp))
+        return $task.GetAwaiter().GetResult()
+    }
+    
+    $iasyncAction = $interfaces | Where-Object { $_.Name -eq 'IAsyncAction' } | Select-Object -First 1
+    if ($iasyncAction) {
+        $method = [System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object {
+            $_.Name -eq 'AsTask' -and -not $_.IsGenericMethod -and $_.GetParameters().Count -eq 1 -and $_.GetParameters()[0].ParameterType.Name -eq 'IAsyncAction'
+        } | Select-Object -First 1
+        $task = $method.Invoke($null, @([object]$asyncOp))
+        return $task.GetAwaiter().GetResult()
+    }
 
-public class TextBounds
-{
-    public double X;
-    public double Y;
-    public double Width;
-    public double Height;
-}
-"@
-
-try {
-    Add-Type -TypeDefinition $code -Language CSharp -ReferencedAssemblies @("System.Runtime")
-} catch {
-    @{ success = $false; matches = @(); error = "Failed to compile types: $_" } | ConvertTo-Json -Compress
-    exit 1
+    throw "Cannot handle async operation of type $opType"
 }
 
 try {
     if (-not (Test-Path $PngPath)) {
-        @{ success = $false; matches = @(); error = "PNG file not found: $PngPath" } | ConvertTo-Json -Compress
+        Write-Output ('{"success":false,"matches":[],"error":"File not found: ' + $PngPath.Replace('\','\\') + '"}')
         exit 1
     }
 
-    $null = [Windows.Storage.StorageFile, Windows.Storage, ContentType=WindowsRuntime]
-    $null = [Windows.Media.Ocr.OcrEngine, Windows.Media.Ocr, ContentType=WindowsRuntime]
-    $null = [Windows.Graphics.Imaging.BitmapDecoder, Windows.Graphics.Imaging, ContentType=WindowsRuntime]
-    $null = [Windows.Storage.Streams.RandomAccessStreamReference, Windows.Storage.Streams, ContentType=WindowsRuntime]
+    $file = Invoke-Async ([Windows.Storage.StorageFile]::GetFileFromPathAsync($PngPath))
+    $stream = Invoke-Async $file.OpenAsync([Windows.Storage.FileAccessMode]::Read)
+    $decoder = Invoke-Async ([Windows.Graphics.Imaging.BitmapDecoder]::CreateAsync($stream))
+    $bitmap = Invoke-Async $decoder.GetSoftwareBitmapAsync()
 
-    $file = [System.IO.File]::OpenRead($PngPath)
-    $memStream = New-Object System.IO.MemoryStream
-    $file.CopyTo($memStream)
-    $file.Close()
-    $bytes = $memStream.ToArray()
-    $memStream.Close()
-
-    $inMemStream = New-Object System.IO.InMemoryRandomAccessStream
-    $writer = New-Object System.IO.BinaryWriter($inMemStream)
-    $writer.Write($bytes)
-    $writer.Flush()
-    $inMemStream.Seek(0, [System.IO.SeekOrigin]::Begin) | Out-Null
-
-    $decoderTask = [Windows.Graphics.Imaging.BitmapDecoder]::CreateAsync($inMemStream) | 
-        ForEach-Object { $_.AsTask().Result }
-    if ($null -eq $decoderTask) {
-        @{ success = $false; matches = @(); error = "Failed to create BitmapDecoder" } | ConvertTo-Json -Compress
+    $engine = [Windows.Media.Ocr.OcrEngine]::TryCreateFromUserProfileLanguages()
+    if ($null -eq $engine) {
+        Write-Output '{"success":false,"matches":[],"error":"OcrEngine not available"}'
         exit 1
     }
 
-    $bitmap = $decoderTask.GetSoftwareBitmapAsync().AsTask().Result
-    if ($null -eq $bitmap) {
-        @{ success = $false; matches = @(); error = "Failed to get SoftwareBitmap" } | ConvertTo-Json -Compress
-        exit 1
-    }
+    $ocrResult = Invoke-Async $engine.RecognizeAsync($bitmap)
 
-    $ocrEngine = [Windows.Media.Ocr.OcrEngine]::TryCreateFromUserProfileLanguages()
-    if ($null -eq $ocrEngine) {
-        @{ success = $false; matches = @(); error = "Failed to create OcrEngine" } | ConvertTo-Json -Compress
-        exit 1
-    }
-
-    $ocrResult = $ocrEngine.RecognizeAsync($bitmap).AsTask().Result
-    if ($null -eq $ocrResult) {
-        @{ success = $false; matches = @(); error = "OCR returned null" } | ConvertTo-Json -Compress
-        exit 1
-    }
-
-    $matches = New-Object System.Collections.Generic.List[TextMatch]
-
+    $matches = @()
     foreach ($line in $ocrResult.Lines) {
         foreach ($word in $line.Words) {
-            $bounds = New-Object TextBounds
-            $bounds.X = [math]::Round($word.BoundingRect.X / $Scale, 2)
-            $bounds.Y = [math]::Round($word.BoundingRect.Y / $Scale, 2)
-            $bounds.Width = [math]::Round($word.BoundingRect.Width / $Scale, 2)
-            $bounds.Height = [math]::Round($word.BoundingRect.Height / $Scale, 2)
-
-            $match = New-Object TextMatch
-            $match.Text = $word.Text
-            $match.X = [math]::Round($bounds.X + $bounds.Width / 2.0, 2)
-            $match.Y = [math]::Round($bounds.Y + $bounds.Height / 2.0, 2)
-            $match.Confidence = 1.0
-            $match.Bounds = $bounds
-            $matches.Add($match)
+            $r = $word.BoundingRect
+            $bx = [math]::Round($r.X / $Scale, 2)
+            $by = [math]::Round($r.Y / $Scale, 2)
+            $bw = [math]::Round($r.Width / $Scale, 2)
+            $bh = [math]::Round($r.Height / $Scale, 2)
+            $cx = [math]::Round($bx + $bw / 2.0, 2)
+            $cy = [math]::Round($by + $bh / 2.0, 2)
+            $escaped = $word.Text -replace '\\','\\' -replace '"','\"' -replace "`n",'\n' -replace "`r",'\r' -replace "`t",'\t'
+            $matches += "{`"text`":`"$escaped`",`"x`":$cx,`"y`":$cy,`"confidence`":1.0,`"bounds`":{`"x`":$bx,`"y`":$by,`"width`":$bw,`"height`":$bh}}"
         }
     }
 
-    $result = New-Object WinOcrResult
-    $result.Success = $true
-    $result.Matches = $matches
-    $result.Error = $null
-
-    $output = @{
-        success = $result.Success
-        matches = $result.Matches | ForEach-Object {
-            @{
-                text = $_.Text
-                x = $_.X
-                y = $_.Y
-                confidence = $_.Confidence
-                bounds = @{
-                    x = $_.Bounds.X
-                    y = $_.Bounds.Y
-                    width = $_.Bounds.Width
-                    height = $_.Bounds.Height
-                }
-            }
-        }
-        error = $null
-    }
-
-    $output | ConvertTo-Json -Compress -Depth 5
-} catch {
-    @{ success = $false; matches = @(); error = "OCR error: $($_.Exception.Message)" } | ConvertTo-Json -Compress
+    $matchesJson = $matches -join ','
+    Write-Output "{`"success`":true,`"matches`":[$matchesJson],`"error`":null}"
+}
+catch {
+    $errMsg = ($_.Exception.Message) -replace '\\','\\\\' -replace '"','\\"' -replace "`n",'\\n' -replace "`r",''
+    Write-Output "{`"success`":false,`"matches`":[],`"error`":`"$errMsg`"}"
     exit 1
 }

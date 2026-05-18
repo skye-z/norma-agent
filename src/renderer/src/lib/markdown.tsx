@@ -1,10 +1,9 @@
 import React from "react";
-import { PlanBlock } from "../components/messages/parts";
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 export const MarkdownComponents = {
-  plan: ({ children }: any) => <PlanBlock>{children}</PlanBlock>,
+  plan: ({ children }: any) => null,
   p: ({ children }: any) => <p className="mb-2 last:mb-0">{children}</p>,
   h1: ({ children }: any) => (
     <h1 className="text-sm font-bold mb-2 text-norma-text">{children}</h1>
