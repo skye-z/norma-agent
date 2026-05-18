@@ -21,7 +21,7 @@ export function setupProviderIpc() {
     appendLog('info', 'provider', `获取模型列表: ${config.name} (${config.type})`);
     try {
       const models = await fetchModels(config);
-      appendLog('info', 'provider', `获取到 ${models.length} 个模型: ${models.slice(0, 5).map((m: any) => m.display_name || m.id).join(', ')}${models.length > 5 ? ` ...共${models.length}个` : ''}`);
+      appendLog('info', 'provider', `获取到 ${models.length} 个模型:\n${models.map((m: any) => `  ${m.id} → ${m.display_name || m.id}`).join('\n')}`);
       return { success: true, models };
     } catch (err: any) {
       appendLog('error', 'provider', `获取模型失败: ${config.name} - ${err.message}`);
