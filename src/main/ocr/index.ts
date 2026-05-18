@@ -11,9 +11,13 @@ const IS_MAC = process.platform === 'darwin';
 const IS_WIN = process.platform === 'win32';
 
 function getBridgePath(): string {
-  const resourcesDir = process.resourcesPath || path.join(__dirname, '..', '..', '..', 'resources');
+  const projectResources = path.join(__dirname, '..', '..', '..', 'resources');
   if (IS_MAC) {
-    return path.join(resourcesDir, 'norma-ocr-macos');
+    const bundled = process.resourcesPath
+      ? path.join(process.resourcesPath, 'norma-ocr-macos')
+      : null;
+    if (bundled && fs.existsSync(bundled)) return bundled;
+    return path.join(projectResources, 'norma-ocr-macos');
   }
   if (IS_WIN) {
     return path.join(__dirname, 'win-ocr.ps1');
