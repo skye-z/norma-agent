@@ -62,10 +62,13 @@ const ThreadSwitchHandler: React.FC = () => {
         try {
           const mastraMessages = await (window as any).electronAPI?.getThreadMessages?.(req.threadId);
           if (mastraMessages && mastraMessages.length > 0) {
-            const messages = mastraMessages.map((m: any) => ({
-              role: m.role,
-              content: m.content,
-            }));
+            const messages = mastraMessages.map((m: any) => {
+              let content = m.content;
+              if (typeof content === 'string') {
+                content = [{ type: "text", text: content }];
+              }
+              return { role: m.role, content };
+            });
             runtime.thread.reset(messages);
           }
         } catch (e) {

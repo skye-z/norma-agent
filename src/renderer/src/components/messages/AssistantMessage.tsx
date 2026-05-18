@@ -215,7 +215,8 @@ const SpeechButton: React.FC = () => {
 
 const ErrorDisplay: React.FC = () => {
   const message = useMessage();
-  const err = (message as any)?.error;
+  const status = (message as any)?.status;
+  const err = status?.error ?? (message as any)?.error;
   const text = extractErrorMessage(err);
   return (
     <div className="px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-300 text-[11px]">
