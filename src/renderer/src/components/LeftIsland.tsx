@@ -121,9 +121,6 @@ export const LeftIsland: React.FC<LeftIslandProps> = ({
                         {session.title}
                       </span>
                     </div>
-                    <div className="text-[10px] text-norma-textMuted leading-tight truncate mt-0.5">
-                      {session.preview}
-                    </div>
                     <div className="text-[9px] text-norma-textDim mt-0.5 font-mono">
                       {session.time}前
                     </div>

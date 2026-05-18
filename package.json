@@ -5,9 +5,10 @@
   "main": "dist/main/index.js",
   "type": "module",
   "scripts": {
-    "dev:main": "cross-env NODE_ENV=development tsup --watch --onSuccess \"electron .\"",
+    "dev:main": "cross-env NODE_ENV=development tsup --watch",
     "dev:renderer": "vite",
-    "dev": "concurrently \"pnpm dev:renderer\" \"pnpm dev:main\"",
+    "dev:electron": "wait-on dist/main/index.js && electronmon .",
+    "dev": "concurrently \"pnpm dev:renderer\" \"pnpm dev:main\" \"pnpm dev:electron\"",
     "build:main": "tsup",
     "build:renderer": "vite build",
     "build:ocr": "node scripts/build-ocr.mjs",
@@ -38,13 +39,15 @@
     "cross-env": "^10.1.0",
     "electron": "^33.3.0",
     "electron-builder": "^26.8.1",
+    "electronmon": "^2.0.4",
     "jsdom": "^29.1.1",
     "postcss": "^8.5.14",
     "tailwindcss": "^3.4.19",
     "tsup": "^8.5.1",
     "typescript": "^6.0.3",
     "vite": "^5.4.21",
-    "vitest": "^2.1.9"
+    "vitest": "^2.1.9",
+    "wait-on": "^9.0.10"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.63",

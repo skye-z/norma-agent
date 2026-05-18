@@ -19,6 +19,7 @@ import {
   FilePartView,
   ImagePartView,
   extractErrorMessage,
+  ReadScreenToolInline,
 } from "./parts";
 
 const MessageTimingBadge: React.FC = () => {
@@ -233,7 +234,7 @@ const ErrorDisplay: React.FC = () => {
 
 export const AssistantMessage: React.FC = () => {
   return (
-    <MessagePrimitive.Root className="flex justify-start group mb-2">
+    <MessagePrimitive.Root className="flex justify-start mb-2">
       <div className="max-w-[80%] relative">
         <SelectionToolbarPrimitive.Root className="absolute z-50 -top-10 left-1/2 -translate-x-1/2 glass-popover px-1.5 py-1 flex gap-0.5 shadow-xl">
           <SelectionToolbarPrimitive.Quote className="win-btn !w-6 !h-5 text-[9px] text-norma-textMuted hover:text-norma-text">
@@ -257,6 +258,7 @@ export const AssistantMessage: React.FC = () => {
                 Reasoning: ({ text }) => <ReasoningBlock text={text} />,
                 tools: {
                   Fallback: ToolFallbackDisplay,
+                  read_screen: ReadScreenToolInline,
                 },
                 Source: ({ url, title }) => (
                   <a
@@ -288,7 +290,7 @@ export const AssistantMessage: React.FC = () => {
             <ErrorDisplay />
           </MessagePrimitive.Error>
         </div>
-        <div className="flex items-center gap-1 mt-1 px-1">
+        <div className="flex items-center gap-1 mt-1 px-1 opacity-100 group-hover:opacity-100">
           <MessageMetaBadge />
           <MessageTimingBadge />
           <div className="flex-1" />
@@ -325,7 +327,6 @@ export const AssistantMessage: React.FC = () => {
             </BranchPickerPrimitive.Next>
           </BranchPickerPrimitive.Root>
           <ActionBarPrimitive.Root
-            hideWhenRunning
             className="flex gap-0.5"
           >
             <ActionBarPrimitive.Copy className="win-btn !w-4 !h-4" title="复制">

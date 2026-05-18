@@ -254,9 +254,99 @@ export async function setupIpc() {
 
       const originalFetch = globalThis.fetch;
       const needsResponsesFallback = providerType !== 'openai' || !!_providerConfig?.baseUrl;
+      function extractResponsesContent(content: any): string {
+        if (!content) return '';
+        if (typeof content === 'string') return content;
+        if (Array.isArray(content)) {
+          return content
+            .filter((p: any) => p.type === 'output_text' || p.type === 'input_text' || p.type === 'text')
+            .map((p: any) => p.text || '')
+            .join('');
+        }
+        return JSON.stringify(content);
+      }
+      function sanitizeChatMessages(messages: any[]): any[] {
+        return messages.map((msg: any) => {
+          if (!msg || typeof msg !== 'object') return msg;
+          if (msg.role === 'assistant') {
+            const fixed: any = { ...msg };
+            if (fixed.content === undefined || fixed.content === null) {
+              fixed.content = '';
+            }
+            return fixed;
+          }
+          if (msg.role === 'tool') {
+            const fixed: any = { ...msg };
+            if (fixed.content === undefined || fixed.content === null) {
+              fixed.content = '';
+            }
+            return fixed;
+          }
+          if (msg.role === 'user') {
+            const fixed: any = { ...msg };
+            if (fixed.content === undefined || fixed.content === null) {
+              fixed.content = '';
+            } else if (Array.isArray(fixed.content)) {
+              fixed.content = fixed.content.map((p: any) => {
+                if (typeof p === 'string') return p;
+                if (p && p.type === 'text') return p;
+                if (p && p.text) return { type: 'text', text: p.text };
+                return null;
+              }).filter(Boolean);
+              if (fixed.content.length === 0) fixed.content = '';
+            }
+            return fixed;
+          }
+          if (msg.role === 'system') {
+            const fixed: any = { ...msg };
+            if (fixed.content === undefined || fixed.content === null) {
+              fixed.content = '';
+            }
+            return fixed;
+          }
+          if (!msg.role) return null;
+          if (msg.content === undefined || msg.content === null) {
+            msg.content = '';
+          }
+          return msg;
+        }).filter(Boolean);
+      }
       globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
         const url = typeof input === 'string' ? input : input.toString();
-        if (!url.includes('/responses') || !init?.body || !needsResponsesFallback) {
+        const isChatCompletions = url.includes('/chat/completions');
+        const isResponses = url.includes('/responses');
+        if ((!isChatCompletions && !isResponses) || !init?.body) {
+          return originalFetch(input, init);
+        }
+        if (isChatCompletions) {
+          try {
+            const bodyText = typeof init.body === 'string' ? init.body : await new Response(init.body).text();
+            const body = JSON.parse(bodyText);
+            if (body.messages && Array.isArray(body.messages)) {
+              let fixed = 0;
+              for (let i = 0; i < body.messages.length; i++) {
+                const m = body.messages[i];
+                if (!m || typeof m !== 'object' || !m.role) {
+                  appendLog('warn', 'chat', `messages[${i}] no role, removing`);
+                  body.messages.splice(i, 1);
+                  i--; fixed++;
+                  continue;
+                }
+                if (m.content === undefined || m.content === null) {
+                  appendLog('warn', 'chat', `messages[${i}] role=${m.role} content=${m.content === undefined ? 'undefined' : 'null'}, fixing to ''`);
+                  m.content = '';
+                  fixed++;
+                }
+              }
+              if (fixed > 0) appendLog('info', 'chat', `ChatCompletions 消息修补: 修复 ${fixed} 条`);
+              return originalFetch(url, { ...init, body: JSON.stringify(body) });
+            }
+          } catch (e: any) {
+            appendLog('error', 'chat', `ChatCompletions 拦截失败: ${e.message}`);
+          }
+          return originalFetch(input, init);
+        }
+        if (!needsResponsesFallback) {
           return originalFetch(input, init);
         }
         try {
@@ -268,13 +358,54 @@ export async function setupIpc() {
           }
           if (body.input && Array.isArray(body.input)) {
             for (const msg of body.input) {
-              if (msg.content === undefined || msg.content === null) {
-                msg.content = '';
+              if (!msg || typeof msg !== 'object') continue;
+              if (msg.type === 'function_call') {
+                messages.push({
+                  role: 'assistant',
+                  content: null,
+                  tool_calls: [{ id: msg.call_id, type: 'function', function: { name: msg.name, arguments: typeof msg.arguments === 'string' ? msg.arguments : JSON.stringify(msg.arguments) } }],
+                });
+                continue;
               }
+              if (msg.type === 'function_call_output') {
+                messages.push({
+                  role: 'tool',
+                  tool_call_id: msg.call_id,
+                  content: typeof msg.output === 'string' ? msg.output : JSON.stringify(msg.output ?? ''),
+                });
+                continue;
+              }
+              if (msg.type === 'item_reference' || msg.type === 'reasoning' || msg.type === 'reasoning_summary_part' || msg.type === 'tool_search_call' || msg.type === 'tool_search_output' || msg.type === 'shell_call' || msg.type === 'shell_call_output' || msg.type === 'local_shell_call' || msg.type === 'custom_tool_call') {
+                continue;
+              }
+              if (!msg.role) continue;
               if (msg.role === 'developer') {
-                messages.push({ role: 'system', content: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content) });
-              } else {
-                messages.push(msg);
+                const textContent = extractResponsesContent(msg.content);
+                messages.push({ role: 'system', content: textContent });
+                continue;
+              }
+              if (msg.role === 'assistant') {
+                let text = extractResponsesContent(msg.content);
+                const prevAssistant = messages.length > 0 && messages[messages.length - 1].role === 'assistant'
+                  ? messages[messages.length - 1] : null;
+                if (prevAssistant) {
+                  if (text) {
+                    prevAssistant.content = prevAssistant.content ? prevAssistant.content + text : text;
+                  }
+                  continue;
+                }
+                messages.push({ role: 'assistant', content: text || null });
+                continue;
+              }
+              if (msg.role === 'user') {
+                const textContent = extractResponsesContent(msg.content);
+                messages.push({ role: 'user', content: textContent || '' });
+                continue;
+              }
+              if (msg.role === 'system') {
+                const textContent = extractResponsesContent(msg.content);
+                messages.push({ role: 'system', content: textContent || '' });
+                continue;
               }
             }
           }
@@ -364,7 +495,7 @@ export async function setupIpc() {
           appendLog('error', 'chat', `Stream 错误: ${errMsg}`);
           event.sender.send('chat:error', errMsg.slice(0, 500));
           break;
-        } else if (chunk.type === 'start' || chunk.type === 'step-start' || chunk.type === 'step-finish' || chunk.type === 'finish' || chunk.type === 'text-start' || chunk.type === 'text-end' || chunk.type === 'reasoning-start' || chunk.type === 'reasoning-end' || chunk.type === 'source-start' || chunk.type === 'source-end' || chunk.type === 'tool-call-delta' || chunk.type === 'tool-call-input-streaming-end') {
+        } else if (chunk.type === 'start' || chunk.type === 'step-start' || chunk.type === 'step-finish' || chunk.type === 'finish' || chunk.type === 'text-start' || chunk.type === 'text-end' || chunk.type === 'reasoning-start' || chunk.type === 'reasoning-end' || chunk.type === 'reasoning-delta' || chunk.type === 'source-start' || chunk.type === 'source-end' || chunk.type === 'tool-call-delta' || chunk.type === 'tool-call-input-streaming-start' || chunk.type === 'tool-call-input-streaming-end') {
         } else {
           appendLog('warn', 'chat', `未知 chunk 类型: ${chunk.type} data=${JSON.stringify(chunk).slice(0, 200)}`);
         }

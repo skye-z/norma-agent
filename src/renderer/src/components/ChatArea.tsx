@@ -152,7 +152,6 @@ const ChatAreaInner: React.FC = () => {
   const [activeNav, setActiveNav] = useState("chat");
   const [sessions, setSessions] = useDbState<Session[]>("norma-sessions", []);
   const [activeSessionId, setActiveSessionId] = useState<string>("");
-  const [synced, setSynced] = useState(false);
   const [isRunning, setIsRunning] = useState(isCurrentlyRunning);
   const prevActiveIdRef = useRef(activeSessionId);
 
@@ -164,12 +163,9 @@ const ChatAreaInner: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (synced) return;
-    let cancelled = false;
-    (async () => {
+    const syncThreads = async () => {
       try {
         const threads = (await window.electronAPI?.listThreads?.()) || [];
-        if (cancelled) return;
         setSessions((prev) => {
           const existingThreadIds = new Set(
             prev.filter((s) => s.threadId).map((s) => s.threadId),
@@ -197,12 +193,12 @@ const ChatAreaInner: React.FC = () => {
       } catch (e) {
         console.error("Failed to sync threads:", e);
       }
-      if (!cancelled) setSynced(true);
-    })();
-    return () => {
-      cancelled = true;
     };
-  }, [synced]);
+
+    syncThreads();
+    const interval = setInterval(syncThreads, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (!activeSessionId) return;

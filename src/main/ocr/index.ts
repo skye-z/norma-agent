@@ -11,8 +11,8 @@ const IS_MAC = process.platform === 'darwin';
 const IS_WIN = process.platform === 'win32';
 
 function getBridgePath(): string {
-  const projectResources = path.join(__dirname, '..', '..', '..', 'resources');
   if (IS_MAC) {
+    const projectResources = path.join(process.cwd(), 'resources');
     const bundled = process.resourcesPath
       ? path.join(process.resourcesPath, 'norma-ocr-macos')
       : null;
@@ -20,7 +20,7 @@ function getBridgePath(): string {
     return path.join(projectResources, 'norma-ocr-macos');
   }
   if (IS_WIN) {
-    return path.join(__dirname, 'win-ocr.ps1');
+    return path.join(process.cwd(), 'src', 'main', 'ocr', 'win-ocr.ps1');
   }
   throw new Error(`OCR not supported on platform: ${process.platform}`);
 }
