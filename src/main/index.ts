@@ -18,6 +18,10 @@ const __dirname = path.dirname(__filename);
 app.commandLine.appendSwitch("enable-features", "CSSBackdropFilter");
 app.commandLine.appendSwitch("enable-gpu-rasterization");
 app.commandLine.appendSwitch("enable-zero-copy");
+app.disableHardwareAcceleration();
+app.commandLine.appendSwitch("disable-gpu");
+app.commandLine.appendSwitch("disable-software-rasterizer");
+app.commandLine.appendSwitch("no-sandbox");
 
 let mainWindow: BrowserWindow | null = null;
 let commandBarWindow: BrowserWindow | null = null;
