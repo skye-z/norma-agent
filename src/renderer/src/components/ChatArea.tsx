@@ -64,12 +64,21 @@ const ThreadSwitchHandler: React.FC = () => {
           if (mastraMessages && mastraMessages.length > 0) {
             const messages = mastraMessages.map((m: any) => {
               let content = m.content;
-              if (typeof content === 'string') {
+              if (content && typeof content === 'object' && Array.isArray(content.parts)) {
+                content = content.parts.map((p: any) => {
+                  if (p.type === 'text') return { type: 'text', text: p.text };
+                  if (p.type === 'tool-invocation') return { type: 'tool-call', toolCallId: p.toolInvocation?.toolCallId ?? p.toolCallId, toolName: p.toolInvocation?.toolName ?? p.toolName, args: p.toolInvocation?.args ?? p.args ?? {} };
+                  return p;
+                }).filter(Boolean);
+              } else if (typeof content === 'string') {
                 content = [{ type: "text", text: content }];
               }
+              if (!Array.isArray(content)) return null;
               return { role: m.role, content };
-            });
-            runtime.thread.reset(messages);
+            }).filter(Boolean);
+            if (messages.length > 0) {
+              runtime.thread.reset(messages);
+            }
           }
         } catch (e) {
           console.error("Failed to load thread messages:", e);
