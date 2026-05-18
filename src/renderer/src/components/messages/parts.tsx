@@ -1,4 +1,31 @@
 import React, { useState } from "react";
+
+export function extractErrorMessage(result: unknown): string {
+  if (typeof result === 'string') return result;
+  if (!result || typeof result !== 'object') return String(result);
+  const obj = result as Record<string, unknown>;
+  if (typeof obj.message === 'string') return obj.message;
+  if (typeof obj.error === 'string') return obj.error;
+  if (obj.error && typeof obj.error === 'object') {
+    const err = obj.error as Record<string, unknown>;
+    if (typeof err.message === 'string') return err.message;
+  }
+  if (obj.success === false && typeof obj.message === 'string') return obj.message;
+  const { success, timestamp, ...rest } = obj;
+  const keys = Object.keys(rest);
+  if (keys.length <= 3) {
+    const parts = keys.map(k => {
+      const v = rest[k];
+      if (typeof v === 'string') return v;
+      if (typeof v === 'number') return String(v);
+      if (typeof v === 'boolean') return String(v);
+      return null;
+    }).filter(Boolean);
+    if (parts.length > 0) return parts.join(' | ');
+  }
+  try { return JSON.stringify(result, null, 2); } catch { return String(result); }
+}
+
 import {
   useMessage,
   useMessagePartFile,
@@ -205,7 +232,7 @@ export const ToolFallbackDisplay: React.FC<{
         <div className="px-3 py-2 text-norma-text/80 leading-relaxed font-mono whitespace-pre-wrap text-[10px] bg-black/20 max-h-[200px] overflow-y-auto">
           {typeof result === "string"
             ? result
-            : (result as any)?.text || JSON.stringify(result, null, 2)}
+            : (result as any)?.text || extractErrorMessage(result)}
         </div>
       )}
       {open && isRunning && (
