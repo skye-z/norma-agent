@@ -240,17 +240,6 @@ export async function setupIpc() {
 
       appendLog('info', 'chat', `开始流式请求 model=${_activeModel || 'default'} threadId=${threadId || 'none'} provider=${_providerConfig?.providerType || 'none'} hasKey=${!!(_providerConfig?.apiKey || process.env.OPENAI_API_KEY || process.env.ANTHROPIC_API_KEY)}`);
 
-      const { setVisionCheckModel } = await import('../tools/read-screen');
-      setVisionCheckModel(_activeModel);
-
-      const { setModelOverrides } = await import('../tools/read-screen');
-      try {
-        const rawOvr = await getConfig('norma-model-overrides');
-        if (rawOvr) {
-          try { setModelOverrides(typeof rawOvr === 'string' ? JSON.parse(rawOvr) : rawOvr); } catch { setModelOverrides(null); }
-        } else { setModelOverrides(null); }
-      } catch { setModelOverrides(null); }
-
       const streamStartAt = Date.now();
       let firstTokenAt = 0;
       const activeModelName = _activeModel || 'openai/gpt-4o-mini';
@@ -333,9 +322,9 @@ export async function setupIpc() {
           }));
         } else if (chunk.type === 'error') {
           const c = chunk as any;
-          const errObj = c.payload ?? c;
+          const errObj = c.payload ?? c.error ?? c;
           const errMsg = typeof errObj === 'string' ? errObj
-            : (errObj?.message ?? (typeof errObj?.text === 'string' ? errObj.text : JSON.stringify(errObj)));
+            : (errObj?.message ?? errObj?.error?.message ?? (typeof errObj?.text === 'string' ? errObj.text : JSON.stringify(errObj)));
           appendLog('error', 'chat', `Stream 错误: ${errMsg}`);
           event.sender.send('chat:error', errMsg.slice(0, 500));
           break;
