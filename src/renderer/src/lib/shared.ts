@@ -4,6 +4,41 @@ const _state = { activeThreadId: undefined as string | undefined };
 export function getActiveThreadId() { return _state.activeThreadId; }
 export function setActiveThreadId(id: string | undefined) { _state.activeThreadId = id; }
 
+let _runtimeKey = 0;
+const _runtimeKeyListeners = new Set<() => void>();
+export function getRuntimeKey() { return _runtimeKey; }
+export function bumpRuntimeKey() {
+  _runtimeKey++;
+  for (const cb of _runtimeKeyListeners) { try { cb(); } catch {} }
+}
+export function onRuntimeKeyChange(cb: () => void): () => void {
+  _runtimeKeyListeners.add(cb);
+  return () => { _runtimeKeyListeners.delete(cb); };
+}
+
+let _pendingSessionId: string | null = null;
+export function setPendingSessionId(id: string | null) { _pendingSessionId = id; }
+export function getPendingSessionId() { return _pendingSessionId; }
+
+type ThreadSwitchRequest =
+  | { type: "new" }
+  | { type: "switch"; threadId: string };
+
+let _pendingSwitch: ThreadSwitchRequest | null = null;
+const _switchListeners = new Set<(req: ThreadSwitchRequest) => void>();
+
+export function requestThreadSwitch(req: ThreadSwitchRequest) {
+  _pendingSwitch = req;
+  for (const cb of _switchListeners) { try { cb(req); } catch {} }
+}
+
+export function onThreadSwitchRequest(cb: (req: ThreadSwitchRequest) => void): () => void {
+  _switchListeners.add(cb);
+  return () => { _switchListeners.delete(cb); };
+}
+
+export function getPendingSwitch() { return _pendingSwitch; }
+
 export const PROVIDER_COLORS: Record<string, string> = {
   openai: "#10a37f",
   anthropic: "#d4a27f",

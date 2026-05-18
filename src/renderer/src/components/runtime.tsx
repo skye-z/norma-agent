@@ -10,8 +10,12 @@ import {
   SimpleTextAttachmentAdapter,
   CompositeAttachmentAdapter,
 } from "@assistant-ui/react";
+import type { AssistantRuntime } from "@assistant-ui/react";
 import { createIpcChatModel } from "../lib/ipc-chat";
 import { getActiveThreadId } from "../lib/shared";
+
+let _runtimeRef: AssistantRuntime | null = null;
+export function getAssistantRuntime() { return _runtimeRef; }
 
 function syncActiveModelConfig(force?: boolean) {
   Promise.all([
@@ -121,6 +125,7 @@ export function NormaRuntime({ children }: { children: React.ReactNode }) {
       feedback: feedbackAdapter,
     },
   });
+  _runtimeRef = runtime;
 
   const [suggestions, setSuggestions] = React.useState([
     { title: "分析屏幕", label: "读取当前屏幕内容", prompt: "帮我分析当前屏幕上的内容" },

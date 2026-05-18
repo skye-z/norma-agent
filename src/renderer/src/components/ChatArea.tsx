@@ -24,8 +24,9 @@ import { AutomationPage } from "./pages/AutomationPage";
 import { CapabilitiesPage } from "./pages/CapabilitiesPage";
 import { KnowledgePage } from "./pages/KnowledgePage";
 import { SettingsPage } from "./pages/SettingsPage";
-import { useDbState, setActiveThreadId } from "../lib/shared";
+import { useDbState, setActiveThreadId, requestThreadSwitch, onThreadSwitchRequest } from "../lib/shared";
 import { onThreadCreated, onRunningChange, isCurrentlyRunning } from "../lib/ipc-chat";
+import { getAssistantRuntime } from "./runtime";
 
 const AutoQueueSender: React.FC = () => {
   const thread = useThread();
@@ -49,6 +50,35 @@ const AutoQueueSender: React.FC = () => {
   return null;
 };
 
+const ThreadSwitchHandler: React.FC = () => {
+  useEffect(() => {
+    return onThreadSwitchRequest(async (req) => {
+      const runtime = getAssistantRuntime();
+      if (!runtime) return;
+
+      if (req.type === "new") {
+        runtime.threads.switchToNewThread();
+      } else {
+        runtime.threads.switchToNewThread();
+        try {
+          const mastraMessages = await (window as any).electronAPI?.getThreadMessages?.(req.threadId);
+          if (mastraMessages && mastraMessages.length > 0) {
+            const messages = mastraMessages.map((m: any) => ({
+              role: m.role,
+              content: m.content,
+            }));
+            runtime.thread.reset(messages);
+          }
+        } catch (e) {
+          console.error("Failed to load thread messages:", e);
+        }
+      }
+    });
+  }, []);
+
+  return null;
+};
+
 function formatTimeAgo(dateStr?: string): string {
   if (!dateStr) return "刚刚";
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -61,14 +91,48 @@ function formatTimeAgo(dateStr?: string): string {
   return `${days}天`;
 }
 
+const WelcomeScreen = () => (
+  <div className="flex-1 flex flex-col items-center justify-center gap-6">
+    <div className="text-center">
+      <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-norma-accentMuted flex items-center justify-center">
+        <svg
+          width="28"
+          height="28"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="hsl(215, 90%, 68%)"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M12 8V4H8" />
+          <rect width="16" height="12" x="4" y="8" rx="2" />
+          <path d="M2 14h2" />
+          <path d="M20 14h2" />
+          <path d="M15 13v2" />
+          <path d="M9 13v2" />
+        </svg>
+      </div>
+      <h2 className="text-base font-semibold text-norma-text mb-1.5">
+        欢迎使用 Norma
+      </h2>
+      <p className="text-[12px] text-norma-textMuted max-w-[260px]">
+        你的本地智能助手，可以感知屏幕、操控电脑、管理工作流。
+      </p>
+    </div>
+    <WelcomeSuggestions />
+  </div>
+);
+
 const ChatAreaInner: React.FC = () => {
   const [activeNav, setActiveNav] = useState("chat");
   const [sessions, setSessions] = useDbState<Session[]>("norma-sessions", []);
   const [activeSessionId, setActiveSessionId] = useState<string>("");
   const [synced, setSynced] = useState(false);
   const [isRunning, setIsRunning] = useState(isCurrentlyRunning);
-  const [threadKey, setThreadKey] = useState(0);
   const prevActiveIdRef = useRef(activeSessionId);
+
+  const showWelcome = activeSessionId === "" && activeNav === "chat";
 
   useEffect(() => {
     return onRunningChange(setIsRunning);
@@ -116,8 +180,11 @@ const ChatAreaInner: React.FC = () => {
   }, [synced]);
 
   useEffect(() => {
+    if (!activeSessionId) return;
     const activeSession = sessions.find((s) => s.id === activeSessionId);
-    setActiveThreadId(activeSession?.threadId);
+    if (activeSession?.threadId) {
+      setActiveThreadId(activeSession.threadId);
+    }
   }, [sessions, activeSessionId]);
 
   useEffect(() => {
@@ -141,7 +208,11 @@ const ChatAreaInner: React.FC = () => {
         threadId,
         status: "running",
       };
-      setSessions((prev) => [...prev, newSession]);
+      setSessions((prev) => {
+        const exists = prev.some((s) => s.threadId === threadId);
+        if (exists) return prev;
+        return [...prev, newSession];
+      });
       setActiveSessionId(newSession.id);
     });
   }, []);
@@ -150,7 +221,7 @@ const ChatAreaInner: React.FC = () => {
     setActiveSessionId("");
     setActiveThreadId(undefined);
     setActiveNav("chat");
-    setThreadKey((k) => k + 1);
+    requestThreadSwitch({ type: "new" });
   };
 
   const handleDeleteSession = async (id: string) => {
@@ -177,13 +248,19 @@ const ChatAreaInner: React.FC = () => {
   };
 
   const handleSwitchSession = (id: string) => {
-    setActiveSessionId(id);
     const session = sessions.find((s) => s.id === id);
-    setActiveThreadId(session?.threadId);
+    if (!session) return;
+
+    setActiveSessionId(id);
+    setActiveThreadId(session.threadId);
     setActiveNav("chat");
     setSessions((prev) =>
       prev.map((s) => (s.id === id && s.status === "unread" ? { ...s, status: "idle" as const } : s)),
     );
+
+    if (session.threadId) {
+      requestThreadSwitch({ type: "switch", threadId: session.threadId });
+    }
   };
 
   const isChatPage = activeNav === "chat";
@@ -222,42 +299,12 @@ const ChatAreaInner: React.FC = () => {
             <ReadScreenTool />
             <ExecuteActionTool />
 
-            <ThreadPrimitive.Root key={threadKey} className="flex-1 flex flex-col min-h-0">
+            <ThreadPrimitive.Root className="flex-1 flex flex-col min-h-0">
               <AutoQueueSender />
+              <ThreadSwitchHandler />
               <ThreadPrimitive.Viewport className="flex-1 overflow-y-auto px-5 py-3 flex flex-col gap-3 min-h-0 scroll-smooth">
                 <AutoScrollHelper />
-                <AuiIf condition={(s: any) => s.thread.isEmpty}>
-                  <div className="flex-1 flex flex-col items-center justify-center gap-6">
-                    <div className="text-center">
-                      <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-norma-accentMuted flex items-center justify-center">
-                        <svg
-                          width="28"
-                          height="28"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="hsl(215, 90%, 68%)"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <path d="M12 8V4H8" />
-                          <rect width="16" height="12" x="4" y="8" rx="2" />
-                          <path d="M2 14h2" />
-                          <path d="M20 14h2" />
-                          <path d="M15 13v2" />
-                          <path d="M9 13v2" />
-                        </svg>
-                      </div>
-                      <h2 className="text-base font-semibold text-norma-text mb-1.5">
-                        欢迎使用 Norma
-                      </h2>
-                      <p className="text-[12px] text-norma-textMuted max-w-[260px]">
-                        你的本地智能助手，可以感知屏幕、操控电脑、管理工作流。
-                      </p>
-                    </div>
-                    <WelcomeSuggestions />
-                  </div>
-                </AuiIf>
+                {showWelcome && <WelcomeScreen />}
                 <ThreadPrimitive.Messages>
                   {() => <ThreadMessage />}
                 </ThreadPrimitive.Messages>
