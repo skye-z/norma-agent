@@ -6,11 +6,12 @@ import {
   nativeImage,
   globalShortcut,
   screen,
+  ipcMain,
 } from "electron";
 import * as path from "path";
 import { fileURLToPath } from "url";
 import { setupIpc } from "./ipc";
-import { initConfig } from "./config";
+import { initConfig, getConfig, setConfig } from "./config";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -21,6 +22,14 @@ app.commandLine.appendSwitch("no-sandbox");
 let mainWindow: BrowserWindow | null = null;
 let commandBarWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
+
+const DEFAULT_SHORTCUTS = {
+  commandBar: process.platform === 'darwin' ? 'Option+Space' : 'Ctrl+Shift+Space',
+  newSession: process.platform === 'darwin' ? 'Cmd+N' : 'Ctrl+N',
+  hideWindow: process.platform === 'darwin' ? 'Cmd+Shift+W' : 'Ctrl+Shift+W',
+};
+
+let currentShortcuts = { ...DEFAULT_SHORTCUTS };
 
 const isTestMode =
   !!process.env.PLAYWRIGHT_TEST || !!process.env.NODE_ENV?.includes("test");
@@ -50,10 +59,18 @@ if (!gotTheLock) {
       console.error("[Agent] Failed to initialize:", err);
     });
 
-    const isMac = process.platform === "darwin";
-    const shortcut = isMac ? "Option+Space" : "Ctrl+Shift+Space";
-    globalShortcut.register(shortcut, () => {
-      toggleCommandBar();
+    const savedShortcuts = await getConfig('norma:shortcuts');
+    const shortcuts = savedShortcuts && typeof savedShortcuts === 'object'
+      ? { ...DEFAULT_SHORTCUTS, ...(savedShortcuts as Partial<typeof DEFAULT_SHORTCUTS>) }
+      : { ...DEFAULT_SHORTCUTS };
+    registerAllShortcuts(shortcuts);
+
+    ipcMain.handle('shortcuts:get', () => currentShortcuts);
+    ipcMain.handle('shortcuts:set', async (_event, s: Partial<typeof DEFAULT_SHORTCUTS>) => {
+      const merged = { ...currentShortcuts, ...s };
+      await setConfig('norma:shortcuts', merged);
+      registerAllShortcuts(merged);
+      return { success: true };
     });
   });
 }
@@ -194,6 +211,34 @@ function createCommandBarWindow() {
       `file://${path.join(__dirname, "../renderer/index.html")}#/command`,
     );
   }
+}
+
+function registerAllShortcuts(shortcuts: typeof DEFAULT_SHORTCUTS) {
+  globalShortcut.unregisterAll();
+  try { globalShortcut.register(shortcuts.commandBar, () => { toggleCommandBar(); }); } catch {}
+  try {
+    globalShortcut.register(shortcuts.newSession, async () => {
+      try {
+        const { getMemory } = await import("./agent");
+        const memory = getMemory();
+        if (memory) {
+          const thread = await memory.createThread({ resourceId: 'norma-user', title: '新会话' });
+          for (const win of BrowserWindow.getAllWindows()) {
+            win.webContents.send('shortcut:newSession', thread.id);
+          }
+        }
+      } catch {}
+    });
+  } catch {}
+  try {
+    globalShortcut.register(shortcuts.hideWindow, () => {
+      if (mainWindow) {
+        if (mainWindow.isVisible()) mainWindow.hide();
+        else { mainWindow.show(); mainWindow.focus(); }
+      }
+    });
+  } catch {}
+  currentShortcuts = { ...shortcuts };
 }
 
 app.on("activate", function () {

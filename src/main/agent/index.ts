@@ -47,8 +47,17 @@ let _agent: Agent | null = null;
 let _mastra: Mastra | null = null;
 let _memory: Memory | null = null;
 let _activeModel: string | null = null;
+let _dbDir: string | undefined;
+let _embedder: any;
+
+const WORKING_MEMORY_TEMPLATE = `# User Profile
+- **Name**:
+- **Preferences**:
+- **Goals**:
+`;
 
 export async function initAgent(dbDir?: string, defaultModel?: string) {
+  _dbDir = dbDir;
   const mcpTools = await initMcpClient();
 
   const allTools = { ...baseTools, ...mcpTools };
@@ -67,9 +76,9 @@ export async function initAgent(dbDir?: string, defaultModel?: string) {
       id: 'norma-vector',
       url: dbPath,
     }),
-    embedder: process.env.OPENAI_API_KEY 
+    embedder: (_embedder = process.env.OPENAI_API_KEY 
       ? new ModelRouterEmbeddingModel('openai/text-embedding-3-small') 
-      : ({ embed: async () => { console.warn('[Memory] No OPENAI_API_KEY — semantic recall disabled, returning empty embeddings'); return []; } } as any),
+      : ({ embed: async () => { console.warn('[Memory] No OPENAI_API_KEY — semantic recall disabled, returning empty embeddings'); return []; } } as any)),
     options: {
       lastMessages: 20,
       semanticRecall: {
@@ -80,11 +89,7 @@ export async function initAgent(dbDir?: string, defaultModel?: string) {
       workingMemory: {
         enabled: true,
         scope: 'resource',
-        template: `# User Profile
-- **Name**:
-- **Preferences**:
-- **Goals**:
-`,
+        template: WORKING_MEMORY_TEMPLATE,
       },
       generateTitle: true,
     },
@@ -248,6 +253,39 @@ export function getActiveModel(): string | null {
 
 export function setActiveModel(modelString: string): void {
   _activeModel = modelString;
+}
+
+export async function reconfigureMemory(options: {
+  lastMessages: number;
+  semanticRecall: boolean;
+  semanticTopK: number;
+  semanticMessageRange: number;
+  workingMemory: boolean;
+  generateTitle: boolean;
+}) {
+  const dbPath = _dbDir
+    ? `file:${path.join(_dbDir, 'norma-memory.db')}`
+    : 'file:norma-memory.db';
+
+  _memory = new Memory({
+    storage: new LibSQLStore({ id: 'norma-storage', url: dbPath }),
+    vector: new LibSQLVector({ id: 'norma-vector', url: dbPath }),
+    embedder: _embedder,
+    options: {
+      lastMessages: options.lastMessages,
+      semanticRecall: options.semanticRecall
+        ? { topK: options.semanticTopK, messageRange: options.semanticMessageRange, scope: 'resource' }
+        : false,
+      workingMemory: options.workingMemory
+        ? { enabled: true, scope: 'resource', template: WORKING_MEMORY_TEMPLATE }
+        : { enabled: false },
+      generateTitle: options.generateTitle,
+    },
+  });
+
+  if (_agent) {
+    (_agent as any).memory = _memory;
+  }
 }
 
 export async function getCapabilities(): Promise<Array<{ id: string; name: string; description: string; category: string }>> {

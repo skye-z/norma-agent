@@ -25,6 +25,8 @@ declare global {
       getThread: (threadId: string) => Promise<{ id: string; title: string; resourceId: string; createdAt: string; updatedAt: string } | null>;
       deleteThread: (threadId: string) => Promise<boolean>;
       getThreadMessages: (threadId: string) => Promise<any[]>;
+      getWorkingMemory: () => Promise<string | null>;
+      clearWorkingMemory: () => Promise<{ success: boolean; error?: string }>;
       getCapabilities: () => Promise<Array<{ id: string; name: string; description: string; category: string }>>;
       getAgentsList: () => Promise<Array<{ id: string; name: string; description: string }>>;
       getModels: () => Promise<Array<{ id: string; modelId: string; provider: string }>>;
@@ -34,6 +36,8 @@ declare global {
       getModelDisplayName: (modelId: string) => Promise<string | null>;
       getCapabilitiesWithOverride: (modelId: string) => Promise<{ vision: boolean; contextLength: number; known: boolean }>;
       getSystemVersion: () => Promise<{ version: string; electron: string; node: string; chrome: string }>;
+      selectDirectory: () => Promise<string | null>;
+      moveDataDir: (newDir: string) => Promise<{ success: boolean; error?: string }>;
       knowledgeIngest: (name: string, text: string) => Promise<{ success: boolean; docId?: string; chunks?: number; error?: string }>;
       knowledgeIngestFile: () => Promise<{ success: boolean; documents?: Array<{ name: string; docId: string; chunks: number }>; error?: string }>;
       knowledgeQuery: (query: string, topK?: number) => Promise<{ success: boolean; results?: Array<{ id: string; score: number; metadata: Record<string, any> }>; error?: string }>;
@@ -58,6 +62,26 @@ declare global {
       onSpeechResult: (cb: (data: { success: boolean; confidence: number; text: string }) => void) => () => void;
       onSpeechDone: (cb: () => void) => () => void;
       onSpeechError: (cb: (err: string) => void) => () => void;
+      shortcutsGet: () => Promise<{ commandBar: string; newSession: string; hideWindow: string }>;
+      shortcutsSet: (shortcuts: Partial<{ commandBar: string; newSession: string; hideWindow: string }>) => Promise<{ success: boolean }>;
+      onShortcutNewSession: (cb: (threadId: string) => void) => () => void;
+      openExternal: (url: string) => Promise<boolean>;
+      getMemoryConfig: () => Promise<{
+        lastMessages: number;
+        semanticRecall: boolean;
+        semanticTopK: number;
+        semanticMessageRange: number;
+        workingMemory: boolean;
+        generateTitle: boolean;
+      }>;
+      setMemoryConfig: (config: {
+        lastMessages: number;
+        semanticRecall: boolean;
+        semanticTopK: number;
+        semanticMessageRange: number;
+        workingMemory: boolean;
+        generateTitle: boolean;
+      }) => Promise<{ success: boolean }>;
     };
   }
 }

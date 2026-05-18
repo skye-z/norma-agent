@@ -56,6 +56,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getThread: (threadId: string) => ipcRenderer.invoke('memory:getThread', threadId),
   deleteThread: (threadId: string) => ipcRenderer.invoke('memory:deleteThread', threadId),
   getThreadMessages: (threadId: string) => ipcRenderer.invoke('memory:getThreadMessages', threadId),
+  getWorkingMemory: () => ipcRenderer.invoke('memory:getWorkingMemory'),
+  clearWorkingMemory: () => ipcRenderer.invoke('memory:clearWorkingMemory'),
 
   getCapabilities: () => ipcRenderer.invoke('capabilities:list'),
   testTool: (toolId: string, userArgs?: Record<string, any>) => ipcRenderer.invoke('tool:test', toolId, userArgs),
@@ -68,6 +70,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getModelDisplayName: (modelId: string) => ipcRenderer.invoke('model:displayName', modelId),
   getCapabilitiesWithOverride: (modelId: string) => ipcRenderer.invoke('model:capabilitiesWithOverride', modelId),
   getSystemVersion: () => ipcRenderer.invoke('system:version'),
+  selectDirectory: () => ipcRenderer.invoke('system:selectDirectory'),
+  moveDataDir: (newDir: string) => ipcRenderer.invoke('system:moveDataDir', newDir),
 
   knowledgeIngest: (name: string, text: string) => ipcRenderer.invoke('knowledge:ingest', { name, text }),
   knowledgeIngestFile: () => ipcRenderer.invoke('knowledge:ingestFile'),
@@ -110,4 +114,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('speech:error', handler);
     return () => { ipcRenderer.removeListener('speech:error', handler); };
   },
+
+  shortcutsGet: () => ipcRenderer.invoke('shortcuts:get'),
+  shortcutsSet: (shortcuts: any) => ipcRenderer.invoke('shortcuts:set', shortcuts),
+  onShortcutNewSession: (cb: (threadId: string) => void) => {
+    const handler = (_e: any, threadId: string) => cb(threadId);
+    ipcRenderer.on('shortcut:newSession', handler);
+    return () => { ipcRenderer.removeListener('shortcut:newSession', handler); };
+  },
+  openExternal: (url: string) => ipcRenderer.invoke('system:openExternal', url),
+  getMemoryConfig: () => ipcRenderer.invoke('config:getMemoryConfig'),
+  setMemoryConfig: (config: any) => ipcRenderer.invoke('config:setMemoryConfig', config),
 });

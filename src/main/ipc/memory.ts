@@ -51,4 +51,47 @@ export function setupMemoryIpc() {
     const { messages } = await memory.recall({ threadId, perPage: 100 });
     return messages;
   });
+
+  ipcMain.handle('memory:getWorkingMemory', async () => {
+    const memory = getMemory();
+    if (!memory) return null;
+    try {
+      const threads = await memory.listThreads({
+        filter: { resourceId: RESOURCE_ID },
+        perPage: 1,
+      });
+      if (threads.threads.length === 0) return null;
+      const threadId = threads.threads[0].id;
+      const content = await memory.getWorkingMemory({
+        threadId,
+        resourceId: RESOURCE_ID,
+      });
+      return content;
+    } catch {
+      return null;
+    }
+  });
+
+  ipcMain.handle('memory:clearWorkingMemory', async () => {
+    const memory = getMemory();
+    if (!memory) return { success: false, error: 'Memory not initialized' };
+    try {
+      const template = await memory.getWorkingMemoryTemplate({});
+      const templateContent = template?.content || '';
+      const threads = await memory.listThreads({
+        filter: { resourceId: RESOURCE_ID },
+        perPage: false,
+      });
+      for (const thread of threads.threads) {
+        await memory.updateWorkingMemory({
+          threadId: thread.id,
+          resourceId: RESOURCE_ID,
+          workingMemory: templateContent,
+        });
+      }
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  });
 }

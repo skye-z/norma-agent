@@ -1,4 +1,4 @@
-import { ipcMain, BrowserWindow, app } from 'electron';
+import { ipcMain, BrowserWindow, app, dialog, shell } from 'electron';
 import { setupProviderIpc } from './provider';
 import { setupMemoryIpc } from './memory';
 import { setupKnowledgeIpc } from './knowledge';
@@ -7,6 +7,9 @@ import { setupDiagIpc, appendLog } from './diag';
 import { setupConfigIpc } from './config';
 import { getConfig, setConfig } from '../config';
 import { isSpeechAvailable, startDictation, stopDictation, recognizeOnce } from '../speech';
+import * as fs from 'fs/promises';
+import * as fsSync from 'fs';
+import * as path from 'path';
 
 let _activeModel: string | null = null;
 let _providerConfig: { providerType: string; baseUrl: string; apiKey: string } | null = null;
@@ -105,6 +108,74 @@ export async function setupIpc() {
 
   ipcMain.handle('speech:recognize', async (_event, timeoutSec?: number) => {
     return await recognizeOnce(timeoutSec || 30);
+  });
+
+  ipcMain.handle('system:selectDirectory', async (event) => {
+    try {
+      const win = BrowserWindow.fromWebContents(event.sender);
+      const result = await dialog.showOpenDialog(win!, {
+        properties: ['openDirectory', 'createDirectory'],
+      });
+      if (result.canceled || result.filePaths.length === 0) return null;
+      return result.filePaths[0];
+    } catch {
+      return null;
+    }
+  });
+
+  ipcMain.handle('system:moveDataDir', async (_event, newDir: string) => {
+    try {
+      const oldDir = app.getPath('userData');
+      if (!fsSync.existsSync(newDir)) {
+        fsSync.mkdirSync(newDir, { recursive: true });
+      }
+      const filesToMove = ['norma-memory.db', 'norma-config.db'];
+      for (const file of filesToMove) {
+        const extensions = ['', '-wal', '-shm'];
+        for (const ext of extensions) {
+          const src = path.join(oldDir, file + ext);
+          const dst = path.join(newDir, file + ext);
+          try {
+            await fs.access(src);
+            await fs.rename(src, dst);
+          } catch {}
+        }
+      }
+      await setConfig('norma:data-dir', newDir);
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('system:openExternal', async (_event, url: string) => {
+    await shell.openExternal(url);
+    return true;
+  });
+
+  const DEFAULT_MEMORY_CONFIG = {
+    lastMessages: 20,
+    semanticRecall: true,
+    semanticTopK: 3,
+    semanticMessageRange: 2,
+    workingMemory: true,
+    generateTitle: true,
+  };
+
+  ipcMain.handle('config:getMemoryConfig', async () => {
+    const saved = await getConfig('norma:memory-config');
+    if (saved && typeof saved === 'object') return { ...DEFAULT_MEMORY_CONFIG, ...saved };
+    return { ...DEFAULT_MEMORY_CONFIG };
+  });
+
+  ipcMain.handle('config:setMemoryConfig', async (_event, config: any) => {
+    const merged = { ...DEFAULT_MEMORY_CONFIG, ...config };
+    await setConfig('norma:memory-config', merged);
+    try {
+      const { reconfigureMemory } = await import('../agent');
+      await reconfigureMemory(merged);
+    } catch {}
+    return { success: true };
   });
 
   ipcMain.handle('capabilities:list', async () => {

@@ -476,80 +476,438 @@ const ModelTab: React.FC = () => {
   );
 };
 
-const BasicTab: React.FC<{ theme: string; setTheme: (t: string) => void; isMac: boolean }> = ({ theme, setTheme, isMac }) => (
-  <div className="px-5 py-4">
-    <div className="space-y-5 max-w-[400px]">
-      <section>
-        <h3 className="text-[11px] font-semibold text-norma-text mb-2 flex items-center gap-1.5">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-norma-accent">
-            <circle cx="12" cy="12" r="4" />
-            <path d="M12 2v2" />
-            <path d="M12 20v2" />
-            <path d="m4.93 4.93 1.41 1.41" />
-            <path d="m17.66 17.66 1.41 1.41" />
-            <path d="M2 12h2" />
-            <path d="M20 12h2" />
-            <path d="m6.34 17.66-1.41 1.41" />
-            <path d="m19.07 4.93-1.41 1.41" />
-          </svg>
-          主题
-        </h3>
-        <div className="flex gap-2">
-          {[
-            { id: "dark", label: "暗色", icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg> },
-            { id: "light", label: "亮色", icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg> },
-            { id: "system", label: "跟随系统", icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg> },
-          ].map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTheme(t.id)}
-              className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[11px] transition-colors ${theme === t.id ? "bg-norma-accent/20 border border-norma-accent/50 text-norma-accent" : "bg-white/[0.04] border border-white/[0.06] text-norma-textMuted hover:border-white/[0.1]"}`}
-            >
-              {t.icon}
-              {t.label}
-            </button>
-          ))}
-        </div>
-      </section>
-      <section>
-        <h3 className="text-[11px] font-semibold text-norma-text mb-2 flex items-center gap-1.5">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-norma-accent">
-            <path d="M10 8V6a2 2 0 0 0-2-2" />
-            <path d="M14 8V6a2 2 0 0 1 2-2" />
-            <path d="M12 2a2 2 0 0 0-2 2v2" />
-            <rect width="16" height="12" x="4" y="8" rx="2" />
-          </svg>
-          快捷键
-        </h3>
-        <div className="space-y-2">
-          <div className="flex items-center gap-3 rounded-lg bg-white/[0.03] border border-white/[0.06] px-3 py-2">
-            <span className="text-[10px] text-norma-textMuted flex-1">唤出命令栏</span>
-            <kbd className="px-1.5 py-0.5 rounded bg-white/[0.06] border border-white/[0.08] text-[10px] text-norma-text font-mono">{isMac ? "⌥ Space" : "Ctrl+Shift+Space"}</kbd>
+const BasicTab: React.FC<{ theme: string; setTheme: (t: string) => void; isMac: boolean }> = ({ theme, setTheme, isMac }) => {
+  const [dataDir, setDataDir] = useState<string>("");
+  const [movingDir, setMovingDir] = useState(false);
+  const [dirError, setDirError] = useState("");
+  const [shortcuts, setShortcuts] = useState<{ commandBar: string; newSession: string; hideWindow: string } | null>(null);
+  const [recordingKey, setRecordingKey] = useState<string | null>(null);
+
+  const DEFAULTS = {
+    commandBar: isMac ? 'Option+Space' : 'Ctrl+Shift+Space',
+    newSession: isMac ? 'Cmd+N' : 'Ctrl+N',
+    hideWindow: isMac ? 'Cmd+Shift+W' : 'Ctrl+Shift+W',
+  };
+
+  useEffect(() => {
+    window.electronAPI?.configGet?.("norma:data-dir").then((val) => {
+      setDataDir(val || "");
+    }).catch(() => {});
+    window.electronAPI?.shortcutsGet?.().then(setShortcuts).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!recordingKey) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const parts: string[] = [];
+      if (e.ctrlKey) parts.push('Ctrl');
+      if (e.altKey) parts.push('Alt');
+      if (e.shiftKey) parts.push('Shift');
+      if (e.metaKey) parts.push(isMac ? 'Cmd' : 'Meta');
+      if (['Control', 'Alt', 'Shift', 'Meta'].includes(e.key)) return;
+      if (e.key === 'Escape') { setRecordingKey(null); return; }
+      if (e.key === ' ') parts.push('Space');
+      else parts.push(e.key.length === 1 ? e.key.toUpperCase() : e.key);
+      const combo = parts.join('+');
+      if (shortcuts) {
+        const updated = { ...shortcuts, [recordingKey]: combo };
+        window.electronAPI?.shortcutsSet?.(updated).then(() => setShortcuts(updated));
+      }
+      setRecordingKey(null);
+    };
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => window.removeEventListener('keydown', handleKeyDown, true);
+  }, [recordingKey, shortcuts, isMac]);
+
+  const handleChangeDir = async () => {
+    const selected = await window.electronAPI?.selectDirectory?.();
+    if (!selected) return;
+    setDirError("");
+    setMovingDir(true);
+    try {
+      const result = await window.electronAPI?.moveDataDir?.(selected);
+      if (result?.success) {
+        setDataDir(selected);
+      } else {
+        setDirError(result?.error || "移动数据失败");
+      }
+    } catch (e: any) {
+      setDirError(e.message || "移动数据失败");
+    }
+    setMovingDir(false);
+  };
+
+  const resetShortcut = async (key: string) => {
+    if (!shortcuts) return;
+    const updated = { ...shortcuts, [key]: DEFAULTS[key as keyof typeof DEFAULTS] };
+    await window.electronAPI?.shortcutsSet?.({ [key]: DEFAULTS[key as keyof typeof DEFAULTS] });
+    setShortcuts(updated);
+  };
+
+  const formatShortcut = (combo: string) => {
+    return combo.split('+').map((part, i) => (
+      <kbd key={i} className="px-1.5 py-0.5 rounded bg-white/[0.06] border border-white/[0.08] text-[10px] text-norma-text font-mono">
+        {part.trim()}
+      </kbd>
+    ));
+  };
+
+  const shortcutItems = [
+    { key: 'commandBar' as const, label: '唤出命令栏' },
+    { key: 'newSession' as const, label: '新建会话' },
+    { key: 'hideWindow' as const, label: '显示/隐藏窗口' },
+  ];
+
+  return (
+    <div className="px-5 py-4">
+      <div className="space-y-5 max-w-[400px]">
+        <section>
+          <h3 className="text-[11px] font-semibold text-norma-text mb-2 flex items-center gap-1.5">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-norma-accent">
+              <circle cx="12" cy="12" r="4" />
+              <path d="M12 2v2" />
+              <path d="M12 20v2" />
+              <path d="m4.93 4.93 1.41 1.41" />
+              <path d="m17.66 17.66 1.41 1.41" />
+              <path d="M2 12h2" />
+              <path d="M20 12h2" />
+              <path d="m6.34 17.66-1.41 1.41" />
+              <path d="m19.07 4.93-1.41 1.41" />
+            </svg>
+            主题
+          </h3>
+          <div className="flex gap-2">
+            {[
+              { id: "dark", label: "暗色", icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg> },
+              { id: "light", label: "亮色", icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg> },
+              { id: "system", label: "跟随系统", icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg> },
+            ].map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setTheme(t.id)}
+                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[11px] transition-colors ${theme === t.id ? "bg-norma-accent/20 border border-norma-accent/50 text-norma-accent" : "bg-white/[0.04] border border-white/[0.06] text-norma-textMuted hover:border-white/[0.1]"}`}
+              >
+                {t.icon}
+                {t.label}
+              </button>
+            ))}
           </div>
-          <div className="flex items-center gap-3 rounded-lg bg-white/[0.03] border border-white/[0.06] px-3 py-2">
-            <span className="text-[10px] text-norma-textMuted flex-1">隐藏窗口</span>
-            <kbd className="px-1.5 py-0.5 rounded bg-white/[0.06] border border-white/[0.08] text-[10px] text-norma-text font-mono">Esc</kbd>
+        </section>
+        <section>
+          <h3 className="text-[11px] font-semibold text-norma-text mb-2 flex items-center gap-1.5">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-norma-accent">
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+            </svg>
+            数据目录
+          </h3>
+          <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] px-3 py-2 space-y-2">
+            <div className="text-[10px] text-norma-textMuted font-mono truncate break-all">
+              {dataDir || "默认路径"}
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleChangeDir}
+                disabled={movingDir}
+                className="px-3 py-1 rounded-lg bg-white/[0.06] border border-white/[0.08] text-norma-textMuted text-[11px] hover:bg-white/[0.1] hover:text-norma-text transition-colors disabled:opacity-40"
+              >
+                {movingDir ? "移动中..." : "修改目录"}
+              </button>
+              {dirError && (
+                <span className="text-[10px] text-red-400">{dirError}</span>
+              )}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+        <section>
+          <h3 className="text-[11px] font-semibold text-norma-text mb-2 flex items-center gap-1.5">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-norma-accent">
+              <path d="M10 8V6a2 2 0 0 0-2-2" />
+              <path d="M14 8V6a2 2 0 0 1 2-2" />
+              <path d="M12 2a2 2 0 0 0-2 2v2" />
+              <rect width="16" height="12" x="4" y="8" rx="2" />
+            </svg>
+            快捷键
+          </h3>
+          <div className="space-y-2">
+            {shortcutItems.map((item) => (
+              <div key={item.key} className="flex items-center gap-3 rounded-lg bg-white/[0.03] border border-white/[0.06] px-3 py-2">
+                <span className="text-[10px] text-norma-textMuted flex-1">{item.label}</span>
+                <button
+                  onClick={() => setRecordingKey(item.key)}
+                  className={`flex items-center gap-1 min-w-[80px] justify-center px-2 py-1 rounded-lg transition-colors ${
+                    recordingKey === item.key
+                      ? 'ring-1 ring-norma-accent/50 bg-norma-accent/10'
+                      : 'hover:bg-white/[0.04]'
+                  }`}
+                >
+                  {recordingKey === item.key ? (
+                    <span className="text-[10px] text-norma-accent animate-pulse">按下快捷键...</span>
+                  ) : shortcuts ? (
+                    formatShortcut(shortcuts[item.key])
+                  ) : null}
+                </button>
+                <button
+                  onClick={() => resetShortcut(item.key)}
+                  className="p-1 rounded hover:bg-white/[0.08] text-norma-textDim hover:text-norma-text transition-colors"
+                  title="重置为默认"
+                >
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                    <path d="M3 3v5h5"/>
+                  </svg>
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const AboutTab: React.FC = () => {
   const [versionInfo, setVersionInfo] = useState<{ version: string; electron: string; node: string; chrome: string } | null>(null);
 
   useEffect(() => {
-    (window as any).electronAPI?.getSystemVersion?.().then(setVersionInfo).catch(() => {});
+    window.electronAPI?.getSystemVersion?.().then(setVersionInfo).catch(() => {});
   }, []);
 
   return (
+    <div className="px-5 py-6 flex flex-col items-center">
+      <div className="max-w-[300px] w-full text-center">
+        <div className="mb-4">
+          <svg width="48" height="48" viewBox="0 0 48 48" className="mx-auto">
+            <rect width="48" height="48" rx="12" fill="currentColor" className="text-norma-accent" fillOpacity="0.15" />
+            <text x="24" y="33" textAnchor="middle" fill="currentColor" className="text-norma-accent" fontSize="26" fontWeight="700" fontFamily="system-ui">N</text>
+          </svg>
+        </div>
+        <div className="text-[18px] font-semibold text-norma-text mb-0.5">Norma</div>
+        <div className="text-[11px] text-norma-textDim font-mono">v{versionInfo?.version ?? "—"}</div>
+        <div className="text-[11px] text-norma-textMuted mt-0.5">桌面 AI 助手</div>
+
+        <div className="hairline my-5" />
+
+        <div className="text-left mb-1">
+          <div className="text-[11px] font-semibold text-norma-text mb-2">开发者</div>
+          <button
+            onClick={() => window.electronAPI?.openExternal?.('https://github.com/skye-z')}
+            className="w-full rounded-xl bg-white/[0.03] border border-white/[0.06] px-4 py-3 mb-2 text-left hover:bg-white/[0.06] transition-colors"
+          >
+            <div className="flex items-center gap-2.5">
+              <span className="text-[13px]">🧑‍💻</span>
+              <div>
+                <div className="text-[11px] text-norma-text">Skye</div>
+                <div className="text-[9px] text-norma-textDim">github.com/skye-z</div>
+              </div>
+            </div>
+          </button>
+          <button
+            onClick={() => window.electronAPI?.openExternal?.('https://betax.dev/')}
+            className="w-full rounded-xl bg-white/[0.03] border border-white/[0.06] px-4 py-3 text-left hover:bg-white/[0.06] transition-colors"
+          >
+            <div className="flex items-center gap-2.5">
+              <span className="text-[13px]">🏢</span>
+              <div>
+                <div className="text-[11px] text-norma-text">BetaX Dev Team</div>
+                <div className="text-[9px] text-norma-textDim">betax.dev</div>
+              </div>
+            </div>
+          </button>
+        </div>
+
+        <div className="hairline my-4" />
+
+        <div className="flex items-center justify-center gap-2 flex-wrap">
+          <span className="text-[9px] text-norma-textDim font-mono">Electron {versionInfo?.electron ?? "—"}</span>
+          <span className="text-[9px] text-norma-textDim opacity-40">│</span>
+          <span className="text-[9px] text-norma-textDim font-mono">Node {versionInfo?.node ?? "—"}</span>
+          <span className="text-[9px] text-norma-textDim opacity-40">│</span>
+          <span className="text-[9px] text-norma-textDim font-mono">Chrome {versionInfo?.chrome ?? "—"}</span>
+          <span className="text-[9px] text-norma-textDim opacity-40">│</span>
+          <span className="text-[9px] text-norma-textDim font-mono">Mastra 1.35</span>
+        </div>
+
+        <div className="text-[9px] text-norma-textDim mt-3">© 2024-2026 Skye & BetaX</div>
+      </div>
+    </div>
+  );
+};
+
+interface MemoryConfig {
+  lastMessages: number;
+  semanticRecall: boolean;
+  semanticTopK: number;
+  semanticMessageRange: number;
+  workingMemory: boolean;
+  generateTitle: boolean;
+}
+
+const AdvancedTab: React.FC = () => {
+  const [config, setConfig] = useState<MemoryConfig>({
+    lastMessages: 20,
+    semanticRecall: true,
+    semanticTopK: 3,
+    semanticMessageRange: 2,
+    workingMemory: true,
+    generateTitle: true,
+  });
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    window.electronAPI?.getMemoryConfig?.().then((c) => {
+      if (c) setConfig(c);
+    }).catch(() => {});
+  }, []);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await window.electronAPI?.setMemoryConfig?.(config);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch {}
+    setSaving(false);
+  };
+
+  const Toggle: React.FC<{ value: boolean; onChange: (v: boolean) => void }> = ({ value, onChange }) => (
+    <button
+      onClick={() => onChange(!value)}
+      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors flex-none ${value ? 'bg-norma-accent' : 'bg-white/[0.12]'}`}
+    >
+      <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform ${value ? 'translate-x-[16px]' : 'translate-x-[2px]'}`} />
+    </button>
+  );
+
+  return (
     <div className="px-5 py-4">
-      <div className="space-y-1.5 text-[10px] text-norma-textMuted max-w-[400px]">
-        <div className="flex justify-between"><span>版本</span><span className="text-norma-text font-mono">v{versionInfo?.version ?? "—"}</span></div>
-        <div className="flex justify-between"><span>Electron</span><span className="text-norma-text font-mono">{versionInfo?.electron ?? "—"}</span></div>
-        <div className="flex justify-between"><span>Node.js</span><span className="text-norma-text font-mono">{versionInfo?.node ?? "—"}</span></div>
-        <div className="flex justify-between"><span>Chrome</span><span className="text-norma-text font-mono">{versionInfo?.chrome ?? "—"}</span></div>
+      <div className="space-y-5 max-w-[400px]">
+        <section>
+          <h3 className="text-[11px] font-semibold text-norma-text mb-2 flex items-center gap-1.5">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-norma-accent">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </svg>
+            上下文窗口
+          </h3>
+          <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] px-3 py-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-[10px] text-norma-textMuted">最近消息数</div>
+                <div className="text-[9px] text-norma-textDim">每次对话保留的最近消息数</div>
+              </div>
+              <input
+                type="number"
+                min={5}
+                max={100}
+                value={config.lastMessages}
+                onChange={(e) => setConfig({ ...config, lastMessages: Math.min(100, Math.max(5, parseInt(e.target.value) || 5)) })}
+                className="w-[60px] bg-white/[0.04] border border-white/[0.06] rounded px-2 py-1 text-[11px] text-norma-text text-center font-mono outline-none focus:border-norma-accent/40"
+              />
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <h3 className="text-[11px] font-semibold text-norma-text mb-2 flex items-center gap-1.5">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-norma-accent">
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.3-4.3" />
+            </svg>
+            语义召回
+          </h3>
+          <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] px-3 py-2 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="text-[10px] text-norma-textMuted">启用语义召回</div>
+              <Toggle value={config.semanticRecall} onChange={(v) => setConfig({ ...config, semanticRecall: v })} />
+            </div>
+            {config.semanticRecall && (
+              <div className="space-y-2 pl-2 border-l border-white/[0.06]">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-[10px] text-norma-textMuted">Top K</div>
+                    <div className="text-[9px] text-norma-textDim">检索最相似的 K 条消息</div>
+                  </div>
+                  <input
+                    type="number"
+                    min={1}
+                    max={10}
+                    value={config.semanticTopK}
+                    onChange={(e) => setConfig({ ...config, semanticTopK: Math.min(10, Math.max(1, parseInt(e.target.value) || 1)) })}
+                    className="w-[50px] bg-white/[0.04] border border-white/[0.06] rounded px-2 py-1 text-[11px] text-norma-text text-center font-mono outline-none focus:border-norma-accent/40"
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-[10px] text-norma-textMuted">消息范围</div>
+                    <div className="text-[9px] text-norma-textDim">每条匹配消息前后的上下文范围</div>
+                  </div>
+                  <input
+                    type="number"
+                    min={1}
+                    max={5}
+                    value={config.semanticMessageRange}
+                    onChange={(e) => setConfig({ ...config, semanticMessageRange: Math.min(5, Math.max(1, parseInt(e.target.value) || 1)) })}
+                    className="w-[50px] bg-white/[0.04] border border-white/[0.06] rounded px-2 py-1 text-[11px] text-norma-text text-center font-mono outline-none focus:border-norma-accent/40"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section>
+          <h3 className="text-[11px] font-semibold text-norma-text mb-2 flex items-center gap-1.5">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-norma-accent">
+              <path d="M12 2a8 8 0 0 0-8 8c0 6 8 12 8 12s8-6 8-12a8 8 0 0 0-8-8z" />
+              <circle cx="12" cy="10" r="3" />
+            </svg>
+            工作记忆
+          </h3>
+          <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] px-3 py-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-[10px] text-norma-textMuted">启用工作记忆</div>
+                <div className="text-[9px] text-norma-textDim">Norma 自动记住你的偏好和习惯</div>
+              </div>
+              <Toggle value={config.workingMemory} onChange={(v) => setConfig({ ...config, workingMemory: v })} />
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <h3 className="text-[11px] font-semibold text-norma-text mb-2 flex items-center gap-1.5">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-norma-accent">
+              <path d="M4 7V4h16v3" />
+              <path d="M9 20h6" />
+              <path d="M12 4v16" />
+            </svg>
+            自动生成标题
+          </h3>
+          <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] px-3 py-2">
+            <div className="flex items-center justify-between">
+              <div className="text-[10px] text-norma-textMuted">根据对话内容自动生成会话标题</div>
+              <Toggle value={config.generateTitle} onChange={(v) => setConfig({ ...config, generateTitle: v })} />
+            </div>
+          </div>
+        </section>
+
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="px-4 py-1.5 rounded-lg bg-norma-accent text-white text-[11px] hover:opacity-90 transition-opacity disabled:opacity-40"
+          >
+            {saving ? "保存中..." : "保存"}
+          </button>
+          {saved && (
+            <span className="text-[10px] text-emerald-400 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              已保存
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -651,6 +1009,7 @@ const SettingsPage: React.FC = () => {
 
   const tabs = [
     { id: "basic", label: "基础" },
+    { id: "advanced", label: "高级" },
     { id: "model", label: "模型" },
     { id: "diag", label: "诊断" },
     { id: "about", label: "关于" },
@@ -675,6 +1034,7 @@ const SettingsPage: React.FC = () => {
       </div>
       <div className="flex-1 overflow-y-auto">
         {activeTab === "basic" && <BasicTab theme={theme} setTheme={setTheme} isMac={isMac} />}
+        {activeTab === "advanced" && <AdvancedTab />}
         {activeTab === "model" && <ModelTab />}
         {activeTab === "diag" && <DiagTab />}
         {activeTab === "about" && <AboutTab />}
