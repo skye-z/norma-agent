@@ -12,7 +12,7 @@ import {
 import { MarkdownTextPrimitive } from "@assistant-ui/react-markdown";
 import remarkGfm from "remark-gfm";
 import { MarkdownComponents } from "../../lib/markdown";
-import { lastMetadata } from "../../lib/ipc-chat";
+import { lastMetadata, getMessageMeta } from "../../lib/ipc-chat";
 import {
   ReasoningBlock,
   ToolFallbackDisplay,
@@ -124,15 +124,20 @@ const LoadingIndicator: React.FC = () => {
   );
 };
 
-const ModelNameBadge: React.FC = () => {
-  const [meta, setMeta] = useState(lastMetadata);
+const MessageMetaBadge: React.FC = () => {
+  const message = useMessage();
+  const [liveMeta, setLiveMeta] = useState(lastMetadata);
+  const msgIdx = (message as any).index ?? 0;
+  const storedMeta = getMessageMeta(msgIdx);
+  const meta = storedMeta ?? (liveMeta?.totalStreamMs ? liveMeta : null);
+
   useEffect(() => {
     const id = setInterval(() => {
-      if (lastMetadata !== meta) setMeta(lastMetadata);
+      if (lastMetadata !== liveMeta) setLiveMeta(lastMetadata);
     }, 300);
     return () => clearInterval(id);
-  }, [meta]);
-  const displayName = meta?.displayName || "";
+  }, [liveMeta]);
+
   const fmtTok = (n: number) => {
     if (!n || Number.isNaN(n)) return "";
     return n >= 1000 ? `${(n / 1000).toFixed(1)}K` : String(n);
@@ -141,14 +146,15 @@ const ModelNameBadge: React.FC = () => {
     if (!ms || Number.isNaN(ms)) return "";
     return ms < 1000 ? `${Math.round(ms)}ms` : `${(ms / 1000).toFixed(1)}s`;
   };
-  if (!displayName && !meta?.totalTokens) return null;
+  if (!meta) return null;
+  const modelShort = meta.model ? meta.model.split('/').pop() || meta.model : '';
+  const hasContent = meta.totalStreamMs > 0 || modelShort || (meta.totalTokens ?? 0) > 0;
+  if (!hasContent) return null;
   return (
     <span className="text-[9px] text-norma-textDim font-mono">
-      {meta?.totalStreamMs > 0 && (
-        <span className="mr-1.5">{formatMs(meta.totalStreamMs)}</span>
-      )}
-      {displayName && <span>{displayName}</span>}
-      {meta?.totalTokens > 0 && (
+      {meta.totalStreamMs > 0 && <span className="mr-1.5">{formatMs(meta.totalStreamMs)}</span>}
+      {modelShort && <span>{modelShort}</span>}
+      {(meta.totalTokens ?? 0) > 0 && (
         <>
           <span className="mx-1 text-white/[0.15]">|</span>
           <span>↑{fmtTok(meta.promptTokens)}</span>
@@ -283,7 +289,7 @@ export const AssistantMessage: React.FC = () => {
           </MessagePrimitive.Error>
         </div>
         <div className="flex items-center gap-1 mt-1 px-1">
-          <ModelNameBadge />
+          <MessageMetaBadge />
           <MessageTimingBadge />
           <div className="flex-1" />
           <FeedbackButtons />
