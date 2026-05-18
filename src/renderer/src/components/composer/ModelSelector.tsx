@@ -102,7 +102,7 @@ const ModelSelector: React.FC = () => {
                     modelId: em.modelId,
                     displayName,
                     providerName: prov?.name || "未知",
-                    providerPreset: prov?.presetId || "custom",
+                    providerPreset: prov?.type || prov?.presetId || "custom",
                     providerId: em.providerId,
                   };
                 }));
@@ -142,7 +142,7 @@ const ModelSelector: React.FC = () => {
         const prov = providers.find((p) => p.id === model.providerId);
         if (prov) {
           (window as any).electronAPI?.setActiveModel?.(modelString, {
-            providerType: prov.presetId === "custom" ? "openai" : prov.presetId,
+            providerType: prov.type || (prov.presetId === "custom" ? "openai" : prov.presetId),
             baseUrl: prov.baseUrl,
             apiKey: prov.apiKey,
           });

@@ -30,7 +30,7 @@ function syncActiveModelConfig(force?: boolean) {
     const em = enabled[0];
     const prov = providers.find((p: any) => p.id === em.providerId);
     if (!prov) return;
-    const providerType = prov.presetId === 'custom' ? 'openai' : prov.presetId;
+    const providerType = prov.type || (prov.presetId === 'custom' ? 'openai' : prov.presetId);
     const modelString = `${providerType}/${em.modelId}`;
     (window as any).electronAPI?.setActiveModel?.(modelString, {
       providerType,
