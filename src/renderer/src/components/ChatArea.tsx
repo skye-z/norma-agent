@@ -143,7 +143,8 @@ const ChatAreaInner: React.FC = () => {
   const [isRunning, setIsRunning] = useState(isCurrentlyRunning);
   const prevActiveIdRef = useRef(activeSessionId);
 
-  const showWelcome = activeSessionId === "" && activeNav === "chat";
+  const isNewSession = activeSessionId === "" || !sessions.find(s => s.id === activeSessionId);
+  const showWelcome = isNewSession && activeNav === "chat";
 
   useEffect(() => {
     return onRunningChange(setIsRunning);
