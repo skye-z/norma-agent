@@ -1,16 +1,22 @@
 import React, { useState } from "react";
 
-export function extractErrorMessage(result: unknown): string {
-  if (typeof result === 'string') return result;
+export function extractErrorMessage(result: unknown, _depth = 0): string {
+  if (typeof result === 'string') {
+    if (_depth > 2) return result;
+    try {
+      const parsed = JSON.parse(result);
+      if (typeof parsed === 'object' && parsed !== null) return extractErrorMessage(parsed, _depth + 1);
+    } catch {}
+    return result;
+  }
   if (!result || typeof result !== 'object') return String(result);
+  if (result instanceof Error) return result.message;
   const obj = result as Record<string, unknown>;
   if (typeof obj.message === 'string') return obj.message;
   if (typeof obj.error === 'string') return obj.error;
   if (obj.error && typeof obj.error === 'object') {
-    const err = obj.error as Record<string, unknown>;
-    if (typeof err.message === 'string') return err.message;
+    return extractErrorMessage(obj.error, _depth + 1);
   }
-  if (obj.success === false && typeof obj.message === 'string') return obj.message;
   const { success, timestamp, ...rest } = obj;
   const keys = Object.keys(rest);
   if (keys.length <= 3) {
