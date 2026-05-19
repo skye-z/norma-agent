@@ -128,9 +128,6 @@ const LoadingIndicator: React.FC = () => {
 const MessageMetaBadge: React.FC = () => {
   const message = useMessage();
   const [liveMeta, setLiveMeta] = useState(lastMetadata);
-  const msgIdx = (message as any).index ?? 0;
-  const storedMeta = getMessageMeta(msgIdx);
-  const meta = storedMeta ?? (liveMeta?.totalStreamMs ? liveMeta : null);
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -139,6 +136,8 @@ const MessageMetaBadge: React.FC = () => {
     return () => clearInterval(id);
   }, [liveMeta]);
 
+  const meta = liveMeta?.totalStreamMs ? liveMeta : null;
+  if (!meta) return null;
   const fmtTok = (n: number) => {
     if (!n || Number.isNaN(n)) return "";
     return n >= 1000 ? `${(n / 1000).toFixed(1)}K` : String(n);
@@ -147,7 +146,6 @@ const MessageMetaBadge: React.FC = () => {
     if (!ms || Number.isNaN(ms)) return "";
     return ms < 1000 ? `${Math.round(ms)}ms` : `${(ms / 1000).toFixed(1)}s`;
   };
-  if (!meta) return null;
   const modelDisplay = meta.displayName || (meta.model ? meta.model.split('/').pop() || meta.model : '');
   const hasContent = meta.totalStreamMs > 0 || modelDisplay || (meta.totalTokens ?? 0) > 0;
   if (!hasContent) return null;

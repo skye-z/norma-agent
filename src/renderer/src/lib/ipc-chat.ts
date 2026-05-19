@@ -71,7 +71,6 @@ function notifyUsage(usage: UsageData) {
 }
 
 export function createIpcChatModel(getThreadId?: () => string | undefined) {
-  let msgCounter = 0;
   return {
     async *run({
       messages,
@@ -208,9 +207,8 @@ export function createIpcChatModel(getThreadId?: () => string | undefined) {
           if (item.type === "done") {
             flushPendingText();
             if (lastMetadata) {
-              storeMessageMeta(msgCounter, { ...lastMetadata });
+              storeMessageMeta(messages.length, { ...lastMetadata });
             }
-            msgCounter++;
             break;
           }
 

@@ -14,7 +14,7 @@ export const ReadScreenTool = makeAssistantToolUI({
           <div
             className={`w-1.5 h-1.5 rounded-full ${isRunning ? "bg-amber-400 animate-pulse" : result ? (result.success ? "bg-emerald-400" : "bg-red-400") : "bg-norma-textDim"}`}
           />
-          <span className="font-mono text-norma-textMuted">read_screen</span>
+          <span className="font-mono text-norma-textMuted">屏幕感知</span>
           <span className="text-norma-textDim ml-auto">
             {isRunning
               ? "识别中..."
