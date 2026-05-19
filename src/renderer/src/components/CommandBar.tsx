@@ -94,7 +94,7 @@ const CommandBarInner: React.FC = () => {
         </ComposerPrimitive.Root>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-3 min-h-0 scroll-smooth">
+      <div className="flex-1 overflow-y-auto scrollbar-show px-4 py-3 min-h-0 scroll-smooth">
         <ThreadPrimitive.Messages>
           {() => <CommandBarMessage />}
         </ThreadPrimitive.Messages>

@@ -16,6 +16,13 @@ import { initConfig, getConfig, setConfig } from "./config";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+function getIconPath(): string {
+  if (app.isPackaged) {
+    return path.join(process.resourcesPath, 'logo.png');
+  }
+  return path.join(__dirname, '..', '..', 'resources', 'logo.png');
+}
+
 app.commandLine.appendSwitch("enable-features", "CSSBackdropFilter");
 app.commandLine.appendSwitch("no-sandbox");
 
@@ -76,7 +83,18 @@ if (!gotTheLock) {
 }
 
 function createTray() {
-  const icon = nativeImage.createEmpty();
+  const iconPath = getIconPath();
+  let icon: Electron.NativeImage;
+  try {
+    icon = nativeImage.createFromPath(iconPath);
+    if (process.platform === 'darwin') {
+      icon = icon.resize({ width: 16, height: 16 });
+    } else if (process.platform === 'win32') {
+      icon = icon.resize({ width: 16, height: 16 });
+    }
+  } catch {
+    icon = nativeImage.createEmpty();
+  }
   tray = new Tray(icon);
   tray.setToolTip("Norma Agent");
   tray.setContextMenu(
@@ -119,6 +137,8 @@ function toggleCommandBar() {
   }
 }
 
+const iconPath = getIconPath();
+
 function createWindow() {
   const isMac = process.platform === "darwin";
 
@@ -137,6 +157,7 @@ function createWindow() {
     hasShadow: false,
     skipTaskbar: false,
     show: false,
+    icon: iconPath,
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),
       nodeIntegration: false,

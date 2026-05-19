@@ -80,7 +80,7 @@ const MemoryTab: React.FC = () => {
   const isMemoryEmpty = !workingMemory || workingMemory.trim().length === 0 || workingMemory.trim().startsWith('# User Profile') && !workingMemory.includes('- **');
 
   return (
-    <div className="flex-1 overflow-y-auto px-5 py-4">
+    <div className="flex-1 overflow-y-auto scrollbar-show px-5 py-4">
       {loading ? (
         <div className="flex items-center justify-center py-12">
           <div className="w-4 h-4 border-2 border-norma-accent/30 border-t-norma-accent rounded-full animate-spin" />
@@ -245,7 +245,7 @@ const KnowledgeTab: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto px-5 py-4">
+    <div className="flex-1 overflow-y-auto scrollbar-show px-5 py-4 relative">
       <div className="flex items-center gap-2 mb-4">
         <div className="flex-1 relative">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="absolute left-3 top-1/2 -translate-y-1/2 text-norma-textDim">
@@ -287,35 +287,56 @@ const KnowledgeTab: React.FC = () => {
       </div>
 
       {showUpload && (
-        <div className="mb-4 p-4 rounded-xl bg-white/[0.04] border border-white/[0.08] space-y-2">
-          <div className="text-[11px] text-norma-textMuted mb-1">添加文档</div>
-          <input
-            value={uploadName}
-            onChange={(e) => setUploadName(e.target.value)}
-            placeholder="文档名称"
-            className="w-full bg-white/[0.04] border border-white/[0.06] rounded-lg px-3 py-1.5 text-[11px] text-norma-text placeholder-norma-textDim outline-none focus:border-norma-accent/40"
-          />
-          <textarea
-            value={uploadText}
-            onChange={(e) => setUploadText(e.target.value)}
-            placeholder="粘贴文档内容..."
-            rows={4}
-            className="w-full bg-white/[0.04] border border-white/[0.06] rounded-lg px-3 py-1.5 text-[11px] text-norma-text placeholder-norma-textDim outline-none focus:border-norma-accent/40 resize-none"
-          />
-          <div className="flex items-center gap-2 pt-1">
-            <button
-              onClick={handleIngest}
-              disabled={loading || !uploadName.trim() || !uploadText.trim()}
-              className="px-3 py-1 rounded-lg bg-norma-accent text-white text-[11px] hover:opacity-90 disabled:opacity-50"
-            >
-              添加
-            </button>
-            <button
-              onClick={() => { setShowUpload(false); setUploadName(""); setUploadText(""); }}
-              className="px-3 py-1 rounded-lg bg-white/[0.06] text-norma-textMuted text-[11px] hover:bg-white/[0.1]"
-            >
-              取消
-            </button>
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => { setShowUpload(false); setUploadName(""); setUploadText(""); }}>
+          <div className="w-[480px] max-h-[70vh] rounded-2xl bg-[#1c1c20] border border-white/[0.08] shadow-2xl flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-white/[0.06]">
+              <span className="text-[13px] font-medium text-norma-text flex-1">添加文档到知识库</span>
+              <button
+                onClick={() => { setShowUpload(false); setUploadName(""); setUploadText(""); }}
+                className="p-1 rounded hover:bg-white/[0.06] text-norma-textMuted hover:text-norma-text transition-colors"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto scrollbar-show p-4 space-y-3">
+              <div>
+                <div className="text-[10px] text-norma-textDim mb-1">文档名称</div>
+                <input
+                  value={uploadName}
+                  onChange={(e) => setUploadName(e.target.value)}
+                  placeholder="输入文档名称"
+                  className="w-full bg-white/[0.04] border border-white/[0.06] rounded-lg px-3 py-1.5 text-[11px] text-norma-text placeholder-norma-textDim outline-none focus:border-norma-accent/40"
+                />
+              </div>
+              <div>
+                <div className="text-[10px] text-norma-textDim mb-1">文档内容</div>
+                <textarea
+                  value={uploadText}
+                  onChange={(e) => setUploadText(e.target.value)}
+                  placeholder="粘贴文档内容..."
+                  rows={8}
+                  className="w-full bg-white/[0.04] border border-white/[0.06] rounded-lg px-3 py-1.5 text-[11px] text-norma-text placeholder-norma-textDim outline-none focus:border-norma-accent/40 resize-none"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 px-4 py-3 border-t border-white/[0.06]">
+              <button
+                onClick={() => { setShowUpload(false); setUploadName(""); setUploadText(""); }}
+                className="px-3 py-1.5 rounded-lg bg-white/[0.06] text-norma-textMuted text-[11px] hover:bg-white/[0.1] transition-colors"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleIngest}
+                disabled={loading || !uploadName.trim() || !uploadText.trim()}
+                className="px-4 py-1.5 rounded-lg bg-norma-accent text-white text-[11px] hover:opacity-90 disabled:opacity-50 transition-opacity"
+              >
+                {loading ? "添加中..." : "添加"}
+              </button>
+            </div>
           </div>
         </div>
       )}

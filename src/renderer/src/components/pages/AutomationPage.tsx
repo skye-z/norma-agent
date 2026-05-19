@@ -100,8 +100,8 @@ const AutomationPage: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full overflow-hidden">
-      <div className="flex-1 overflow-y-auto px-5 py-4">
+    <div className="flex-1 flex flex-col h-full overflow-hidden relative">
+      <div className="flex-1 overflow-y-auto scrollbar-show px-5 py-4">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <button
@@ -122,38 +122,64 @@ const AutomationPage: React.FC = () => {
         </div>
 
         {showCreate && (
-          <div className="mb-4 p-4 rounded-xl bg-white/[0.04] border border-white/[0.08] space-y-2">
-            <input
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              placeholder="任务名称"
-              className="w-full bg-white/[0.04] border border-white/[0.06] rounded-lg px-3 py-1.5 text-[11px] text-norma-text placeholder-norma-textDim outline-none focus:border-norma-accent/40"
-            />
-            <input
-              value={newDesc}
-              onChange={(e) => setNewDesc(e.target.value)}
-              placeholder="任务描述"
-              className="w-full bg-white/[0.04] border border-white/[0.06] rounded-lg px-3 py-1.5 text-[11px] text-norma-text placeholder-norma-textDim outline-none focus:border-norma-accent/40"
-            />
-            <input
-              value={newTrigger}
-              onChange={(e) => setNewTrigger(e.target.value)}
-              placeholder="触发条件 (如: 每天 09:00)"
-              className="w-full bg-white/[0.04] border border-white/[0.06] rounded-lg px-3 py-1.5 text-[11px] text-norma-text placeholder-norma-textDim outline-none focus:border-norma-accent/40"
-            />
-            <div className="flex items-center gap-2 pt-1">
-              <button
-                onClick={addAutomation}
-                className="px-3 py-1 rounded-lg bg-norma-accent text-white text-[11px] hover:opacity-90"
-              >
-                创建
-              </button>
-              <button
-                onClick={() => setShowCreate(false)}
-                className="px-3 py-1 rounded-lg bg-white/[0.06] text-norma-textMuted text-[11px] hover:bg-white/[0.1]"
-              >
-                取消
-              </button>
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => { setShowCreate(false); setNewName(""); setNewDesc(""); setNewTrigger(""); }}>
+            <div className="w-[480px] max-h-[70vh] rounded-2xl bg-[#1c1c20] border border-white/[0.08] shadow-2xl flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center gap-2 px-4 py-3 border-b border-white/[0.06]">
+                <span className="text-[13px] font-medium text-norma-text flex-1">新建自动化任务</span>
+                <button
+                  onClick={() => { setShowCreate(false); setNewName(""); setNewDesc(""); setNewTrigger(""); }}
+                  className="p-1 rounded hover:bg-white/[0.06] text-norma-textMuted hover:text-norma-text transition-colors"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto scrollbar-show p-4 space-y-3">
+                <div>
+                  <div className="text-[10px] text-norma-textDim mb-1">任务名称</div>
+                  <input
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    placeholder="输入任务名称"
+                    className="w-full bg-white/[0.04] border border-white/[0.06] rounded-lg px-3 py-1.5 text-[11px] text-norma-text placeholder-norma-textDim outline-none focus:border-norma-accent/40"
+                  />
+                </div>
+                <div>
+                  <div className="text-[10px] text-norma-textDim mb-1">任务描述</div>
+                  <input
+                    value={newDesc}
+                    onChange={(e) => setNewDesc(e.target.value)}
+                    placeholder="描述自动化任务的目标"
+                    className="w-full bg-white/[0.04] border border-white/[0.06] rounded-lg px-3 py-1.5 text-[11px] text-norma-text placeholder-norma-textDim outline-none focus:border-norma-accent/40"
+                  />
+                </div>
+                <div>
+                  <div className="text-[10px] text-norma-textDim mb-1">触发条件</div>
+                  <input
+                    value={newTrigger}
+                    onChange={(e) => setNewTrigger(e.target.value)}
+                    placeholder="如: 每天 09:00, 手动触发"
+                    className="w-full bg-white/[0.04] border border-white/[0.06] rounded-lg px-3 py-1.5 text-[11px] text-norma-text placeholder-norma-textDim outline-none focus:border-norma-accent/40"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 px-4 py-3 border-t border-white/[0.06]">
+                <button
+                  onClick={() => { setShowCreate(false); setNewName(""); setNewDesc(""); setNewTrigger(""); }}
+                  className="px-3 py-1.5 rounded-lg bg-white/[0.06] text-norma-textMuted text-[11px] hover:bg-white/[0.1] transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={addAutomation}
+                  disabled={!newName.trim()}
+                  className="px-4 py-1.5 rounded-lg bg-norma-accent text-white text-[11px] hover:opacity-90 disabled:opacity-50 transition-opacity"
+                >
+                  创建
+                </button>
+              </div>
             </div>
           </div>
         )}

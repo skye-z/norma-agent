@@ -99,6 +99,10 @@
         ]
       },
       {
+        "from": "resources/logo.png",
+        "to": "."
+      },
+      {
         "from": "resources/norma-ocr-macos",
         "to": ".",
         "filter": [

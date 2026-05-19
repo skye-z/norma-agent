@@ -20,6 +20,8 @@ import {
   ImagePartView,
   extractErrorMessage,
   ReadScreenToolInline,
+  PlanBlock,
+  ListWindowsToolInline,
 } from "./parts";
 
 const MessageTimingBadge: React.FC = () => {
@@ -127,6 +129,8 @@ const LoadingIndicator: React.FC = () => {
 
 const MessageMetaBadge: React.FC = () => {
   const message = useMessage();
+  const msgIdx = (message as any).index ?? 0;
+  const storedMeta = getMessageMeta(msgIdx);
   const [liveMeta, setLiveMeta] = useState(lastMetadata);
 
   useEffect(() => {
@@ -136,7 +140,7 @@ const MessageMetaBadge: React.FC = () => {
     return () => clearInterval(id);
   }, [liveMeta]);
 
-  const meta = liveMeta?.totalStreamMs ? liveMeta : null;
+  const meta = liveMeta?.totalStreamMs ? liveMeta : storedMeta;
   if (!meta) return null;
   const fmtTok = (n: number) => {
     if (!n || Number.isNaN(n)) return "";
@@ -272,19 +276,56 @@ export const AssistantMessage: React.FC = () => {
             <LoadingIndicator />
             <MessagePrimitive.Content
               components={{
-                Text: ({ text }) => (
-                  <div className="text-[12px] leading-relaxed break-words overflow-wrap-anywhere">
-                    <MarkdownTextPrimitive
-                      components={MarkdownComponents}
-                      remarkPlugins={[remarkGfm]}
-                    />
-                  </div>
-                ),
+                Text: ({ text }) => {
+                  const planRegex = /<plan>([\s\S]*?)<\/plan>/g;
+                  const segments: { type: 'text' | 'plan'; content: string }[] = [];
+                  let lastIdx = 0;
+                  let m;
+                  while ((m = planRegex.exec(text)) !== null) {
+                    if (m.index > lastIdx) {
+                      segments.push({ type: 'text', content: text.slice(lastIdx, m.index) });
+                    }
+                    segments.push({ type: 'plan', content: m[1].trim() });
+                    lastIdx = m.index + m[0].length;
+                  }
+                  if (lastIdx < text.length) {
+                    segments.push({ type: 'text', content: text.slice(lastIdx) });
+                  }
+                  if (segments.length === 0 || (segments.length === 1 && segments[0].type === 'text')) {
+                    return (
+                      <div className="text-[12px] leading-relaxed break-words overflow-wrap-anywhere">
+                        <MarkdownTextPrimitive
+                          components={MarkdownComponents}
+                          remarkPlugins={[remarkGfm]}
+                          preprocess={(t: string) => t.replace(/<plan>[\s\S]*?<\/plan>/g, '').trim()}
+                        />
+                      </div>
+                    );
+                  }
+                  return (
+                    <>
+                      {segments.map((seg, i) =>
+                        seg.type === 'plan' ? (
+                          <PlanBlock key={i}>{seg.content}</PlanBlock>
+                        ) : (
+                          <div key={i} className="text-[12px] leading-relaxed break-words overflow-wrap-anywhere">
+                            <MarkdownTextPrimitive
+                              components={MarkdownComponents}
+                              remarkPlugins={[remarkGfm]}
+                              preprocess={() => seg.content}
+                            />
+                          </div>
+                        )
+                      )}
+                    </>
+                  );
+                },
                 Reasoning: ({ text }) => <ReasoningBlock text={text} />,
                 tools: {
                   Fallback: ToolFallbackDisplay,
                   by_name: {
                     read_screen: ReadScreenToolInline,
+                    list_windows: ListWindowsToolInline,
                   },
                 },
                 Source: ({ url, title }) => (

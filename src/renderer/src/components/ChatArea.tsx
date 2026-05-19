@@ -9,10 +9,7 @@ import { LeftIsland, type Session } from "./LeftIsland";
 import { WindowControls } from "./WindowControls";
 import { ReadScreenTool } from "./tools/ReadScreenTool";
 import { ExecuteActionTool } from "./tools/ExecuteActionTool";
-import {
-  AutoScrollHelper,
-  WelcomeSuggestions,
-} from "./chat-helpers";
+import { AutoScrollHelper, WelcomeSuggestions } from "./chat-helpers";
 import { ThreadMessage } from "./messages/ThreadMessage";
 import { ComposerPill } from "./composer/ComposerPill";
 import { QueueDisplay } from "./composer/QueueDisplay";
@@ -24,8 +21,17 @@ import { AutomationPage } from "./pages/AutomationPage";
 import { CapabilitiesPage } from "./pages/CapabilitiesPage";
 import { KnowledgePage } from "./pages/KnowledgePage";
 import { SettingsPage } from "./pages/SettingsPage";
-import { useDbState, setActiveThreadId, requestThreadSwitch, onThreadSwitchRequest } from "../lib/shared";
-import { onThreadCreated, onRunningChange, isCurrentlyRunning } from "../lib/ipc-chat";
+import {
+  useDbState,
+  setActiveThreadId,
+  requestThreadSwitch,
+  onThreadSwitchRequest,
+} from "../lib/shared";
+import {
+  onThreadCreated,
+  onRunningChange,
+  isCurrentlyRunning,
+} from "../lib/ipc-chat";
 import { getAssistantRuntime } from "./runtime";
 
 const AutoQueueSender: React.FC = () => {
@@ -61,35 +67,50 @@ const ThreadSwitchHandler: React.FC = () => {
       } else {
         runtime.threads.switchToNewThread();
         try {
-          const mastraMessages = await (window as any).electronAPI?.getThreadMessages?.(req.threadId);
+          const mastraMessages = await (
+            window as any
+          ).electronAPI?.getThreadMessages?.(req.threadId);
           if (mastraMessages && mastraMessages.length > 0) {
-            const messages = mastraMessages.map((m: any) => {
-              let content = m.content;
-              if (content && typeof content === 'object' && Array.isArray(content.parts)) {
-                content = content.parts.map((p: any) => {
-                  if (p.type === 'text') return { type: 'text', text: p.text };
-                  if (p.type === 'tool-invocation') {
-                    const inv = p.toolInvocation ?? {};
-                    const part: any = {
-                      type: 'tool-call',
-                      toolCallId: inv.toolCallId ?? p.toolCallId,
-                      toolName: inv.toolName ?? p.toolName,
-                      args: inv.args ?? p.args ?? {},
-                    };
-                    if (inv.state === 'result' && inv.result !== undefined) {
-                      part.result = inv.result;
-                    }
-                    return part;
-                  }
-                  if (p.type === 'step-start' || p.type === 'reasoning') return null;
-                  return p;
-                }).filter(Boolean);
-              } else if (typeof content === 'string') {
-                content = [{ type: "text", text: content }];
-              }
-              if (!Array.isArray(content)) return null;
-              return { role: m.role, content };
-            }).filter(Boolean);
+            const messages = mastraMessages
+              .map((m: any) => {
+                let content = m.content;
+                if (
+                  content &&
+                  typeof content === "object" &&
+                  Array.isArray(content.parts)
+                ) {
+                  content = content.parts
+                    .map((p: any) => {
+                      if (p.type === "text")
+                        return { type: "text", text: p.text };
+                      if (p.type === "tool-invocation") {
+                        const inv = p.toolInvocation ?? {};
+                        const part: any = {
+                          type: "tool-call",
+                          toolCallId: inv.toolCallId ?? p.toolCallId,
+                          toolName: inv.toolName ?? p.toolName,
+                          args: inv.args ?? p.args ?? {},
+                        };
+                        if (
+                          inv.state === "result" &&
+                          inv.result !== undefined
+                        ) {
+                          part.result = inv.result;
+                        }
+                        return part;
+                      }
+                      if (p.type === "step-start" || p.type === "reasoning")
+                        return null;
+                      return p;
+                    })
+                    .filter(Boolean);
+                } else if (typeof content === "string") {
+                  content = [{ type: "text", text: content }];
+                }
+                if (!Array.isArray(content)) return null;
+                return { role: m.role, content };
+              })
+              .filter(Boolean);
             if (messages.length > 0) {
               runtime.thread.reset(messages);
             }
@@ -119,30 +140,20 @@ function formatTimeAgo(dateStr?: string): string {
 const WelcomeScreen = () => (
   <div className="flex-1 flex flex-col items-center justify-center gap-6">
     <div className="text-center">
-      <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-norma-accentMuted flex items-center justify-center">
-        <svg
-          width="28"
-          height="28"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="hsl(215, 90%, 68%)"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M12 8V4H8" />
-          <rect width="16" height="12" x="4" y="8" rx="2" />
-          <path d="M2 14h2" />
-          <path d="M20 14h2" />
-          <path d="M15 13v2" />
-          <path d="M9 13v2" />
-        </svg>
+      <div className="w-24 h-24 text-center mx-auto mb-4">
+        <img
+          src="./logo.png"
+          alt="Norma"
+          width="120"
+          height="120"
+          className="rounded-2xl"
+        />
       </div>
       <h2 className="text-base font-semibold text-norma-text mb-1.5">
-        欢迎使用 Norma
+        👋 Hi~ 我是 Norma
       </h2>
-      <p className="text-[12px] text-norma-textMuted max-w-[260px]">
-        你的本地智能助手，可以感知屏幕、操控电脑、管理工作流。
+      <p className="text-[12px] text-norma-textMuted max-w-[300px]">
+        你的桌面智能助手，我可以控制你的电脑完成复杂任务
       </p>
     </div>
     <WelcomeSuggestions />
@@ -156,7 +167,8 @@ const ChatAreaInner: React.FC = () => {
   const [isRunning, setIsRunning] = useState(isCurrentlyRunning);
   const prevActiveIdRef = useRef(activeSessionId);
 
-  const isNewSession = activeSessionId === "" || !sessions.find(s => s.id === activeSessionId);
+  const isNewSession =
+    activeSessionId === "" || !sessions.find((s) => s.id === activeSessionId);
   const showWelcome = isNewSession && activeNav === "chat";
 
   useEffect(() => {
@@ -210,10 +222,16 @@ const ChatAreaInner: React.FC = () => {
   }, [sessions, activeSessionId]);
 
   useEffect(() => {
-    if (prevActiveIdRef.current && prevActiveIdRef.current !== activeSessionId && isRunning) {
+    if (
+      prevActiveIdRef.current &&
+      prevActiveIdRef.current !== activeSessionId &&
+      isRunning
+    ) {
       setSessions((prev) =>
         prev.map((s) =>
-          s.id === prevActiveIdRef.current ? { ...s, status: "unread" as const } : s,
+          s.id === prevActiveIdRef.current
+            ? { ...s, status: "unread" as const }
+            : s,
         ),
       );
     }
@@ -222,9 +240,10 @@ const ChatAreaInner: React.FC = () => {
 
   useEffect(() => {
     return onThreadCreated((threadId, title, preview) => {
-      const displayTitle = (!title || title === "新会话") && preview
-        ? preview.slice(0, 30) + (preview.length > 30 ? "..." : "")
-        : (title || "新会话");
+      const displayTitle =
+        (!title || title === "新会话") && preview
+          ? preview.slice(0, 30) + (preview.length > 30 ? "..." : "")
+          : title || "新会话";
       const newSession: Session = {
         id: `thread-${threadId}`,
         title: displayTitle,
@@ -249,18 +268,22 @@ const ChatAreaInner: React.FC = () => {
     requestThreadSwitch({ type: "new" });
   };
 
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
   const handleDeleteSession = async (id: string, confirm?: boolean) => {
     if (!confirm) {
       setSessions((prev) =>
-        prev.map((s) => s.id === id ? { ...s, confirmDelete: true } : s),
+        prev.map((s) => (s.id === id ? { ...s, confirmDelete: true } : s)),
       );
       setTimeout(() => {
         setSessions((prev) =>
-          prev.map((s) => s.id === id ? { ...s, confirmDelete: false } : s),
+          prev.map((s) => (s.id === id ? { ...s, confirmDelete: false } : s)),
         );
       }, 3000);
       return;
     }
+    if (deletingId === id) return;
+    setDeletingId(id);
     const session = sessions.find((s) => s.id === id);
     if (session?.threadId) {
       try {
@@ -271,16 +294,14 @@ const ChatAreaInner: React.FC = () => {
     }
     setSessions((prev) => {
       const next = prev.filter((s) => s.id !== id);
-      if (next.length === 0) {
-        setActiveThreadId(undefined);
-        return next;
-      }
       if (id === activeSessionId) {
-        setActiveSessionId(next[0].id);
-        setActiveThreadId(next[0].threadId);
+        setActiveSessionId("");
+        setActiveThreadId(undefined);
+        requestThreadSwitch({ type: "new" });
       }
       return next;
     });
+    setDeletingId(null);
   };
 
   const handleSwitchSession = (id: string) => {
@@ -291,7 +312,11 @@ const ChatAreaInner: React.FC = () => {
     setActiveThreadId(session.threadId);
     setActiveNav("chat");
     setSessions((prev) =>
-      prev.map((s) => (s.id === id && s.status === "unread" ? { ...s, status: "idle" as const } : s)),
+      prev.map((s) =>
+        s.id === id && s.status === "unread"
+          ? { ...s, status: "idle" as const }
+          : s,
+      ),
     );
 
     if (session.threadId) {
@@ -338,13 +363,13 @@ const ChatAreaInner: React.FC = () => {
             <ThreadPrimitive.Root className="flex-1 flex flex-col min-h-0">
               <AutoQueueSender />
               <ThreadSwitchHandler />
-              <ThreadPrimitive.Viewport className="flex-1 overflow-y-auto px-5 py-3 flex flex-col gap-3 min-h-0 scroll-smooth">
+              <ThreadPrimitive.Viewport className="flex-1 overflow-y-auto scrollbar-show px-5 py-3 flex flex-col gap-3 min-h-0 scroll-smooth">
                 <AutoScrollHelper />
                 {showWelcome && <WelcomeScreen />}
                 <ThreadPrimitive.Messages>
                   {() => <ThreadMessage />}
                 </ThreadPrimitive.Messages>
-                <ThreadPrimitive.ScrollToBottom className="absolute bottom-24 left-1/2 -translate-x-1/2 z-10 w-8 h-8 rounded-full bg-norma-panel border border-norma-border flex items-center justify-center text-norma-textMuted hover:text-norma-text transition-colors shadow-lg disabled:invisible">
+                <ThreadPrimitive.ScrollToBottom className="absolute bottom-24 left-[95%] -translate-x-1/2 z-10 w-8 h-8 rounded-full bg-norma-panel border border-norma-border flex items-center justify-center text-norma-textMuted hover:text-norma-text transition-colors shadow-lg disabled:invisible">
                   <svg
                     width="14"
                     height="14"

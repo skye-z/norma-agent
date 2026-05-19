@@ -80,7 +80,7 @@ export const LeftIsland: React.FC<LeftIslandProps> = ({
 
       <div className="hairline mx-3" />
 
-      <div className="flex-1 overflow-y-auto px-2 py-2 min-h-0">
+      <div className="flex-1 overflow-y-auto scrollbar-show px-2 py-2 min-h-0">
         <div className="flex items-center justify-between px-1 mb-1.5">
           <span className="text-[10px] font-medium text-norma-textMuted uppercase tracking-wider">
             会话历史
@@ -129,12 +129,32 @@ export const LeftIsland: React.FC<LeftIslandProps> = ({
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      onDeleteSession?.(session.id, !session.confirmDelete);
+                      e.preventDefault();
+                      if (session.confirmDelete) {
+                        onDeleteSession?.(session.id, true);
+                      } else {
+                        onDeleteSession?.(session.id, false);
+                      }
                     }}
-                    className={`p-0.5 rounded opacity-0 group-hover:opacity-100 transition-all flex-none ml-1 ${session.confirmDelete ? "opacity-100 bg-red-500/20 text-red-400" : "hover:bg-white/[0.08] text-norma-textDim hover:text-red-400"}`}
+                    onDoubleClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                    }}
+                    className={`p-0.5 rounded transition-all flex-none ml-1 ${
+                      session.confirmDelete
+                        ? "opacity-100 bg-red-500/30 text-red-400 border border-red-500/40"
+                        : "opacity-0 group-hover:opacity-100 hover:bg-white/[0.08] text-norma-textDim hover:text-red-400"
+                    }`}
                     title={session.confirmDelete ? "再次点击确认删除" : "删除会话"}
                   >
-                    <Trash2 className="w-3 h-3" />
+                    {session.confirmDelete ? (
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                      </svg>
+                    ) : (
+                      <Trash2 className="w-3 h-3" />
+                    )}
                   </button>
                 </div>
               </div>

@@ -60,7 +60,7 @@ export const ReadScreenTool = makeAssistantToolUI({
             )}
 
             {ocrResults.length > 0 && (
-              <div className="max-h-48 overflow-y-auto">
+              <div className="max-h-48 overflow-y-auto scrollbar-show">
                 <table className="w-full">
                   <tbody>
                     {ocrResults.slice(0, 20).map((m: any, i: number) => (

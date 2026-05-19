@@ -241,12 +241,7 @@ export const ReadScreenToolInline: React.FC<{
   toolCallId: string;
   argsText: string;
   status?: { type: string };
-}> = ({
-  toolName,
-  args,
-  result,
-  status,
-}) => {
+}> = ({ toolName, args, result, status }) => {
   const isRunning = !result && status?.type !== "completed";
   const [open, setOpen] = useState(false);
   const res = result as any;
@@ -274,9 +269,6 @@ export const ReadScreenToolInline: React.FC<{
           className={`w-1.5 h-1.5 rounded-full ${isRunning ? "bg-amber-400 animate-pulse" : res ? (res.success ? "bg-emerald-400" : "bg-red-400") : "bg-norma-textDim"}`}
         />
         <span className="font-mono text-norma-textMuted">{label}</span>
-        <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
-          OCR
-        </span>
         <span className="text-norma-textDim ml-auto text-[10px]">
           {isRunning
             ? "识别中..."
@@ -308,14 +300,17 @@ export const ReadScreenToolInline: React.FC<{
             <div className="px-3 py-1.5 border-b border-white/[0.04] flex items-center gap-3 text-norma-textDim">
               {summary.window_title && (
                 <span>
-                  窗口: <span className="text-norma-textMuted">{summary.window_title}</span>
+                  窗口:{" "}
+                  <span className="text-norma-textMuted">
+                    {summary.window_title}
+                  </span>
                 </span>
               )}
               <span>{summary.text_count} 个文本元素</span>
             </div>
           )}
           {ocrResults.length > 0 && (
-            <div className="max-h-48 overflow-y-auto">
+            <div className="max-h-48 overflow-y-auto scrollbar-show">
               <table className="w-full">
                 <tbody>
                   {ocrResults.slice(0, 20).map((m: any, i: number) => (
@@ -357,6 +352,95 @@ export const ReadScreenToolInline: React.FC<{
       {open && res && !res.success && (
         <div className="px-3 py-2 text-red-400/80">
           {res.error || res.message || "截图/OCR失败"}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export const ListWindowsToolInline: React.FC<{
+  toolName: string;
+  args: Record<string, unknown>;
+  result?: unknown;
+  isError?: boolean;
+  toolCallId: string;
+  argsText: string;
+  status?: { type: string };
+}> = ({ toolName, args, result, status }) => {
+  const isRunning = !result && status?.type !== "completed";
+  const [open, setOpen] = useState(false);
+  const res = result as any;
+  const windows = res?.windows || [];
+  const label = getToolLabel(toolName);
+
+  return (
+    <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] overflow-hidden text-[11px] my-1">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center gap-2 px-3 py-2 border-b border-white/[0.04] whitespace-nowrap hover:bg-white/[0.02] transition-colors"
+      >
+        <svg
+          className={`w-3 h-3 text-norma-textDim transition-transform ${open ? "rotate-90" : ""}`}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+        >
+          <path d="m9 18 6-6-6-6" />
+        </svg>
+        <div
+          className={`w-1.5 h-1.5 rounded-full ${isRunning ? "bg-amber-400 animate-pulse" : res ? "bg-emerald-400" : "bg-norma-textDim"}`}
+        />
+        <span className="font-mono text-norma-textMuted">{label}</span>
+        <span className="text-norma-textDim ml-auto text-[10px]">
+          {isRunning ? "查询中..." : res ? `${windows.length} 窗口` : "等待中"}
+        </span>
+      </button>
+      {open && isRunning && (
+        <div className="px-3 py-2 text-norma-textDim">正在获取窗口列表...</div>
+      )}
+      {open && res && windows.length > 0 && (
+        <div className="max-h-[200px] overflow-y-auto scrollbar-show">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-white/[0.06] text-norma-textDim text-[9px] uppercase tracking-wider">
+                <th className="px-3 py-1 text-left font-medium">窗口</th>
+                <th className="px-3 py-1 text-left font-medium">进程</th>
+                <th className="px-3 py-1 text-right font-medium">尺寸</th>
+                <th className="px-3 py-1 text-center font-medium">状态</th>
+              </tr>
+            </thead>
+            <tbody>
+              {windows.map((w: any, i: number) => (
+                <tr
+                  key={i}
+                  className={`border-t border-white/[0.03] hover:bg-white/[0.02] ${w.isActive ? "bg-norma-accent/[0.04]" : ""}`}
+                >
+                  <td className="px-3 py-1">
+                    <div className="flex items-center gap-1.5">
+                      {w.isActive && (
+                        <span className="w-1 h-1 rounded-full bg-norma-accent flex-none" />
+                      )}
+                      <span className={`truncate max-w-[160px] ${w.isActive ? "text-norma-text font-medium" : "text-norma-textMuted"}`}>
+                        {w.name}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-3 py-1 text-norma-textDim font-mono text-[10px]">
+                    {w.processName || (w.pid ? `PID:${w.pid}` : "")}
+                  </td>
+                  <td className="px-3 py-1 text-norma-textDim text-right whitespace-nowrap text-[10px]">
+                    {w.bounds ? `${w.bounds.width}×${w.bounds.height}` : "—"}
+                  </td>
+                  <td className="px-3 py-1 text-center">
+                    <span className={`text-[9px] px-1 py-0.5 rounded ${w.isActive ? "bg-norma-accent/20 text-norma-accent" : w.isMinimized ? "bg-white/[0.04] text-norma-textDim" : "bg-white/[0.04] text-norma-textDim"}`}>
+                      {w.isActive ? "活跃" : w.isMinimized ? "最小化" : ""}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
@@ -453,7 +537,7 @@ export const ToolFallbackDisplay: React.FC<{
         </span>
       </button>
       {open && result && (
-        <div className="px-3 py-2 text-norma-text/80 leading-relaxed font-mono whitespace-pre-wrap text-[10px] bg-black/20 max-h-[200px] overflow-y-auto">
+        <div className="px-3 py-2 text-norma-text/80 leading-relaxed font-mono whitespace-pre-wrap text-[10px] bg-black/20 max-h-[200px] overflow-y-auto scrollbar-show">
           {typeof result === "string"
             ? result
             : (result as any)?.text || extractErrorMessage(result)}
@@ -510,7 +594,17 @@ export const FilePartView: React.FC = () => {
         )}
       </div>
       <AttachmentPrimitive.Remove className="text-norma-textDim hover:text-red-400 transition-colors cursor-pointer flex-none">
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
+        <svg
+          width="10"
+          height="10"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+        >
+          <path d="M18 6 6 18" />
+          <path d="m6 6 12 12" />
+        </svg>
       </AttachmentPrimitive.Remove>
     </AttachmentPrimitive.Root>
   );
