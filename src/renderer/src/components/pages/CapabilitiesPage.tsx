@@ -19,7 +19,7 @@ interface TestResult {
 
 interface InputField {
   name: string;
-  type: 'string' | 'boolean' | 'number' | 'enum';
+  type: "string" | "boolean" | "number" | "enum";
   required: boolean;
   description: string;
   defaultVal: any;
@@ -156,19 +156,26 @@ const CapabilitiesPage: React.FC = () => {
   const [disabledTools, setDisabledTools] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    window.electronAPI?.configGet?.("tools:disabled").then((val: string[] | null) => {
-      if (Array.isArray(val)) setDisabledTools(new Set(val));
-    }).catch(() => {});
+    window.electronAPI
+      ?.configGet?.("tools:disabled")
+      .then((val: string[] | null) => {
+        if (Array.isArray(val)) setDisabledTools(new Set(val));
+      })
+      .catch(() => {});
   }, []);
 
-  const toggleTool = useCallback(async (toolId: string) => {
-    const next = new Set(disabledTools);
-    if (next.has(toolId)) next.delete(toolId); else next.add(toolId);
-    setDisabledTools(next);
-    try {
-      await window.electronAPI?.configSet?.("tools:disabled", [...next]);
-    } catch {}
-  }, [disabledTools]);
+  const toggleTool = useCallback(
+    async (toolId: string) => {
+      const next = new Set(disabledTools);
+      if (next.has(toolId)) next.delete(toolId);
+      else next.add(toolId);
+      setDisabledTools(next);
+      try {
+        await window.electronAPI?.configSet?.("tools:disabled", [...next]);
+      } catch {}
+    },
+    [disabledTools],
+  );
 
   useEffect(() => {
     window.electronAPI
@@ -208,7 +215,11 @@ const CapabilitiesPage: React.FC = () => {
   }, []);
 
   const handleTest = useCallback(async (cap: Capability) => {
-    if (!window.electronAPI?.testTool || !window.electronAPI?.getToolInputFields) return;
+    if (
+      !window.electronAPI?.testTool ||
+      !window.electronAPI?.getToolInputFields
+    )
+      return;
     setTestingId(null);
     setTestResult(null);
     setModalTitle(cap.name);
@@ -233,14 +244,19 @@ const CapabilitiesPage: React.FC = () => {
     try {
       const args: Record<string, any> = {};
       for (const f of inputFields) {
-        if (inputValues[f.name] !== undefined && inputValues[f.name] !== '') {
+        if (inputValues[f.name] !== undefined && inputValues[f.name] !== "") {
           args[f.name] = inputValues[f.name];
         }
       }
       const result = await window.electronAPI.testTool(modalToolId, args);
       setTestResult(result);
     } catch (e: any) {
-      setTestResult({ success: false, output: null, duration: 0, error: e.message });
+      setTestResult({
+        success: false,
+        output: null,
+        duration: 0,
+        error: e.message,
+      });
     } finally {
       setTestingId(null);
     }
@@ -285,19 +301,29 @@ const CapabilitiesPage: React.FC = () => {
                   {cap.icon}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <span className="text-[12px] font-medium text-norma-text">{cap.name}</span>
-                  <div className="text-[10px] text-norma-textDim mt-0.5 line-clamp-2">{cap.desc}</div>
+                  <span className="text-[12px] font-medium text-norma-text">
+                    {cap.name}
+                  </span>
+                  <div className="text-[10px] text-norma-textDim mt-0.5 line-clamp-2">
+                    {cap.desc}
+                  </div>
                 </div>
                 <button
                   onClick={() => toggleTool(cap.id)}
                   className={`flex-shrink-0 inline-flex h-4 w-7 items-center rounded-full transition-colors cursor-pointer ${disabledTools.has(cap.id) ? "bg-white/10" : "bg-emerald-500"}`}
                 >
-                  <span className={`inline-block h-3 w-3 rounded-full bg-white transition-transform ${disabledTools.has(cap.id) ? "translate-x-[3px]" : "translate-x-[14px]"}`} />
+                  <span
+                    className={`inline-block h-3 w-3 rounded-full bg-white transition-transform ${disabledTools.has(cap.id) ? "translate-x-[3px]" : "translate-x-[14px]"}`}
+                  />
                 </button>
               </div>
               <div className="flex items-center mt-2">
-                <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/[0.05] text-norma-textDim">{cap.category}</span>
-                <span className="text-[9px] text-norma-textDim/50 font-mono ml-1.5">{cap.id}</span>
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/[0.05] text-norma-textDim">
+                  {cap.category}
+                </span>
+                <span className="text-[9px] text-norma-textDim/50 font-mono ml-1.5">
+                  {cap.id}
+                </span>
                 <button
                   onClick={() => handleTest(cap)}
                   disabled={testingId === cap.id}
@@ -306,7 +332,12 @@ const CapabilitiesPage: React.FC = () => {
                   {testingId === cap.id ? (
                     <span className="w-3 h-3 border-2 border-norma-accent/40 border-t-norma-accent rounded-full animate-spin" />
                   ) : (
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+                    <svg
+                      width="10"
+                      height="10"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                    >
                       <polygon points="5 3 19 12 5 21 5 3" />
                     </svg>
                   )}
@@ -319,20 +350,30 @@ const CapabilitiesPage: React.FC = () => {
       </div>
 
       {showModal && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowModal(false)}>
+        <div
+          className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+          onClick={() => setShowModal(false)}
+        >
           <div
             className="w-[460px] max-h-[80vh] rounded-2xl bg-[#1c1c20] border border-white/[0.08] shadow-2xl flex flex-col overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-2 px-4 py-3 border-b border-white/[0.06]">
               <span className="text-[13px] font-medium text-norma-text flex-1">
-                {modalTitle} — 测试
+                {modalTitle}
               </span>
               <button
                 onClick={() => setShowModal(false)}
                 className="p-1 rounded hover:bg-white/[0.06] text-norma-textMuted hover:text-norma-text transition-colors"
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
                   <line x1="18" y1="6" x2="6" y2="18" />
                   <line x1="6" y1="6" x2="18" y2="18" />
                 </svg>
@@ -340,74 +381,124 @@ const CapabilitiesPage: React.FC = () => {
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {inputFields.length > 0 && (
+              {inputFields.length > 0 ? (
                 <div className="space-y-2.5">
-                  <div className="text-[10px] text-norma-textDim uppercase tracking-wider">输入参数</div>
+                  <div className="text-[10px] text-norma-textDim uppercase tracking-wider">
+                    输入参数
+                  </div>
                   {inputFields.map((field) => (
-                    <div key={field.name}>
-                      <label className="flex items-center gap-1.5 text-[11px] text-norma-text mb-1">
+                    <div key={field.name} className="flex items-center gap-2.5">
+                      <label className="flex items-center gap-1 text-[11px] text-norma-text whitespace-nowrap flex-shrink-0 min-w-[90px]">
                         <span className="font-mono text-norma-accent">{field.name}</span>
                         {field.required && <span className="text-red-400">*</span>}
-                        {field.description && <span className="text-norma-textDim">— {field.description}</span>}
                       </label>
-                      {field.type === 'boolean' ? (
+                      {field.type === "boolean" ? (
                         <button
-                          onClick={() => setInputValues((v) => ({ ...v, [field.name]: !v[field.name] }))}
-                          className={`inline-flex h-5 w-9 items-center rounded-full transition-colors ${inputValues[field.name] ? 'bg-norma-accent' : 'bg-white/10'}`}
+                          onClick={() =>
+                            setInputValues((v) => ({
+                              ...v,
+                              [field.name]: !v[field.name],
+                            }))
+                          }
+                          className={`inline-flex h-5 w-9 items-center rounded-full transition-colors ${inputValues[field.name] ? "bg-norma-accent" : "bg-white/10"}`}
                         >
-                          <span className={`inline-block h-4 w-4 rounded-full bg-white transition-transform ${inputValues[field.name] ? 'translate-x-[18px]' : 'translate-x-[3px]'}`} />
+                          <span
+                            className={`inline-block h-4 w-4 rounded-full bg-white transition-transform ${inputValues[field.name] ? "translate-x-[18px]" : "translate-x-[3px]"}`}
+                          />
                         </button>
-                      ) : field.type === 'enum' && field.enumOptions ? (
+                      ) : field.type === "enum" && field.enumOptions ? (
                         <select
-                          value={inputValues[field.name] ?? ''}
-                          onChange={(e) => setInputValues((v) => ({ ...v, [field.name]: e.target.value }))}
-                          className="w-full rounded-lg bg-white/[0.06] border border-white/[0.08] px-2.5 py-1.5 text-[11px] text-norma-text outline-none focus:border-norma-accent/40"
+                          value={inputValues[field.name] ?? ""}
+                          onChange={(e) =>
+                            setInputValues((v) => ({
+                              ...v,
+                              [field.name]: e.target.value,
+                            }))
+                          }
+                          className="flex-1 rounded-lg bg-white/[0.06] border border-white/[0.08] px-2.5 py-1.5 text-[11px] text-norma-text outline-none focus:border-norma-accent/40"
                         >
                           {field.enumOptions.map((opt) => (
-                            <option key={opt} value={opt}>{opt}</option>
+                            <option key={opt} value={opt}>
+                              {opt}
+                            </option>
                           ))}
                         </select>
                       ) : (
                         <input
-                          type={field.type === 'number' ? 'number' : 'text'}
-                          value={inputValues[field.name] ?? ''}
-                          onChange={(e) => setInputValues((v) => ({ ...v, [field.name]: field.type === 'number' ? Number(e.target.value) : e.target.value }))}
+                          type={field.type === "number" ? "number" : "text"}
+                          value={inputValues[field.name] ?? ""}
+                          onChange={(e) =>
+                            setInputValues((v) => ({
+                              ...v,
+                              [field.name]:
+                                field.type === "number"
+                                  ? Number(e.target.value)
+                                  : e.target.value,
+                            }))
+                          }
                           placeholder={field.description || field.name}
-                          className="w-full rounded-lg bg-white/[0.06] border border-white/[0.08] px-2.5 py-1.5 text-[11px] text-norma-text outline-none focus:border-norma-accent/40 placeholder:text-norma-textDim/50"
+                          className="flex-1 rounded-lg bg-white/[0.06] border border-white/[0.08] px-2.5 py-1.5 text-[11px] text-norma-text outline-none focus:border-norma-accent/40 placeholder:text-norma-textDim/50"
                         />
                       )}
                     </div>
                   ))}
                 </div>
-              )}
-
+              ) : !testingId && !testResult ? (
+                <div className="text-center py-3">
+                  <span className="text-[11px] text-norma-textDim/60">
+                    无需额外参数
+                  </span>
+                </div>
+              ) : null}
               {testingId && (
                 <div className="flex items-center justify-center gap-2 py-4">
                   <div className="w-5 h-5 border-2 border-norma-accent/30 border-t-norma-accent rounded-full animate-spin" />
-                  <span className="text-[11px] text-norma-textMuted">正在执行测试...</span>
+                  <span className="text-[11px] text-norma-textMuted">
+                    正在执行测试...
+                  </span>
                 </div>
               )}
 
               {testResult && (
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
-                    <div className={`w-7 h-7 rounded-full flex items-center justify-center ${testResult.success ? "bg-emerald-500/20" : "bg-red-500/20"}`}>
+                    <div
+                      className={`w-7 h-7 rounded-full flex items-center justify-center ${testResult.success ? "bg-emerald-500/20" : "bg-red-500/20"}`}
+                    >
                       {testResult.success ? (
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth="2.5">
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="#34d399"
+                          strokeWidth="2.5"
+                        >
                           <polyline points="20 6 9 17 4 12" />
                         </svg>
                       ) : (
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2.5">
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="#f87171"
+                          strokeWidth="2.5"
+                        >
                           <line x1="18" y1="6" x2="6" y2="18" />
                           <line x1="6" y1="6" x2="18" y2="18" />
                         </svg>
                       )}
                     </div>
                     <div>
-                      <span className={`text-[12px] font-medium ${testResult.success ? "text-emerald-400" : "text-red-400"}`}>
+                      <span
+                        className={`text-[12px] font-medium ${testResult.success ? "text-emerald-400" : "text-red-400"}`}
+                      >
                         {testResult.success ? "通过" : "失败"}
                       </span>
-                      <span className="text-[10px] text-norma-textDim ml-2">{testResult.duration}ms</span>
+                      <span className="text-[10px] text-norma-textDim ml-2">
+                        {testResult.duration}ms
+                      </span>
                     </div>
                   </div>
 
@@ -419,7 +510,9 @@ const CapabilitiesPage: React.FC = () => {
 
                   {testResult.output && (
                     <div>
-                      <div className="text-[10px] text-norma-textDim mb-1.5 uppercase tracking-wider">输出</div>
+                      <div className="text-[10px] text-norma-textDim mb-1.5 uppercase tracking-wider">
+                        输出
+                      </div>
                       <pre className="rounded-lg bg-white/[0.04] border border-white/[0.06] p-3 text-[10px] text-norma-textMuted font-mono leading-relaxed overflow-auto max-h-[250px] whitespace-pre-wrap break-all">
                         {typeof testResult.output === "string"
                           ? testResult.output
@@ -443,7 +536,12 @@ const CapabilitiesPage: React.FC = () => {
                 disabled={!!testingId}
                 className="px-4 py-1.5 rounded-lg bg-norma-accent text-white text-[11px] hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center gap-1.5"
               >
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
+                <svg
+                  width="11"
+                  height="11"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
                   <polygon points="5 3 19 12 5 21 5 3" />
                 </svg>
                 运行测试

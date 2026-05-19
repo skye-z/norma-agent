@@ -60,7 +60,8 @@ func runOCR(pngData: Data, scale: Double) -> OCRResult {
     let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
     let request = VNRecognizeTextRequest()
     request.recognitionLevel = .accurate
-    request.usesLanguageCorrection = false
+    request.usesLanguageCorrection = true
+    request.recognitionLanguages = ["zh-Hans", "zh-Hant", "en-US"]
 
     do {
         try handler.perform([request])
@@ -105,10 +106,6 @@ func runOCR(pngData: Data, scale: Double) -> OCRResult {
 let scaleArg = CommandLine.arguments.count > 1 ? Double(CommandLine.arguments[1]) ?? 2.0 : 2.0
 
 var pngData = Data()
-let bytesRead = FileHandle.standardInput.readData(ofLength: 10 * 1024 * 1024)
-pngData.append(bytesRead)
-
-// Read remaining data if any
 while true {
     let chunk = FileHandle.standardInput.availableData
     if chunk.isEmpty { break }

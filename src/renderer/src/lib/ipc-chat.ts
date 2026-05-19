@@ -268,7 +268,7 @@ export function createIpcChatModel(getThreadId?: () => string | undefined) {
 
           const content: ContentPart[] = [...interleaved];
           if (fullText.length > flushedTextLen) {
-            content.push({ type: "text", text: fullText });
+            content.push({ type: "text", text: fullText.slice(flushedTextLen) });
           }
           if (content.length > 0) {
             yield { content };

@@ -161,19 +161,21 @@ const ComposerPill: React.FC = () => {
               )}
 
               {isRunning && hasText && (
-                <ComposerPrimitive.Cancel
-                  className="flex-none p-1 rounded-full bg-white/[0.06] text-norma-textDim hover:bg-white/[0.12] hover:text-norma-text transition-all duration-200"
-                  title="停止生成"
-                >
-                  <svg
-                    width="10"
-                    height="10"
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
+                <div className="mb-px">
+                  <ComposerPrimitive.Cancel
+                    className="flex-none p-1 rounded-full bg-white/[0.06] text-norma-textDim hover:bg-white/[0.12] hover:text-norma-text transition-all duration-200"
+                    title="停止生成"
                   >
-                    <rect x="6" y="6" width="12" height="12" rx="2" />
-                  </svg>
-                </ComposerPrimitive.Cancel>
+                    <svg
+                      width="10"
+                      height="10"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                    >
+                      <rect x="6" y="6" width="12" height="12" rx="2" />
+                    </svg>
+                  </ComposerPrimitive.Cancel>
+                </div>
               )}
             </div>
           </ComposerPrimitive.Unstable_TriggerPopoverRoot>

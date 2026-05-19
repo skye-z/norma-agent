@@ -15,17 +15,9 @@ export const ReadScreenTool = makeAssistantToolUI({
             className={`w-1.5 h-1.5 rounded-full ${isRunning ? "bg-amber-400 animate-pulse" : result ? (result.success ? "bg-emerald-400" : "bg-red-400") : "bg-norma-textDim"}`}
           />
           <span className="font-mono text-norma-textMuted">read_screen</span>
-          <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
-            OCR
-          </span>
-          {args?.reason && (
-            <span className="text-norma-textDim truncate max-w-[200px]">
-              {args.reason}
-            </span>
-          )}
           <span className="text-norma-textDim ml-auto">
             {isRunning
-              ? "OCR识别中..."
+              ? "识别中..."
               : result
                 ? result.success
                   ? `${ocrResults.length} 文本`
@@ -36,7 +28,7 @@ export const ReadScreenTool = makeAssistantToolUI({
 
         {isRunning && (
           <div className="px-3 py-2 text-norma-textDim">
-            正在截取屏幕并运行原生 OCR 识别...
+            正在截取屏幕并识别...
           </div>
         )}
 
@@ -57,7 +49,10 @@ export const ReadScreenTool = makeAssistantToolUI({
               <div className="px-3 py-1.5 border-b border-white/[0.04] flex items-center gap-3 text-norma-textDim">
                 {summary.window_title && (
                   <span>
-                    窗口: <span className="text-norma-textMuted">{summary.window_title}</span>
+                    窗口:{" "}
+                    <span className="text-norma-textMuted">
+                      {summary.window_title}
+                    </span>
                   </span>
                 )}
                 <span>{summary.text_count} 个文本元素</span>

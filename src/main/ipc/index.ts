@@ -575,6 +575,7 @@ export async function setupIpc() {
         }
       };
 
+      streamOptions.maxSteps = 20;
       const response = await agent.stream(message, streamOptions);
       let chunkCount = 0;
       let textLen = 0;
@@ -676,6 +677,59 @@ export async function setupIpc() {
       if (chunkCount === 0) {
         appendLog('warn', 'chat', '流式响应为空，无任何 chunk');
       }
+
+      if (textLen < 10 && !abort.signal.aborted) {
+        appendLog('info', 'chat', `流结束时文本过短(textLen=${textLen})，追加总结调用`);
+        try {
+          const { getMemory } = await import('../agent');
+          const memory = getMemory();
+          let summaryMessages: any[] = [];
+          if (memory && threadId) {
+            const thread = await memory.getThreadById(threadId);
+            if (thread) {
+              const msgs = await memory.getMessages({ threadId, resourceId: 'norma-user' });
+              const lastToolResultIdx = msgs.findLastIndex((m: any) => m.role === 'tool');
+              if (lastToolResultIdx >= 0) {
+                summaryMessages = msgs.slice(Math.max(0, lastToolResultIdx - 5)).map((m: any) => ({
+                  role: m.role,
+                  content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content ?? ''),
+                }));
+              }
+            }
+          }
+          if (summaryMessages.length === 0) {
+            summaryMessages = [{ role: 'user', content: typeof message === 'string' ? message : '请总结刚才的操作结果' }];
+          }
+          summaryMessages.push({ role: 'user', content: '请根据以上工具调用结果，用中文简洁总结你看到了什么。直接回答，不要调用任何工具。' });
+
+          const summaryResp = await agent.stream(summaryMessages, { maxSteps: 1, memory: threadId ? { thread: threadId, resource: 'norma-user' } : undefined });
+          for await (const sc of summaryResp.fullStream) {
+            if (abort.signal.aborted) break;
+            if (sc.type === 'text-delta') {
+              const c = sc as any;
+              const text = c.payload?.text ?? c.text ?? '';
+              textLen += text.length;
+              if (firstTokenAt === 0 && text.length > 0) firstTokenAt = Date.now();
+              event.sender.send('chat:chunk', JSON.stringify({ type: 'text-delta', text }));
+            }
+          }
+          let summaryUsage: any = null;
+          try { summaryUsage = await summaryResp.usage; } catch {}
+          if (summaryUsage) {
+            if (usage) {
+              usage.inputTokens = (usage.inputTokens ?? 0) + (summaryUsage.inputTokens ?? 0);
+              usage.outputTokens = (usage.outputTokens ?? 0) + (summaryUsage.outputTokens ?? 0);
+              usage.totalTokens = (usage.totalTokens ?? 0) + (summaryUsage.totalTokens ?? 0);
+            } else {
+              usage = summaryUsage;
+            }
+          }
+          appendLog('info', 'chat', `追加总结完成 textLen=${textLen}`);
+        } catch (summaryErr: any) {
+          appendLog('error', 'chat', `追加总结失败: ${summaryErr.message}`);
+        }
+      }
+
       event.sender.send('chat:done');
     } catch (error) {
       console.error('Agent error:', error);

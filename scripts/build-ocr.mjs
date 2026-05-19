@@ -9,7 +9,7 @@ const resourcesDir = join(root, 'resources');
 if (!existsSync(resourcesDir)) mkdirSync(resourcesDir, { recursive: true });
 
 if (process.platform === 'darwin') {
-  const swiftSource = join(root, 'src', 'main', 'ocr', 'macos-ocr.swift');
+  const swiftSource = join(root, 'src', 'main', 'ocr', 'macos-bridge.swift');
   const exeOutput = join(resourcesDir, 'norma-ocr-macos');
 
   if (!existsSync(swiftSource)) {

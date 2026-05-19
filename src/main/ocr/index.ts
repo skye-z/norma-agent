@@ -1,4 +1,4 @@
-import { execFile } from 'child_process';
+import { execFile, spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -9,6 +9,20 @@ const execFileAsync = promisify(execFile);
 
 const IS_MAC = process.platform === 'darwin';
 const IS_WIN = process.platform === 'win32';
+
+let _bridgeChecked = false;
+
+async function ensureBridgeExecutable(bridgePath: string): Promise<void> {
+  if (_bridgeChecked) return;
+  _bridgeChecked = true;
+  if (IS_MAC && fs.existsSync(bridgePath)) {
+    try {
+      fs.accessSync(bridgePath, fs.constants.X_OK);
+    } catch {
+      try { fs.chmodSync(bridgePath, 0o755); } catch {}
+    }
+  }
+}
 
 function getBridgePath(): string {
   if (IS_MAC) {
@@ -27,6 +41,47 @@ function getBridgePath(): string {
   throw new Error(`OCR not supported on platform: ${process.platform}`);
 }
 
+function spawnOcr(bridgePath: string, args: string[], pngBuffer: Buffer): Promise<OCRResult> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(bridgePath, args, { stdio: ['pipe', 'pipe', 'pipe'] });
+    const stdoutChunks: Buffer[] = [];
+    const stderrChunks: Buffer[] = [];
+
+    child.stdout.on('data', (chunk: Buffer) => stdoutChunks.push(chunk));
+    child.stderr.on('data', (chunk: Buffer) => stderrChunks.push(chunk));
+
+    child.stdin.write(pngBuffer);
+    child.stdin.end();
+
+    const timer = setTimeout(() => {
+      child.kill();
+      reject(new Error('OCR timed out (15s)'));
+    }, 15000);
+
+    child.on('close', (code) => {
+      clearTimeout(timer);
+      const stdout = Buffer.concat(stdoutChunks).toString();
+      const stderr = Buffer.concat(stderrChunks).toString();
+
+      if (code !== 0) {
+        reject(new Error(stderr || `OCR exited with code ${code}`));
+        return;
+      }
+
+      try {
+        resolve(JSON.parse(stdout));
+      } catch (e) {
+        reject(new Error(`OCR output parse error: ${stdout.slice(0, 200)}`));
+      }
+    });
+
+    child.on('error', (err) => {
+      clearTimeout(timer);
+      reject(err);
+    });
+  });
+}
+
 async function runMacOSOCR(pngBuffer: Buffer, scale: number): Promise<OCRResult> {
   const bridgePath = getBridgePath();
 
@@ -34,20 +89,22 @@ async function runMacOSOCR(pngBuffer: Buffer, scale: number): Promise<OCRResult>
     return { success: false, matches: [], error: `OCR bridge not found at ${bridgePath}. Run 'npm run build:ocr' first.` };
   }
 
-  try {
-    const result = await execFileAsync(bridgePath, [String(scale)], {
-      input: pngBuffer,
-      maxBuffer: 50 * 1024 * 1024,
-      timeout: 15000,
-    });
+  await ensureBridgeExecutable(bridgePath);
 
-    return JSON.parse(result.stdout) as OCRResult;
+  try {
+    return await spawnOcr(bridgePath, [String(scale)], pngBuffer);
   } catch (err: any) {
-    const stderr = err.stderr || err.message || '';
-    if (stderr.includes('Vision framework not available')) {
+    const message = err.message || '';
+    if (message.includes('Vision framework not available')) {
       return { success: false, matches: [], error: 'macOS Vision framework not available (requires macOS 10.15+)' };
     }
-    return { success: false, matches: [], error: `macOS OCR bridge failed: ${stderr}` };
+    if (message.includes('EACCES') || message.includes('Permission denied')) {
+      return { success: false, matches: [], error: `OCR bridge permission denied. Try: chmod +x "${bridgePath}"` };
+    }
+    if (message.includes('Bad CPU type')) {
+      return { success: false, matches: [], error: 'OCR bridge is x86_64 only. Install Rosetta 2: softwareupdate --install-rosetta' };
+    }
+    return { success: false, matches: [], error: `macOS OCR bridge failed: ${message}` };
   }
 }
 
@@ -88,7 +145,7 @@ async function runWindowsOCR(pngBuffer: Buffer, scale: number): Promise<OCRResul
 }
 
 export async function runOCR(pngBuffer: Buffer, scale?: number): Promise<OCRResult> {
-  const resolvedScale = scale ?? (IS_MAC ? 2.0 : 1.0);
+  const resolvedScale = scale ?? 1.0;
 
   if (IS_MAC) return runMacOSOCR(pngBuffer, resolvedScale);
   if (IS_WIN) return runWindowsOCR(pngBuffer, resolvedScale);
@@ -126,10 +183,16 @@ export function formatOCRForLLM(matches: TextMatch[], windowTitle: string | null
     return `- "${m.text}" at (${x}, ${y}) bounds: {x:${bx}, y:${by}, w:${bw}, h:${bh}}`;
   });
 
+  const MAX_CHARS = 3000;
+  let result = lines.join('\n');
+  if (result.length > MAX_CHARS) {
+    result = result.slice(0, MAX_CHARS) + `\n... (truncated, showing ${filtered.length} of ${filtered.length} elements)`;
+  }
+
   return [
     `Detected ${filtered.length} text elements. Window: ${windowTitle || 'Unknown'}`,
     'Coordinates are screen points, use directly with execute_action click:',
-    ...lines,
+    result,
   ].join('\n');
 }
 

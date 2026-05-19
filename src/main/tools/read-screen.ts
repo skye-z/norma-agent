@@ -16,38 +16,70 @@ async function ensureScreenshotDir() {
   }
 }
 
-function getNativeResolution() {
+function getDisplayInfo() {
   try {
     const display = screen.getPrimaryDisplay();
-    return { width: Math.max(display.size.width, 1920), height: Math.max(display.size.height, 1080) };
+    const scaleFactor = display.scaleFactor || 1;
+    const logicalW = display.size.width;
+    const logicalH = display.size.height;
+    const nativeWidth = logicalW * scaleFactor;
+    const nativeHeight = logicalH * scaleFactor;
+    const maxDim = 3200;
+    let thumbW = nativeWidth;
+    let thumbH = nativeHeight;
+    if (thumbW > maxDim || thumbH > maxDim) {
+      const ratio = Math.min(maxDim / thumbW, maxDim / thumbH);
+      thumbW = Math.round(thumbW * ratio);
+      thumbH = Math.round(thumbH * ratio);
+    }
+    return {
+      width: Math.max(thumbW, 1920),
+      height: Math.max(thumbH, 1080),
+      scaleFactor,
+    };
   } catch {
-    return { width: 2560, height: 1440 };
+    return { width: 2560, height: 1440, scaleFactor: 1 };
   }
 }
 
-async function captureScreen(targetWindow?: string): Promise<{ pngBuffer: Buffer; sourceName: string }> {
+async function captureScreen(targetWindow?: string): Promise<{ pngBuffer: Buffer; sourceName: string; scaleFactor: number }> {
   await ensureScreenshotDir();
 
-  const res = getNativeResolution();
+  const displayInfo = getDisplayInfo();
   const types = targetWindow ? ['window', 'screen'] : ['screen'];
   const sources = await desktopCapturer.getSources({
     types: types as any,
-    thumbnailSize: { width: res.width, height: res.height },
+    thumbnailSize: { width: displayInfo.width, height: displayInfo.height },
   });
 
   let targetSource = sources[0];
   if (targetWindow) {
     const target = targetWindow.toLowerCase();
-    const match = sources.find(s => s.name.toLowerCase().includes(target));
-    if (match) {
-      targetSource = match;
+
+    // 1) exact ID match (desktopCapturer source.id like "window:12345:0")
+    const idMatch = sources.find(s => s.id === targetWindow || s.id.toLowerCase() === target);
+    if (idMatch) {
+      targetSource = idMatch;
     } else {
-      const words = target.split(/\s+/).filter(w => w.length > 2);
-      const fuzzyMatch = sources.find(s => {
-        const n = s.name.toLowerCase();
-        return words.some(w => n.includes(w));
-      });
-      if (fuzzyMatch) targetSource = fuzzyMatch;
+      // 2) exact name match
+      const nameMatch = sources.find(s => s.name.toLowerCase() === target);
+      if (nameMatch) {
+        targetSource = nameMatch;
+      } else {
+        // 3) partial name match
+        const partialMatch = sources.find(s => s.name.toLowerCase().includes(target));
+        if (partialMatch) {
+          targetSource = partialMatch;
+        } else {
+          // 4) fuzzy word match
+          const words = target.split(/\s+/).filter(w => w.length > 2);
+          const fuzzyMatch = sources.find(s => {
+            const n = s.name.toLowerCase();
+            return words.some(w => n.includes(w));
+          });
+          if (fuzzyMatch) targetSource = fuzzyMatch;
+        }
+      }
     }
   }
 
@@ -56,11 +88,12 @@ async function captureScreen(targetWindow?: string): Promise<{ pngBuffer: Buffer
   }
 
   const pngBuffer = targetSource.thumbnail.toPNG();
-  return { pngBuffer, sourceName: targetSource.name };
+  return { pngBuffer, sourceName: targetSource.name, scaleFactor: displayInfo.scaleFactor };
 }
 
 function filterOcrResults(matches: TextMatch[]): TextMatch[] {
   return matches.filter(m => {
+    if (m.confidence < 0.5) return false;
     if (m.text.trim().length < 2) return false;
     const area = m.bounds.width * m.bounds.height;
     if (area < 20) return false;
@@ -83,7 +116,7 @@ export const readScreenTool = createTool({
       .describe('Why you are capturing the screen (for logging)'),
     targetWindow: z
       .string()
-      .describe('要截取的窗口名称（来自 list_windows 的返回值，支持部分匹配）。必填。全屏 OCR 会产生大量噪声碎片，几乎不可用。先用 list_windows 获取窗口名称，再填入此参数。'),
+      .describe('窗口 ID 或窗口名称（来自 list_windows，优先使用 id 字段，也支持 name 部分匹配）。必填。'),
     includeImage: z
       .boolean()
       .optional()
@@ -119,10 +152,10 @@ export const readScreenTool = createTool({
     appendLog('info', 'ocr', `read_screen called: targetWindow="${targetWindow || '(none)'}" includeImage=${includeImage}`);
 
     try {
-      const { pngBuffer, sourceName } = await captureScreen(targetWindow);
-      appendLog('info', 'ocr', `Captured: source="${sourceName}" size=${pngBuffer.length} bytes`);
+      const { pngBuffer, sourceName, scaleFactor } = await captureScreen(targetWindow);
+      appendLog('info', 'ocr', `Captured: source="${sourceName}" size=${pngBuffer.length} bytes scale=${scaleFactor}`);
 
-      const ocrResult = await runOCR(pngBuffer);
+      const ocrResult = await runOCR(pngBuffer, scaleFactor);
       appendLog('info', 'ocr', `OCR result: success=${ocrResult.success} rawMatches=${ocrResult.matches?.length || 0}`);
 
       if (!ocrResult.success) {

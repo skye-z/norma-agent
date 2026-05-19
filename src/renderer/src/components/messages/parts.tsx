@@ -1,35 +1,42 @@
 import React, { useState } from "react";
 
 export function extractErrorMessage(result: unknown, _depth = 0): string {
-  if (typeof result === 'string') {
+  if (typeof result === "string") {
     if (_depth > 2) return result;
     try {
       const parsed = JSON.parse(result);
-      if (typeof parsed === 'object' && parsed !== null) return extractErrorMessage(parsed, _depth + 1);
+      if (typeof parsed === "object" && parsed !== null)
+        return extractErrorMessage(parsed, _depth + 1);
     } catch {}
     return result;
   }
-  if (!result || typeof result !== 'object') return String(result);
+  if (!result || typeof result !== "object") return String(result);
   if (result instanceof Error) return result.message;
   const obj = result as Record<string, unknown>;
-  if (typeof obj.message === 'string') return obj.message;
-  if (typeof obj.error === 'string') return obj.error;
-  if (obj.error && typeof obj.error === 'object') {
+  if (typeof obj.message === "string") return obj.message;
+  if (typeof obj.error === "string") return obj.error;
+  if (obj.error && typeof obj.error === "object") {
     return extractErrorMessage(obj.error, _depth + 1);
   }
   const { success, timestamp, ...rest } = obj;
   const keys = Object.keys(rest);
   if (keys.length <= 3) {
-    const parts = keys.map(k => {
-      const v = rest[k];
-      if (typeof v === 'string') return v;
-      if (typeof v === 'number') return String(v);
-      if (typeof v === 'boolean') return String(v);
-      return null;
-    }).filter(Boolean);
-    if (parts.length > 0) return parts.join(' | ');
+    const parts = keys
+      .map((k) => {
+        const v = rest[k];
+        if (typeof v === "string") return v;
+        if (typeof v === "number") return String(v);
+        if (typeof v === "boolean") return String(v);
+        return null;
+      })
+      .filter(Boolean);
+    if (parts.length > 0) return parts.join(" | ");
   }
-  try { return JSON.stringify(result, null, 2); } catch { return String(result); }
+  try {
+    return JSON.stringify(result, null, 2);
+  } catch {
+    return String(result);
+  }
 }
 
 import {
@@ -46,14 +53,20 @@ export const MessageMetaDisplay: React.FC = () => {
   const message = useMessage();
   const msgIdx = (message as any).index ?? 0;
   const meta = getMessageMeta(msgIdx) ?? (message as any).metadata?.custom;
-  const hasValidMeta = meta && typeof meta.totalStreamMs === "number" && !Number.isNaN(meta.totalStreamMs) && meta.totalStreamMs > 0;
+  const hasValidMeta =
+    meta &&
+    typeof meta.totalStreamMs === "number" &&
+    !Number.isNaN(meta.totalStreamMs) &&
+    meta.totalStreamMs > 0;
   if (!hasValidMeta) return null;
 
   const formatMs = (ms: number) => {
     if (!ms || Number.isNaN(ms)) return "";
     return ms < 1000 ? `${Math.round(ms)}ms` : `${(ms / 1000).toFixed(1)}s`;
   };
-  const modelShort = meta.model ? meta.model.split('/').pop() || meta.model : '';
+  const modelShort = meta.model
+    ? meta.model.split("/").pop() || meta.model
+    : "";
   const fmtTok = (n: number) => {
     if (!n || Number.isNaN(n)) return "";
     return n >= 1000 ? `${(n / 1000).toFixed(1)}K` : String(n);
@@ -68,29 +81,83 @@ export const MessageMetaDisplay: React.FC = () => {
         {durationText}
       </span>
       <button
-        onClick={(e) => { e.stopPropagation(); setShowInfo(!showInfo); }}
+        onClick={(e) => {
+          e.stopPropagation();
+          setShowInfo(!showInfo);
+        }}
         className="win-btn !w-3.5 !h-3.5"
         title="详细信息"
       >
-        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
+        <svg
+          width="8"
+          height="8"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+        >
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" y1="16" x2="12" y2="12" />
+          <line x1="12" y1="8" x2="12.01" y2="8" />
         </svg>
       </button>
       {showInfo && (
-        <div className="absolute left-0 bottom-full mb-1 rounded-lg bg-[#1a1a1f] border border-white/[0.08] shadow-xl px-3 py-2 z-50 text-[9px] font-mono space-y-1 min-w-[160px]" onClick={(e) => e.stopPropagation()}>
-          {modelShort && <div className="flex justify-between gap-3"><span className="text-norma-textDim">模型</span><span className="text-norma-text">{modelShort}</span></div>}
-          {meta.promptTokens > 0 && !Number.isNaN(meta.promptTokens) && <div className="flex justify-between gap-3"><span className="text-norma-textDim">输入</span><span className="text-norma-text">{fmtTok(meta.promptTokens)}</span></div>}
-          {meta.completionTokens > 0 && !Number.isNaN(meta.completionTokens) && <div className="flex justify-between gap-3"><span className="text-norma-textDim">输出</span><span className="text-norma-text">{fmtTok(meta.completionTokens)}</span></div>}
-          {meta.totalTokens > 0 && !Number.isNaN(meta.totalTokens) && <div className="flex justify-between gap-3"><span className="text-norma-textDim">总计</span><span className="text-norma-text">{fmtTok(meta.totalTokens)}</span></div>}
-          {meta.firstTokenMs > 0 && !Number.isNaN(meta.firstTokenMs) && <div className="flex justify-between gap-3"><span className="text-norma-textDim">首字延迟</span><span className="text-norma-text">{formatMs(meta.firstTokenMs)}</span></div>}
-          <div className="flex justify-between gap-3"><span className="text-norma-textDim">总耗时</span><span className="text-norma-text">{durationText}</span></div>
+        <div
+          className="absolute left-0 bottom-full mb-1 rounded-lg bg-[#1a1a1f] border border-white/[0.08] shadow-xl px-3 py-2 z-50 text-[9px] font-mono space-y-1 min-w-[160px]"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {modelShort && (
+            <div className="flex justify-between gap-3">
+              <span className="text-norma-textDim">模型</span>
+              <span className="text-norma-text">{modelShort}</span>
+            </div>
+          )}
+          {meta.promptTokens > 0 && !Number.isNaN(meta.promptTokens) && (
+            <div className="flex justify-between gap-3">
+              <span className="text-norma-textDim">输入</span>
+              <span className="text-norma-text">
+                {fmtTok(meta.promptTokens)}
+              </span>
+            </div>
+          )}
+          {meta.completionTokens > 0 &&
+            !Number.isNaN(meta.completionTokens) && (
+              <div className="flex justify-between gap-3">
+                <span className="text-norma-textDim">输出</span>
+                <span className="text-norma-text">
+                  {fmtTok(meta.completionTokens)}
+                </span>
+              </div>
+            )}
+          {meta.totalTokens > 0 && !Number.isNaN(meta.totalTokens) && (
+            <div className="flex justify-between gap-3">
+              <span className="text-norma-textDim">总计</span>
+              <span className="text-norma-text">
+                {fmtTok(meta.totalTokens)}
+              </span>
+            </div>
+          )}
+          {meta.firstTokenMs > 0 && !Number.isNaN(meta.firstTokenMs) && (
+            <div className="flex justify-between gap-3">
+              <span className="text-norma-textDim">首字延迟</span>
+              <span className="text-norma-text">
+                {formatMs(meta.firstTokenMs)}
+              </span>
+            </div>
+          )}
+          <div className="flex justify-between gap-3">
+            <span className="text-norma-textDim">总耗时</span>
+            <span className="text-norma-text">{durationText}</span>
+          </div>
         </div>
       )}
     </span>
   );
 };
 
-export const PlanBlock: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const PlanBlock: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [open, setOpen] = useState(true);
   return (
     <div className="rounded-xl bg-white/[0.03] border border-norma-accent/30 overflow-hidden my-2">
@@ -108,7 +175,14 @@ export const PlanBlock: React.FC<{ children: React.ReactNode }> = ({ children })
           <path d="m9 18 6-6-6-6" />
         </svg>
         <span className="flex items-center gap-1.5 font-semibold">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
             <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
           </svg>
           执行计划
@@ -123,10 +197,10 @@ export const PlanBlock: React.FC<{ children: React.ReactNode }> = ({ children })
   );
 };
 
-export const ReasoningBlock: React.FC<{ text: string; isRunning?: boolean }> = ({
-  text,
-  isRunning,
-}) => {
+export const ReasoningBlock: React.FC<{
+  text: string;
+  isRunning?: boolean;
+}> = ({ text, isRunning }) => {
   const [open, setOpen] = useState(false);
   return (
     <div className="rounded-xl bg-white/[0.02] border border-white/[0.04] overflow-hidden">
@@ -181,8 +255,16 @@ export const ToolFallbackDisplay: React.FC<{
   toolUI,
 }) => {
   const isRunning = !result && status?.type !== "completed";
-  const isSubAgent = toolName === "systemAgent" || toolName === "researchAgent" || toolName === "system-agent" || toolName === "research-agent";
-  const displayName = isSubAgent ? (toolName.includes("system") ? "System Agent" : "Research Agent") : toolName;
+  const isSubAgent =
+    toolName === "systemAgent" ||
+    toolName === "researchAgent" ||
+    toolName === "system-agent" ||
+    toolName === "research-agent";
+  const displayName = isSubAgent
+    ? toolName.includes("system")
+      ? "System Agent"
+      : "Research Agent"
+    : toolName;
 
   const label = isSubAgent ? displayName : getToolLabel(toolName);
   const [open, setOpen] = useState(isSubAgent);
@@ -194,18 +276,22 @@ export const ToolFallbackDisplay: React.FC<{
       );
     }
     if (result) {
-      const isError = typeof result === 'object' && (result as any)?.isError;
-      return isError
-        ? <div className="w-1.5 h-1.5 rounded-full bg-red-400 flex-none" />
-        : <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-none" />;
+      const isError = typeof result === "object" && (result as any)?.isError;
+      return isError ? (
+        <div className="w-1.5 h-1.5 rounded-full bg-red-400 flex-none" />
+      ) : (
+        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-none" />
+      );
     }
-    return <div className="w-1.5 h-1.5 rounded-full bg-norma-textDim flex-none" />;
+    return (
+      <div className="w-1.5 h-1.5 rounded-full bg-norma-textDim flex-none" />
+    );
   };
 
   const getStatusText = () => {
     if (isRunning) return "执行中...";
     if (result) {
-      const isError = typeof result === 'object' && (result as any)?.isError;
+      const isError = typeof result === "object" && (result as any)?.isError;
       return isError ? "失败" : "完成";
     }
     return "等待中";
@@ -227,7 +313,9 @@ export const ToolFallbackDisplay: React.FC<{
           <path d="m9 18 6-6-6-6" />
         </svg>
         {getStatusIcon()}
-        <span className={`${isSubAgent ? "font-semibold text-norma-text" : "font-mono text-norma-textMuted"}`}>
+        <span
+          className={`${isSubAgent ? "font-semibold text-norma-text" : "font-mono text-norma-textMuted"}`}
+        >
           {isSubAgent ? `派发: ${displayName}` : label}
         </span>
         <span className="text-norma-textDim ml-auto text-[10px]">
@@ -244,9 +332,18 @@ export const ToolFallbackDisplay: React.FC<{
       {open && isRunning && (
         <div className="px-3 py-2 flex items-center gap-2 text-norma-textDim text-[10px] bg-black/10">
           <div className="flex gap-0.5">
-            <span className="w-1 h-1 rounded-full bg-norma-accent animate-bounce" style={{ animationDelay: '0ms' }} />
-            <span className="w-1 h-1 rounded-full bg-norma-accent animate-bounce" style={{ animationDelay: '150ms' }} />
-            <span className="w-1 h-1 rounded-full bg-norma-accent animate-bounce" style={{ animationDelay: '300ms' }} />
+            <span
+              className="w-1 h-1 rounded-full bg-norma-accent animate-bounce"
+              style={{ animationDelay: "0ms" }}
+            />
+            <span
+              className="w-1 h-1 rounded-full bg-norma-accent animate-bounce"
+              style={{ animationDelay: "150ms" }}
+            />
+            <span
+              className="w-1 h-1 rounded-full bg-norma-accent animate-bounce"
+              style={{ animationDelay: "300ms" }}
+            />
           </div>
           <span>正在执行 {label}...</span>
         </div>
@@ -264,16 +361,36 @@ export const FilePartView: React.FC = () => {
   const file = useMessagePartFile();
   return (
     <AttachmentPrimitive.Root className="flex items-center gap-2 rounded-lg bg-white/[0.03] border border-white/[0.06] px-2.5 py-1.5 text-[10px]">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-norma-accent flex-none">
+      <svg
+        width="12"
+        height="12"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        className="text-norma-accent flex-none"
+      >
         <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
         <path d="M14 2v4a2 2 0 0 0 2 2h4" />
       </svg>
       <div className="flex-1 min-w-0">
         <AttachmentPrimitive.Name className="text-norma-text truncate font-medium block" />
-        {file.mimeType && <div className="text-norma-textDim">{file.mimeType}</div>}
+        {file.mimeType && (
+          <div className="text-norma-textDim">{file.mimeType}</div>
+        )}
       </div>
       <AttachmentPrimitive.Remove className="text-norma-textDim hover:text-red-400 transition-colors cursor-pointer flex-none">
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
+        <svg
+          width="10"
+          height="10"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+        >
+          <path d="M18 6 6 18" />
+          <path d="m6 6 12 12" />
+        </svg>
       </AttachmentPrimitive.Remove>
     </AttachmentPrimitive.Root>
   );
@@ -287,50 +404,49 @@ export const ReadScreenToolInline: React.FC<{
   toolCallId: string;
   argsText: string;
   status?: { type: string };
-}> = ({
-  args,
-  result,
-  status,
-}) => {
+}> = ({ args, result, status }) => {
   const isRunning = !result && status?.type !== "completed";
+  const [open, setOpen] = useState(false);
   const res = result as any;
   const ocrResults = res?.success ? res.ocr_results || [] : [];
   const summary = res?.summary;
   const imageData = res?.image_base64;
 
   return (
-    <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] overflow-hidden text-[11px]">
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-white/[0.04]">
+    <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] overflow-hidden text-[11px] my-1">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center gap-2 px-3 py-2 border-b border-white/[0.04] whitespace-nowrap hover:bg-white/[0.02] transition-colors"
+      >
+        <svg
+          className={`w-3 h-3 text-norma-textDim transition-transform ${open ? "rotate-90" : ""}`}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+        >
+          <path d="m9 18 6-6-6-6" />
+        </svg>
         <div
           className={`w-1.5 h-1.5 rounded-full ${isRunning ? "bg-amber-400 animate-pulse" : res ? (res.success ? "bg-emerald-400" : "bg-red-400") : "bg-norma-textDim"}`}
         />
         <span className="font-mono text-norma-textMuted">read_screen</span>
-        <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
-          OCR
-        </span>
-        {args?.reason && (
-          <span className="text-norma-textDim truncate max-w-[200px]">
-            {String(args.reason)}
-          </span>
-        )}
-        <span className="text-norma-textDim ml-auto">
+        <span className="text-norma-textDim ml-auto text-[10px]">
           {isRunning
-            ? "OCR识别中..."
+            ? "识别中..."
             : res
               ? res.success
                 ? `${ocrResults.length} 文本`
                 : "失败"
               : "等待中"}
         </span>
-      </div>
-
-      {isRunning && (
+      </button>
+      {open && isRunning && (
         <div className="px-3 py-2 text-norma-textDim">
-          正在截取屏幕并运行原生 OCR 识别...
+          正在截取屏幕并识别...
         </div>
       )}
-
-      {res && res.success && (
+      {open && res && res.success && (
         <>
           {imageData && (
             <div className="px-2 py-2">
@@ -347,7 +463,10 @@ export const ReadScreenToolInline: React.FC<{
             <div className="px-3 py-1.5 border-b border-white/[0.04] flex items-center gap-3 text-norma-textDim">
               {summary.window_title && (
                 <span>
-                  窗口: <span className="text-norma-textMuted">{summary.window_title}</span>
+                  窗口:{" "}
+                  <span className="text-norma-textMuted">
+                    {summary.window_title}
+                  </span>
                 </span>
               )}
               <span>{summary.text_count} 个文本元素</span>
@@ -394,8 +513,7 @@ export const ReadScreenToolInline: React.FC<{
           )}
         </>
       )}
-
-      {res && !res.success && (
+      {open && res && !res.success && (
         <div className="px-3 py-2 text-red-400/80">
           {res.error || res.message || "截图/OCR失败"}
         </div>

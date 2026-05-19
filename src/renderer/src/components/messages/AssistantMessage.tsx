@@ -285,7 +285,9 @@ export const AssistantMessage: React.FC = () => {
                 Reasoning: ({ text }) => <ReasoningBlock text={text} />,
                 tools: {
                   Fallback: ToolFallbackDisplay,
-                  read_screen: ReadScreenToolInline,
+                  by_name: {
+                    read_screen: ReadScreenToolInline,
+                  },
                 },
                 Source: ({ url, title }) => (
                   <a

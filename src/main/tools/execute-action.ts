@@ -4,7 +4,8 @@ import { z } from 'zod';
 let _robot: typeof import('@jitsi/robotjs') | null = null;
 async function getRobot() {
   if (!_robot) {
-    _robot = await import('@jitsi/robotjs');
+    const mod = await import('@jitsi/robotjs');
+    _robot = (mod as any).default || mod;
     _robot.setMouseDelay(50);
     _robot.setKeyboardDelay(20);
   }

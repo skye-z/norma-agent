@@ -138,6 +138,7 @@ export async function initAgent(dbDir?: string, defaultModel?: string) {
 - **禁止**不指定 targetWindow 就调用 read_screen（除非用户明确要求"看看我整个屏幕"）
 - **禁止**连续多次 read_screen（每次截屏前先想清楚要看哪个窗口）
 - **禁止**在已知目标窗口的情况下仍然全屏 OCR
+- **禁止**对同一窗口反复 read_screen — 每个窗口最多 OCR 一次，拿到结果后立即分析回答用户
 
 ## 感知优先级（从低成本到高成本）
 
@@ -205,7 +206,13 @@ Timestamp: 2026-05-18T10:30:00Z
 
 ## 输出格式
 用 <plan>...</plan> 标签包裹步骤推理。
-直接回复用户时用中文，简洁友好。`,
+直接回复用户时用中文，简洁友好。
+
+## 输出规则（严格遵守）
+- **禁止**在调用工具前输出解释性文字（如"让我看看..."、"我来帮你..."）
+- 直接调用工具，不要说话
+- 所有工具调用完成后，一次性给出最终结论
+- 最终结论不要重复之前的描述，直接回答用户问题`,
     model: defaultModel || 'openai/gpt-4o-mini',
     tools: { ...baseTools, ...mcpTools },
     memory: _memory,
@@ -352,11 +359,11 @@ export async function getModelList(): Promise<Array<{ id: string; modelId: strin
 
 const TOOL_TEST_DEFAULTS: Record<string, Record<string, any>> = {
   read_screen: { targetWindow: '', includeImage: false },
-  execute_action: { actions: [{ type: 'get_mouse_pos' }] },
+  execute_action: { actions: [{ type: 'mouse', action: 'click', x: 100, y: 100 }] },
   list_windows: {},
-  window_control: { windowTitle: 'norma', action: 'focus' },
-  open_file: { path: process.cwd() },
-  list_directory: { directoryPath: process.cwd() },
+  window_control: { windowTitle: '', action: 'focus' },
+  open_file: { filePath: process.cwd() },
+  list_directory: { dirPath: process.cwd() },
   system_tray: { action: 'list' },
   system_info: {},
 };
@@ -370,34 +377,99 @@ interface ToolInputField {
   enumOptions?: string[];
 }
 
-function extractFields(schema: any): ToolInputField[] {
-  if (!schema || !schema.shape) return [];
-  const entries = Object.entries(schema.shape) as [string, any][];
-  return entries.map(([name, field]) => {
-    const isOptional = field instanceof (field.constructor as any).Optional || field._def?.typeName === 'ZodOptional';
-    const inner = isOptional ? field._def?.innerType || field.unwrap?.() : field;
-    const typeName = inner?._def?.typeName || inner?.constructor?.name || '';
-    let type: ToolInputField['type'] = 'string';
-    let enumOptions: string[] | undefined;
-    if (typeName === 'ZodString') type = 'string';
-    else if (typeName === 'ZodBoolean') type = 'boolean';
-    else if (typeName === 'ZodNumber') type = 'number';
-    else if (typeName === 'ZodEnum' || typeName === 'ZodNativeEnum') {
-      type = 'enum';
-      enumOptions = inner._def?.values || (inner._def?.entries ? Object.values(inner._def.entries) : undefined);
-      if (!enumOptions && typeName === 'ZodNativeEnum') {
-        try { enumOptions = Object.values(inner._def.values); } catch {}
-      }
+function resolveInnerType(field: any): any {
+  let inner = field;
+  for (let i = 0; i < 5; i++) {
+    const tn = inner?._def?.typeName || '';
+    if (tn === 'ZodOptional' || tn === 'ZodNullable') {
+      inner = inner._def?.innerType || inner.unwrap?.() || inner;
+    } else if (tn === 'ZodDefault') {
+      inner = inner._def?.innerType || inner;
+    } else if (tn === 'ZodArray') {
+      inner = inner._def?.type || inner;
+    } else if (tn === 'ZodEffects') {
+      inner = inner._def?.schema || inner;
+    } else {
+      break;
     }
-    return {
-      name,
-      type,
-      required: !isOptional,
-      description: inner?.description || field?.description || '',
-      defaultVal: TOOL_TEST_DEFAULTS[name] ?? (type === 'boolean' ? false : type === 'number' ? 0 : ''),
-      enumOptions,
-    };
-  });
+  }
+  return inner;
+}
+
+function extractFieldsFromZod(field: any, parentName?: string, forceOptional = false): ToolInputField[] {
+  if (!field) return [];
+  const typeName = field._def?.typeName || field.constructor?.name || '';
+
+  if (typeName === 'ZodObject' && field.shape) {
+    return Object.entries(field.shape).flatMap(([name, f]: [string, any]) => extractFieldsFromZod(f, name, false));
+  }
+  if (typeName === 'ZodOptional' || typeName === 'ZodNullable') {
+    return extractFieldsFromZod(field._def?.innerType || field.unwrap?.(), parentName, true);
+  }
+  if (typeName === 'ZodDefault') {
+    return extractFieldsFromZod(field._def?.innerType, parentName, true);
+  }
+  if (typeName === 'ZodEffects') {
+    return extractFieldsFromZod(field._def?.schema, parentName, forceOptional);
+  }
+  if (typeName === 'ZodArray') {
+    const inner = field._def?.type;
+    if (inner) {
+      const innerFields = extractFieldsFromZod(inner, parentName, false);
+      return innerFields;
+    }
+    return [];
+  }
+  if (typeName === 'ZodDiscriminatedUnion') {
+    const options = field._def?.options;
+    if (options && options.length > 0) {
+      return extractFieldsFromZod(options[0], parentName, false);
+    }
+    return [];
+  }
+  if (typeName === 'ZodUnion') {
+    const options = field._def?.options;
+    if (options && options.length > 0) {
+      return extractFieldsFromZod(options[0], parentName, false);
+    }
+    return [];
+  }
+
+  const name = parentName || '';
+  if (!name) return [];
+
+  const isInternalField = ['reason'].includes(name);
+  if (isInternalField) return [];
+
+  let type: ToolInputField['type'] = 'string';
+  let enumOptions: string[] | undefined;
+  if (typeName === 'ZodString') type = 'string';
+  else if (typeName === 'ZodBoolean') type = 'boolean';
+  else if (typeName === 'ZodNumber') type = 'number';
+  else if (typeName === 'ZodEnum' || typeName === 'ZodNativeEnum') {
+    type = 'enum';
+    try {
+      enumOptions = typeName === 'ZodEnum'
+        ? field._def?.values
+        : Object.values(field._def?.values || {});
+    } catch {}
+  } else {
+    return [];
+  }
+
+  return [{
+    name,
+    type,
+    required: !forceOptional,
+    description: field.description || '',
+    defaultVal: TOOL_TEST_DEFAULTS[name] ?? (type === 'boolean' ? false : type === 'number' ? 0 : ''),
+    enumOptions,
+  }];
+}
+
+function extractFields(schema: any): ToolInputField[] {
+  if (!schema) return [];
+  return extractFieldsFromZod(schema);
 }
 
 export function getToolInputFields(toolId: string): ToolInputField[] {
@@ -425,7 +497,7 @@ export async function testTool(toolId: string, userArgs?: Record<string, any>): 
   const mergedArgs = { ...defaultArgs, ...userArgs };
   const start = Date.now();
   try {
-    const result = await (tool as any).execute(defaultArgs);
+    const result = await (tool as any).execute(mergedArgs);
     return { success: true, output: result, duration: Date.now() - start };
   } catch (e: any) {
     return { success: false, output: null, duration: Date.now() - start, error: e.message };
