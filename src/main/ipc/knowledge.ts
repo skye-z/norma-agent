@@ -12,9 +12,7 @@ function logToFile(msg: string) {
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
-const BINARY_EXTENSIONS = new Set([
-  '.pdf', '.docx', '.doc', '.xlsx', '.xls', '.pptx', '.ppt',
-  '.png', '.jpg', '.jpeg', '.gif', '.bmp', '.ico', '.webp', '.tiff',
+const UNSUPPORTED_EXTENSIONS = new Set([
   '.zip', '.rar', '.7z', '.tar', '.gz', '.bz2',
   '.exe', '.dll', '.so', '.dylib',
   '.mp3', '.mp4', '.avi', '.mkv', '.mov', '.wav', '.flac',
@@ -22,9 +20,9 @@ const BINARY_EXTENSIONS = new Set([
   '.sqlite', '.db',
 ]);
 
-function isBinaryFile(filePath: string): boolean {
+function isUnsupportedFile(filePath: string): boolean {
   const ext = path.extname(filePath).toLowerCase();
-  return BINARY_EXTENSIONS.has(ext);
+  return UNSUPPORTED_EXTENSIONS.has(ext);
 }
 
 export function setupKnowledgeIpc() {
@@ -105,7 +103,10 @@ export function setupKnowledgeIpc() {
       const result = await dialog.showOpenDialog(win!, {
         properties: ['openFile', 'multiSelections'],
         filters: [
+          { name: '支持的文件', extensions: ['txt', 'md', 'json', 'csv', 'html', 'xml', 'yaml', 'yml', 'log', 'js', 'ts', 'py', 'java', 'c', 'cpp', 'go', 'rs', 'sh', 'bat', 'sql', 'env', 'ini', 'toml', 'conf', 'pdf', 'docx', 'xlsx', 'xls', 'png', 'jpg', 'jpeg', 'bmp', 'webp'] },
           { name: '文本文件', extensions: ['txt', 'md', 'json', 'csv', 'html', 'xml', 'yaml', 'yml', 'log', 'js', 'ts', 'py', 'java', 'c', 'cpp', 'go', 'rs', 'sh', 'bat', 'sql', 'env', 'ini', 'toml', 'conf'] },
+          { name: '文档文件', extensions: ['pdf', 'docx', 'xlsx', 'xls'] },
+          { name: '图片文件', extensions: ['png', 'jpg', 'jpeg', 'bmp', 'webp'] },
           { name: '所有文件', extensions: ['*'] },
         ],
       });
@@ -130,17 +131,16 @@ export function setupKnowledgeIpc() {
 
   ipcMain.handle('knowledge:ingestFilePath', async (event, { filePath, name, taskId }: { filePath: string; name: string; taskId?: string }) => {
     try {
-      if (isBinaryFile(filePath)) {
-        return { success: false, error: `不支持二进制文件格式 (${path.extname(filePath)})，请导入 .txt, .md, .json, .csv 等文本文件` };
+      if (isUnsupportedFile(filePath)) {
+        return { success: false, error: `不支持此文件格式 (${path.extname(filePath)})` };
       }
+
+      const { parseFile } = await import('../parsers');
       const { ingestDocument } = await import('../knowledge');
-      const text = await fs.readFile(filePath, 'utf-8');
-      
-      // 检测是否读到了乱码（含大量不可打印字符）
-      const sample = text.slice(0, 2000);
-      const nonPrintable = sample.replace(/[\x09\x0A\x0D\x20-\x7E\u00A0-\uFFFF]/g, '');
-      if (nonPrintable.length > sample.length * 0.1) {
-        return { success: false, error: '文件内容无法以文本方式读取，可能为二进制文件' };
+      const text = await parseFile(filePath);
+
+      if (!text || text.trim().length === 0) {
+        return { success: false, error: '文件内容为空' };
       }
 
       const docId = `doc_${Date.now()}_${Math.random().toString(36).slice(2, 8)}_${path.basename(filePath, path.extname(filePath))}`;
