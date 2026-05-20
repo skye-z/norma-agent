@@ -50,7 +50,7 @@ async function checkAndLoadLocalModel() {
   const modelsDir = _dataDir ? path.join(_dataDir, '.models') : '';
   if (!modelsDir) return;
 
-  const modelDir = path.join(modelsDir, LOCAL_MODEL_ID.split('/').pop()!);
+  const modelDir = path.join(modelsDir, LOCAL_MODEL_ID);
   try {
     await fs.promises.access(modelDir);
     console.log(`[Knowledge] Found cached local model at ${modelDir}, auto-loading...`);
@@ -77,7 +77,7 @@ export function getLocalModelStatus(): {
   modelPath: string;
 } {
   const modelsDir = _dataDir ? path.join(_dataDir, '.models') : '';
-  const modelDir = modelsDir ? path.join(modelsDir, LOCAL_MODEL_ID.split('/').pop()!) : '';
+  const modelDir = modelsDir ? path.join(modelsDir, LOCAL_MODEL_ID) : '';
   return {
     ready: _localModelReady,
     downloading: _localModelDownloading,
