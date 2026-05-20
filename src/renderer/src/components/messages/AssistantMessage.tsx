@@ -293,7 +293,7 @@ export const AssistantMessage: React.FC = () => {
                     return (
                       <div className="text-[14px] leading-relaxed break-words overflow-wrap-anywhere">
                         <SimpleMarkdown preprocess={(t: string) => t.replace(/<plan>[\s\S]*?<\/plan>/g, '').trim()}>
-                          {content}
+                          {text}
                         </SimpleMarkdown>
                       </div>
                     );
