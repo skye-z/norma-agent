@@ -559,13 +559,6 @@ const KnowledgeTab: React.FC = () => {
     }
   };
 
-  const handleDelete = async (docId: string) => {
-    try {
-      await window.electronAPI?.knowledgeDelete?.(docId);
-      await fetchDocs();
-    } catch {}
-  };
-
   const handleQuery = async () => {
     if (!queryText.trim()) return;
     setLoading(true);
