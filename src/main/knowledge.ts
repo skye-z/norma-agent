@@ -467,6 +467,14 @@ export async function deleteDocument(docId: string): Promise<boolean> {
   if (!_vector) throw new Error('Knowledge not initialized');
 
   const indexName = getIndexName();
-  await _vector.deleteVectors(indexName, { docId } as any);
-  return true;
+  const client = createClient({ url: _dbUrl });
+  try {
+    await client.execute({
+      sql: `DELETE FROM "${indexName}" WHERE vector_id IN (SELECT vector_id FROM "${indexName}" WHERE metadata LIKE ?)`,
+      args: [`%"docId":"${docId}"%`],
+    });
+    return true;
+  } finally {
+    await client.close();
+  }
 }

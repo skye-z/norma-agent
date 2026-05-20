@@ -1660,23 +1660,6 @@ const KnowledgeSettingsTab: React.FC = () => {
   return (
     <div className="px-5 py-4">
       <div className="space-y-5 max-w-[400px]">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-[13px] font-semibold text-norma-text">
-              知识库配置
-            </h3>
-            <div className="text-[11px] text-norma-textDim mt-0.5">
-              {stats
-                ? `${stats.docCount} 个文档 · ${stats.chunkCount} 个分块`
-                : "加载统计中..."}
-            </div>
-          </div>
-          <Toggle
-            value={settings.enabled}
-            onChange={(v) => updateSettings({ enabled: v })}
-          />
-        </div>
-
         {settings.enabled && (
           <>
             <section>
