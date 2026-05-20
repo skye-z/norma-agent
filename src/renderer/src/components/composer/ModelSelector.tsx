@@ -38,7 +38,7 @@ const MiniCapBadges: React.FC<{ modelId: string }> = ({ modelId }) => {
         </svg>
       )}
       {caps.contextLength > 0 && (
-        <span className="text-[7px] font-mono text-sky-400">{fmtCtx(caps.contextLength)}</span>
+        <span className="text-[9px] font-mono text-sky-400">{fmtCtx(caps.contextLength)}</span>
       )}
     </span>
   );
@@ -164,7 +164,7 @@ const ModelSelector: React.FC = () => {
     <div className="relative flex-none">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] text-norma-textDim hover:text-norma-textMuted hover:bg-white/[0.06] transition-colors"
+        className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] text-norma-textDim hover:text-norma-textMuted hover:bg-white/[0.06] transition-colors"
         title={`当前模型: ${selected.displayName}`}
       >
         <span
@@ -198,7 +198,7 @@ const ModelSelector: React.FC = () => {
               <button
                 key={`${model.providerPreset}-${model.modelId}`}
                 onClick={() => handleSelect(idx)}
-                className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-[11px] hover:bg-white/[0.06] transition-colors ${idx === selectedIdx ? "bg-white/[0.04]" : ""}`}
+                className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-[13px] hover:bg-white/[0.06] transition-colors ${idx === selectedIdx ? "bg-white/[0.04]" : ""}`}
               >
                 <span
                   className="w-2 h-2 rounded-full flex-none"
@@ -216,7 +216,7 @@ const ModelSelector: React.FC = () => {
                     </span>
                     <MiniCapBadges modelId={model.modelId} />
                   </div>
-                  <div className="text-[9px] text-norma-textDim truncate">
+                  <div className="text-[11px] text-norma-textDim truncate">
                     {model.providerName} · <span className="font-mono">{model.modelId}</span>
                   </div>
                 </div>

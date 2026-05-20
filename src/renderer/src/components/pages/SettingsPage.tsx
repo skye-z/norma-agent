@@ -252,7 +252,7 @@ const ModelTab: React.FC = () => {
         {caps.known ? (
           <>
             {caps.vision && (
-              <span className="inline-flex items-center gap-0.5 px-1 py-px rounded bg-violet-500/20 text-violet-300 text-[8px] font-medium">
+              <span className="inline-flex items-center gap-0.5 px-1 py-px rounded bg-violet-500/20 text-violet-300 text-[10px] font-medium">
                 <svg
                   width="7"
                   height="7"
@@ -268,7 +268,7 @@ const ModelTab: React.FC = () => {
               </span>
             )}
             {caps.contextLength > 0 && (
-              <span className="px-1 py-px rounded bg-sky-500/20 text-sky-300 text-[8px] font-mono">
+              <span className="px-1 py-px rounded bg-sky-500/20 text-sky-300 text-[10px] font-mono">
                 {fmtCtx(caps.contextLength)}
               </span>
             )}
@@ -280,7 +280,7 @@ const ModelTab: React.FC = () => {
                 e.stopPropagation();
                 toggleOverrideVision(modelId);
               }}
-              className={`px-1 py-px rounded text-[8px] transition-colors ${caps.vision ? "bg-violet-500/20 text-violet-300" : "bg-white/[0.06] text-norma-textDim"}`}
+              className={`px-1 py-px rounded text-[10px] transition-colors ${caps.vision ? "bg-violet-500/20 text-violet-300" : "bg-white/[0.06] text-norma-textDim"}`}
               title={
                 caps.vision ? "点击标记为不支持视觉" : "点击标记为支持视觉"
               }
@@ -300,7 +300,7 @@ const ModelTab: React.FC = () => {
               }}
               onClick={(e) => e.stopPropagation()}
               placeholder="上下文"
-              className="w-[48px] px-1 py-px rounded bg-white/[0.06] text-[8px] text-norma-textMuted font-mono text-center outline-none border border-white/[0.06] focus:border-sky-500/40"
+              className="w-[48px] px-1 py-px rounded bg-white/[0.06] text-[10px] text-norma-textMuted font-mono text-center outline-none border border-white/[0.06] focus:border-sky-500/40"
             />
           </>
         )}
@@ -336,7 +336,7 @@ const ModelTab: React.FC = () => {
                   backgroundColor: PROVIDER_COLORS[p.presetId] || "#888",
                 }}
               />
-              <span className="text-[11px] text-norma-text truncate flex-1">
+              <span className="text-[13px] text-norma-text truncate flex-1">
                 {p.name}
               </span>
               <button
@@ -361,7 +361,7 @@ const ModelTab: React.FC = () => {
             </div>
           ))}
           {providers.length === 0 && (
-            <div className="text-[10px] text-norma-textDim text-center py-6">
+            <div className="text-[12px] text-norma-textDim text-center py-6">
               尚未添加供应商
             </div>
           )}
@@ -369,7 +369,7 @@ const ModelTab: React.FC = () => {
         <div className="flex-none p-2 border-t border-white/[0.06] relative">
           <button
             onClick={() => setShowAddMenu(!showAddMenu)}
-            className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-norma-accent text-white text-[11px] hover:opacity-90 transition-opacity"
+            className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-norma-accent text-white text-[13px] hover:opacity-90 transition-opacity"
           >
             <svg
               width="10"
@@ -385,13 +385,13 @@ const ModelTab: React.FC = () => {
             添加供应商
           </button>
           {showAddMenu && (
-            <div className="absolute bottom-full left-2 right-2 mb-1 glass-popover py-1.5 px-2 z-50">
-              <div className="grid grid-cols-2 gap-x-2 gap-y-0.5">
+            <div className="absolute bottom-full left-2 right-2 mb-1 glass-popover py-1.5 px-2 z-50 max-h-[280px] overflow-y-auto scrollbar-show">
+              <div className="flex flex-col gap-0.5">
                 {presets.map((preset) => (
                   <button
                     key={preset.id}
                     onClick={() => handleAddProvider(preset)}
-                    className="flex items-center gap-1.5 px-2 py-1.5 text-[10px] text-norma-textMuted hover:bg-white/[0.06] hover:text-norma-text transition-colors text-left rounded-md"
+                    className="flex items-center gap-1.5 px-2 py-1.5 text-[12px] text-norma-textMuted hover:bg-white/[0.06] hover:text-norma-text transition-colors text-left rounded-md"
                   >
                     <div
                       className="w-1.5 h-1.5 rounded-full flex-none"
@@ -421,28 +421,28 @@ const ModelTab: React.FC = () => {
               <input
                 value={selected.name}
                 onChange={(e) => updateProvider({ name: e.target.value })}
-                className={`bg-transparent text-[13px] font-semibold text-norma-text outline-none border-b border-transparent focus:border-norma-accent/40 transition-colors ${selected.presetId === "custom" ? "w-[160px]" : ""}`}
+                className={`bg-transparent text-[15px] font-semibold text-norma-text outline-none border-b border-transparent focus:border-norma-accent/40 transition-colors ${selected.presetId === "custom" ? "w-[160px]" : ""}`}
                 readOnly={selected.presetId !== "custom"}
               />
-              <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/[0.06] text-norma-textDim font-mono">
+              <span className="text-[11px] px-1.5 py-0.5 rounded bg-white/[0.06] text-norma-textDim font-mono">
                 {selected.type}
               </span>
             </div>
 
             <div className="space-y-2">
               <div>
-                <div className="text-[9px] text-norma-textDim mb-1">
+                <div className="text-[11px] text-norma-textDim mb-1">
                   Base URL
                 </div>
                 <input
                   value={selected.baseUrl}
                   onChange={(e) => updateProvider({ baseUrl: e.target.value })}
                   placeholder="https://..."
-                  className="w-full bg-white/[0.04] border border-white/[0.06] rounded-lg px-3 py-1.5 text-[11px] text-norma-text placeholder-norma-textDim outline-none focus:border-norma-accent/40 font-mono"
+                  className="w-full bg-white/[0.04] border border-white/[0.06] rounded-lg px-3 py-1.5 text-[13px] text-norma-text placeholder-norma-textDim outline-none focus:border-norma-accent/40 font-mono"
                 />
               </div>
               <div>
-                <div className="text-[9px] text-norma-textDim mb-1">
+                <div className="text-[11px] text-norma-textDim mb-1">
                   API Key
                 </div>
                 <input
@@ -453,20 +453,20 @@ const ModelTab: React.FC = () => {
                     presets.find((p) => p.id === selected.presetId)?.keyHint ||
                     "API Key"
                   }
-                  className="w-full bg-white/[0.04] border border-white/[0.06] rounded-lg px-3 py-1.5 text-[11px] text-norma-text placeholder-norma-textDim outline-none focus:border-norma-accent/40 font-mono"
+                  className="w-full bg-white/[0.04] border border-white/[0.06] rounded-lg px-3 py-1.5 text-[13px] text-norma-text placeholder-norma-textDim outline-none focus:border-norma-accent/40 font-mono"
                 />
               </div>
               <div className="flex items-center gap-2 pt-1">
                 <button
                   onClick={handleTestConn}
                   disabled={testingConn || !selected.baseUrl}
-                  className="px-3 py-1.5 rounded-lg bg-white/[0.06] border border-white/[0.08] text-norma-textMuted text-[11px] hover:bg-white/[0.1] hover:text-norma-text transition-colors disabled:opacity-40"
+                  className="px-3 py-1.5 rounded-lg bg-white/[0.06] border border-white/[0.08] text-norma-textMuted text-[13px] hover:bg-white/[0.1] hover:text-norma-text transition-colors disabled:opacity-40"
                 >
                   {testingConn ? "测试中..." : "测试连通性"}
                 </button>
                 {connResult && (
                   <span
-                    className={`text-[10px] flex items-center gap-1 ${connResult.success ? "text-emerald-400" : "text-red-400"}`}
+                    className={`text-[12px] flex items-center gap-1 ${connResult.success ? "text-emerald-400" : "text-red-400"}`}
                   >
                     <span
                       className={`w-1.5 h-1.5 rounded-full ${connResult.success ? "bg-emerald-400" : "bg-red-400"}`}
@@ -484,17 +484,17 @@ const ModelTab: React.FC = () => {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-[11px] font-semibold text-norma-text">
+                  <span className="text-[13px] font-semibold text-norma-text">
                     已启用
                   </span>
-                  <span className="text-[9px] text-norma-textDim">
+                  <span className="text-[11px] text-norma-textDim">
                     {enabledForSelected.length} 个模型
                   </span>
                 </div>
                 <button
                   onClick={handleFetchModels}
                   disabled={fetchingModels}
-                  className="px-2.5 py-1 rounded-lg bg-norma-accent text-white text-[10px] hover:opacity-90 transition-opacity disabled:opacity-40"
+                  className="px-2.5 py-1 rounded-lg bg-norma-accent text-white text-[12px] hover:opacity-90 transition-opacity disabled:opacity-40"
                 >
                   {fetchingModels
                     ? "获取中..."
@@ -520,7 +520,7 @@ const ModelTab: React.FC = () => {
                         <div className="w-1.5 h-1.5 rounded-full bg-norma-accent flex-none" />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5">
-                            <span className="text-[11px] text-norma-text truncate">
+                            <span className="text-[13px] text-norma-text truncate">
                               {info?.display_name ||
                                 em.modelId
                                   .replace(/-/g, " ")
@@ -528,26 +528,26 @@ const ModelTab: React.FC = () => {
                             </span>
                             <CapBadges modelId={em.modelId} />
                           </div>
-                          <div className="text-[9px] text-norma-textDim font-mono truncate">
+                          <div className="text-[11px] text-norma-textDim font-mono truncate">
                             {em.modelId}
                           </div>
                         </div>
                         <button
                           onClick={() => toggleModel(em.modelId)}
-                          className="px-1.5 py-0.5 rounded text-[9px] bg-white/[0.06] text-norma-textDim hover:text-red-400 transition-colors flex-none"
+                          className="px-1.5 py-0.5 rounded text-[11px] bg-white/[0.06] text-norma-textDim hover:text-red-400 transition-colors flex-none"
                         >
                           停用
                         </button>
                         <button
                           onClick={() => handleTestModel(em.modelId)}
                           disabled={testing}
-                          className="px-2 py-0.5 rounded text-[9px] bg-white/[0.04] border border-white/[0.06] text-norma-textMuted hover:text-norma-text transition-colors disabled:opacity-40 flex-none"
+                          className="px-2 py-0.5 rounded text-[11px] bg-white/[0.04] border border-white/[0.06] text-norma-textMuted hover:text-norma-text transition-colors disabled:opacity-40 flex-none"
                         >
                           {testing ? "..." : "测试"}
                         </button>
                         {result && (
                           <span
-                            className={`text-[9px] flex items-center gap-0.5 flex-none ${result.success ? "text-emerald-400" : "text-red-400"}`}
+                            className={`text-[11px] flex items-center gap-0.5 flex-none ${result.success ? "text-emerald-400" : "text-red-400"}`}
                           >
                             <span
                               className={`w-1 h-1 rounded-full ${result.success ? "bg-emerald-400" : "bg-red-400"}`}
@@ -562,14 +562,14 @@ const ModelTab: React.FC = () => {
               )}
 
               {fetchError && (
-                <div className="text-[10px] text-red-400 mb-2">
+                <div className="text-[12px] text-red-400 mb-2">
                   {fetchError}
                 </div>
               )}
 
               {notEnabledModels.length > 0 && (
                 <div>
-                  <div className="text-[9px] text-norma-textDim uppercase tracking-wider mb-1">
+                  <div className="text-[11px] text-norma-textDim uppercase tracking-wider mb-1">
                     可用模型
                   </div>
                   <div className="space-y-1 max-h-[240px] overflow-y-auto scrollbar-show">
@@ -583,7 +583,7 @@ const ModelTab: React.FC = () => {
                         >
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1.5">
-                              <span className="text-[11px] text-norma-text truncate">
+                              <span className="text-[13px] text-norma-text truncate">
                                 {model.display_name ||
                                   model.id
                                     .replace(/-/g, " ")
@@ -591,17 +591,17 @@ const ModelTab: React.FC = () => {
                               </span>
                               <CapBadges modelId={model.id} />
                             </div>
-                            <div className="text-[9px] text-norma-textDim font-mono truncate">
+                            <div className="text-[11px] text-norma-textDim font-mono truncate">
                               {model.id}
                             </div>
                           </div>
                           {model.owned_by && (
-                            <span className="text-[9px] text-norma-textDim flex-none">
+                            <span className="text-[11px] text-norma-textDim flex-none">
                               {model.owned_by}
                             </span>
                           )}
                           {model.created && (
-                            <span className="text-[8px] text-norma-textDim font-mono flex-none">
+                            <span className="text-[10px] text-norma-textDim font-mono flex-none">
                               {new Date(
                                 model.created * 1000,
                               ).toLocaleDateString()}
@@ -609,20 +609,20 @@ const ModelTab: React.FC = () => {
                           )}
                           <button
                             onClick={() => toggleModel(model.id)}
-                            className="px-2 py-0.5 rounded text-[9px] bg-norma-accent/20 text-norma-accent hover:bg-norma-accent/30 transition-colors flex-none"
+                            className="px-2 py-0.5 rounded text-[11px] bg-norma-accent/20 text-norma-accent hover:bg-norma-accent/30 transition-colors flex-none"
                           >
                             启用
                           </button>
                           <button
                             onClick={() => handleTestModel(model.id)}
                             disabled={testing}
-                            className="px-2 py-0.5 rounded text-[9px] bg-white/[0.04] border border-white/[0.06] text-norma-textMuted hover:text-norma-text transition-colors disabled:opacity-40 flex-none"
+                            className="px-2 py-0.5 rounded text-[11px] bg-white/[0.04] border border-white/[0.06] text-norma-textMuted hover:text-norma-text transition-colors disabled:opacity-40 flex-none"
                           >
                             {testing ? "..." : "测试"}
                           </button>
                           {result && (
                             <span
-                              className={`text-[9px] flex items-center gap-0.5 flex-none ${result.success ? "text-emerald-400" : "text-red-400"}`}
+                              className={`text-[11px] flex items-center gap-0.5 flex-none ${result.success ? "text-emerald-400" : "text-red-400"}`}
                             >
                               <span
                                 className={`w-1 h-1 rounded-full ${result.success ? "bg-emerald-400" : "bg-red-400"}`}
@@ -638,7 +638,7 @@ const ModelTab: React.FC = () => {
               )}
 
               {!fetchingModels && fetchedModels.length === 0 && !fetchError && (
-                <div className="text-[10px] text-norma-textDim text-center py-4">
+                <div className="text-[12px] text-norma-textDim text-center py-4">
                   点击「获取模型」加载可用模型
                 </div>
               )}
@@ -659,10 +659,10 @@ const ModelTab: React.FC = () => {
               <line x1="8" y1="21" x2="16" y2="21" />
               <line x1="12" y1="17" x2="12" y2="21" />
             </svg>
-            <div className="text-[12px] text-norma-textMuted mb-1">
+            <div className="text-[14px] text-norma-textMuted mb-1">
               选择或添加供应商
             </div>
-            <div className="text-[10px] text-norma-textDim">
+            <div className="text-[12px] text-norma-textDim">
               从左侧选择一个供应商查看详情
             </div>
           </div>
@@ -677,7 +677,7 @@ const BasicTab: React.FC<{
   setTheme: (t: string) => void;
   isMac: boolean;
 }> = ({ theme, setTheme, isMac }) => {
-  const [dataDir, setDataDir] = useState<string>("");
+  const [dataDir, setDataDir] = useState<string>("加载中...");
   const [movingDir, setMovingDir] = useState(false);
   const [dirError, setDirError] = useState("");
   const [shortcuts, setShortcuts] = useState<{
@@ -694,12 +694,12 @@ const BasicTab: React.FC<{
   };
 
   useEffect(() => {
-    window.electronAPI
-      ?.configGet?.("norma:data-dir")
-      .then((val) => {
-        setDataDir(val || "");
-      })
-      .catch(() => {});
+    Promise.all([
+      window.electronAPI?.configGet?.("norma:data-dir"),
+      window.electronAPI?.getDefaultDataDir?.(),
+    ]).then(([customDir, defaultDir]) => {
+      setDataDir((customDir as string) || (defaultDir as string) || "未设置");
+    }).catch(() => setDataDir("未设置"));
     window.electronAPI
       ?.shortcutsGet?.()
       .then(setShortcuts)
@@ -770,7 +770,7 @@ const BasicTab: React.FC<{
     return combo.split("+").map((part, i) => (
       <kbd
         key={i}
-        className="px-1.5 py-0.5 rounded bg-white/[0.06] border border-white/[0.08] text-[10px] text-norma-text font-mono"
+        className="px-1.5 py-0.5 rounded bg-white/[0.06] border border-white/[0.08] text-[12px] text-norma-text font-mono"
       >
         {part.trim()}
       </kbd>
@@ -787,7 +787,7 @@ const BasicTab: React.FC<{
     <div className="px-5 py-4">
       <div className="space-y-5 max-w-[400px]">
         <section>
-          <h3 className="text-[11px] font-semibold text-norma-text mb-2 flex items-center gap-1.5">
+          <h3 className="text-[13px] font-semibold text-norma-text mb-2 flex items-center gap-1.5">
             <svg
               width="12"
               height="12"
@@ -873,7 +873,7 @@ const BasicTab: React.FC<{
               <button
                 key={t.id}
                 onClick={() => setTheme(t.id)}
-                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[11px] transition-colors ${theme === t.id ? "bg-norma-accent/20 border border-norma-accent/50 text-norma-accent" : "bg-white/[0.04] border border-white/[0.06] text-norma-textMuted hover:border-white/[0.1]"}`}
+                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[13px] transition-colors ${theme === t.id ? "bg-norma-accent/20 border border-norma-accent/50 text-norma-accent" : "bg-white/[0.04] border border-white/[0.06] text-norma-textMuted hover:border-white/[0.1]"}`}
               >
                 {t.icon}
                 {t.label}
@@ -882,7 +882,7 @@ const BasicTab: React.FC<{
           </div>
         </section>
         <section>
-          <h3 className="text-[11px] font-semibold text-norma-text mb-2 flex items-center gap-1.5">
+          <h3 className="text-[13px] font-semibold text-norma-text mb-2 flex items-center gap-1.5">
             <svg
               width="12"
               height="12"
@@ -896,26 +896,24 @@ const BasicTab: React.FC<{
             </svg>
             数据目录
           </h3>
-          <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] px-3 py-2 space-y-2">
-            <div className="text-[10px] text-norma-textMuted font-mono truncate break-all">
-              {dataDir || "默认路径"}
+          <div className="flex items-center gap-2 rounded-lg bg-white/[0.03] border border-white/[0.06] px-3 py-2">
+            <div className="flex-1 text-[12px] text-norma-textMuted font-mono truncate break-all min-w-0">
+              {dataDir}
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleChangeDir}
-                disabled={movingDir}
-                className="px-3 py-1 rounded-lg bg-white/[0.06] border border-white/[0.08] text-norma-textMuted text-[11px] hover:bg-white/[0.1] hover:text-norma-text transition-colors disabled:opacity-40"
-              >
-                {movingDir ? "移动中..." : "修改目录"}
-              </button>
-              {dirError && (
-                <span className="text-[10px] text-red-400">{dirError}</span>
-              )}
-            </div>
+            <button
+              onClick={handleChangeDir}
+              disabled={movingDir}
+              className="px-3 py-1 rounded-lg bg-white/[0.06] border border-white/[0.08] text-norma-textMuted text-[12px] hover:bg-white/[0.1] hover:text-norma-text transition-colors disabled:opacity-40 flex-none"
+            >
+              {movingDir ? "移动中..." : "修改"}
+            </button>
+            {dirError && (
+              <span className="text-[11px] text-red-400 flex-none">{dirError}</span>
+            )}
           </div>
         </section>
         <section>
-          <h3 className="text-[11px] font-semibold text-norma-text mb-2 flex items-center gap-1.5">
+          <h3 className="text-[13px] font-semibold text-norma-text mb-2 flex items-center gap-1.5">
             <svg
               width="12"
               height="12"
@@ -938,7 +936,7 @@ const BasicTab: React.FC<{
                 key={item.key}
                 className="flex items-center gap-3 rounded-lg bg-white/[0.03] border border-white/[0.06] px-3 py-2"
               >
-                <span className="text-[10px] text-norma-textMuted flex-1">
+                <span className="text-[12px] text-norma-textMuted flex-1">
                   {item.label}
                 </span>
                 <button
@@ -950,7 +948,7 @@ const BasicTab: React.FC<{
                   }`}
                 >
                   {recordingKey === item.key ? (
-                    <span className="text-[10px] text-norma-accent animate-pulse">
+                    <span className="text-[12px] text-norma-accent animate-pulse">
                       按下快捷键...
                     </span>
                   ) : shortcuts ? (
@@ -1011,10 +1009,10 @@ const AboutTab: React.FC = () => {
             style={{ imageRendering: "auto" }}
           />
         </div>
-        <div className="text-[18px] font-semibold text-norma-text mb-0.5">
+        <div className="text-[20px] font-semibold text-norma-text mb-0.5">
           Norma
         </div>
-        <div className="text-[11px] text-norma-textDim font-mono">
+        <div className="text-[13px] text-norma-textDim font-mono">
           v{versionInfo?.version ?? "—"}
         </div>
         <div className="hairline my-5" />
@@ -1027,10 +1025,10 @@ const AboutTab: React.FC = () => {
             className="w-full rounded-xl bg-white/[0.03] border border-white/[0.06] px-4 py-3 mb-2 text-left hover:bg-white/[0.06] transition-colors"
           >
             <div className="flex items-center gap-2.5">
-              <span className="text-[13px]">🧑‍💻</span>
+              <span className="text-[15px]">🧑‍💻</span>
               <div>
-                <div className="text-[11px] text-norma-text">Skye</div>
-                <div className="text-[9px] text-norma-textDim">
+                <div className="text-[13px] text-norma-text">Skye</div>
+                <div className="text-[11px] text-norma-textDim">
                   github.com/skye-z
                 </div>
               </div>
@@ -1043,12 +1041,12 @@ const AboutTab: React.FC = () => {
             className="w-full rounded-xl bg-white/[0.03] border border-white/[0.06] px-4 py-3 text-left hover:bg-white/[0.06] transition-colors"
           >
             <div className="flex items-center gap-2.5">
-              <span className="text-[13px]">🏢</span>
+              <span className="text-[15px]">🏢</span>
               <div>
-                <div className="text-[11px] text-norma-text">
+                <div className="text-[13px] text-norma-text">
                   BetaX Dev Team
                 </div>
-                <div className="text-[9px] text-norma-textDim">betax.dev</div>
+                <div className="text-[11px] text-norma-textDim">betax.dev</div>
               </div>
             </div>
           </button>
@@ -1057,24 +1055,24 @@ const AboutTab: React.FC = () => {
         <div className="hairline my-4" />
 
         <div className="flex items-center justify-center gap-2 flex-wrap">
-          <span className="text-[9px] text-norma-textDim font-mono">
+          <span className="text-[11px] text-norma-textDim font-mono">
             Electron {versionInfo?.electron ?? "—"}
           </span>
-          <span className="text-[9px] text-norma-textDim opacity-40">│</span>
-          <span className="text-[9px] text-norma-textDim font-mono">
+          <span className="text-[11px] text-norma-textDim opacity-40">│</span>
+          <span className="text-[11px] text-norma-textDim font-mono">
             Node {versionInfo?.node ?? "—"}
           </span>
-          <span className="text-[9px] text-norma-textDim opacity-40">│</span>
-          <span className="text-[9px] text-norma-textDim font-mono">
+          <span className="text-[11px] text-norma-textDim opacity-40">│</span>
+          <span className="text-[11px] text-norma-textDim font-mono">
             Chrome {versionInfo?.chrome ?? "—"}
           </span>
-          <span className="text-[9px] text-norma-textDim opacity-40">│</span>
-          <span className="text-[9px] text-norma-textDim font-mono">
+          <span className="text-[11px] text-norma-textDim opacity-40">│</span>
+          <span className="text-[11px] text-norma-textDim font-mono">
             Mastra 1.35
           </span>
         </div>
 
-        <div className="text-[9px] text-norma-textDim mt-3">
+        <div className="text-[11px] text-norma-textDim mt-3">
           © 2024-2026 Skye & BetaX
         </div>
       </div>
@@ -1091,114 +1089,132 @@ interface MemoryConfig {
   generateTitle: boolean;
   compressAlgorithm: "sliding" | "observational" | "hybrid";
   compressThreshold: number;
+  systemPrompt: string;
+  maxSteps: number;
+  temperature: number;
+  knowledgeAutoRetrieve: boolean;
+  knowledgeTopK: number;
+  knowledgeScoreThreshold: number;
 }
 
-const AdvancedTab: React.FC = () => {
-  const [config, setConfig] = useState<MemoryConfig>({
-    lastMessages: 20,
-    semanticRecall: true,
-    semanticTopK: 3,
-    semanticMessageRange: 2,
-    workingMemory: true,
-    generateTitle: true,
-    compressThreshold: 80,
-    compressAlgorithm: "sliding" as const,
-  });
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+const DEFAULT_MEMORY_CONFIG: MemoryConfig = {
+  lastMessages: 20,
+  semanticRecall: true,
+  semanticTopK: 3,
+  semanticMessageRange: 2,
+  workingMemory: true,
+  generateTitle: true,
+  compressThreshold: 80,
+  compressAlgorithm: "sliding",
+  systemPrompt: "",
+  maxSteps: 20,
+  temperature: 0.7,
+  knowledgeAutoRetrieve: true,
+  knowledgeTopK: 5,
+  knowledgeScoreThreshold: 0.5,
+};
+
+const Toggle: React.FC<{
+  value: boolean;
+  onChange: (v: boolean) => void;
+}> = ({ value, onChange }) => (
+  <button
+    onClick={() => onChange(!value)}
+    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors flex-none ${value ? "bg-norma-accent" : "bg-white/[0.12]"}`}
+  >
+    <span
+      className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform ${value ? "translate-x-[16px]" : "translate-x-[2px]"}`}
+    />
+  </button>
+);
+
+const ContextTab: React.FC = () => {
+  const [config, setConfig] = useState<MemoryConfig>({ ...DEFAULT_MEMORY_CONFIG });
 
   useEffect(() => {
     window.electronAPI
       ?.getMemoryConfig?.()
       .then((c) => {
-        if (c) setConfig(c);
+        if (c) setConfig({ ...DEFAULT_MEMORY_CONFIG, ...c });
       })
       .catch(() => {});
   }, []);
 
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      await window.electronAPI?.setMemoryConfig?.(config);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
-    } catch {}
-    setSaving(false);
-  };
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      window.electronAPI?.setMemoryConfig?.(config).catch(() => {});
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [config]);
 
-  const Toggle: React.FC<{
-    value: boolean;
-    onChange: (v: boolean) => void;
-  }> = ({ value, onChange }) => (
-    <button
-      onClick={() => onChange(!value)}
-      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors flex-none ${value ? "bg-norma-accent" : "bg-white/[0.12]"}`}
-    >
-      <span
-        className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform ${value ? "translate-x-[16px]" : "translate-x-[2px]"}`}
-      />
-    </button>
-  );
+  const updateConfig = (patch: Partial<MemoryConfig>) => {
+    setConfig((prev) => ({ ...prev, ...patch }));
+  };
 
   return (
     <div className="px-5 py-4">
       <div className="space-y-5 max-w-[400px]">
         <section>
-          <h3 className="text-[11px] font-semibold text-norma-text mb-2 flex items-center gap-1.5">
-            <svg
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              className="text-norma-accent"
-            >
+          <h3 className="text-[13px] font-semibold text-norma-text mb-2 flex items-center gap-1.5">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-norma-accent">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
             </svg>
             上下文窗口
           </h3>
-          <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] px-3 py-2">
+          <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] px-3 py-2 space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-[10px] text-norma-textMuted">
-                  最近消息数
-                </div>
-                <div className="text-[9px] text-norma-textDim">
-                  每次对话保留的最近消息数
-                </div>
+                <div className="text-[12px] text-norma-textMuted">最近消息数</div>
+                <div className="text-[11px] text-norma-textDim">每次对话保留的最近消息数</div>
               </div>
               <input
                 type="number"
                 min={5}
                 max={100}
                 value={config.lastMessages}
-                onChange={(e) =>
-                  setConfig({
-                    ...config,
-                    lastMessages: Math.min(
-                      100,
-                      Math.max(5, parseInt(e.target.value) || 5),
-                    ),
-                  })
-                }
-                className="w-[60px] bg-white/[0.04] border border-white/[0.06] rounded px-2 py-1 text-[11px] text-norma-text text-center font-mono outline-none focus:border-norma-accent/40"
+                onChange={(e) => updateConfig({ lastMessages: Math.min(100, Math.max(5, parseInt(e.target.value) || 5)) })}
+                className="w-[60px] bg-white/[0.04] border border-white/[0.06] rounded px-2 py-1 text-[13px] text-norma-text text-center font-mono outline-none focus:border-norma-accent/40"
               />
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-[12px] text-norma-textMuted">最大工具调用步数</div>
+                <div className="text-[11px] text-norma-textDim">单次对话中最多执行的自动工具调用轮数</div>
+              </div>
+              <input
+                type="number"
+                min={1}
+                max={50}
+                value={config.maxSteps}
+                onChange={(e) => updateConfig({ maxSteps: Math.min(50, Math.max(1, parseInt(e.target.value) || 20)) })}
+                className="w-[60px] bg-white/[0.04] border border-white/[0.06] rounded px-2 py-1 text-[13px] text-norma-text text-center font-mono outline-none focus:border-norma-accent/40"
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-[12px] text-norma-textMuted">温度</div>
+                <div className="text-[11px] text-norma-textDim">控制回复的随机性，越高越有创意</div>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={Math.round(config.temperature * 100)}
+                  onChange={(e) => updateConfig({ temperature: parseInt(e.target.value) / 100 })}
+                  className="w-[80px] accent-norma-accent"
+                />
+                <span className="text-[13px] text-norma-text font-mono w-[32px] text-right">
+                  {config.temperature.toFixed(2)}
+                </span>
+              </div>
             </div>
           </div>
         </section>
 
         <section>
-          <h3 className="text-[11px] font-semibold text-norma-text mb-2 flex items-center gap-1.5">
-            <svg
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              className="text-norma-accent"
-            >
+          <h3 className="text-[13px] font-semibold text-norma-text mb-2 flex items-center gap-1.5">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-norma-accent">
               <circle cx="11" cy="11" r="8" />
               <path d="m21 21-4.3-4.3" />
             </svg>
@@ -1206,66 +1222,37 @@ const AdvancedTab: React.FC = () => {
           </h3>
           <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] px-3 py-2 space-y-3">
             <div className="flex items-center justify-between">
-              <div className="text-[10px] text-norma-textMuted">
-                启用语义召回
-              </div>
-              <Toggle
-                value={config.semanticRecall}
-                onChange={(v) => setConfig({ ...config, semanticRecall: v })}
-              />
+              <div className="text-[12px] text-norma-textMuted">启用语义召回</div>
+              <Toggle value={config.semanticRecall} onChange={(v) => updateConfig({ semanticRecall: v })} />
             </div>
             {config.semanticRecall && (
               <div className="space-y-2 pl-2 border-l border-white/[0.06]">
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="text-[10px] text-norma-textMuted">
-                      Top K
-                    </div>
-                    <div className="text-[9px] text-norma-textDim">
-                      检索最相似的 K 条消息
-                    </div>
+                    <div className="text-[12px] text-norma-textMuted">Top K</div>
+                    <div className="text-[11px] text-norma-textDim">检索最相似的 K 条消息</div>
                   </div>
                   <input
                     type="number"
                     min={1}
                     max={10}
                     value={config.semanticTopK}
-                    onChange={(e) =>
-                      setConfig({
-                        ...config,
-                        semanticTopK: Math.min(
-                          10,
-                          Math.max(1, parseInt(e.target.value) || 1),
-                        ),
-                      })
-                    }
-                    className="w-[50px] bg-white/[0.04] border border-white/[0.06] rounded px-2 py-1 text-[11px] text-norma-text text-center font-mono outline-none focus:border-norma-accent/40"
+                    onChange={(e) => updateConfig({ semanticTopK: Math.min(10, Math.max(1, parseInt(e.target.value) || 1)) })}
+                    className="w-[50px] bg-white/[0.04] border border-white/[0.06] rounded px-2 py-1 text-[13px] text-norma-text text-center font-mono outline-none focus:border-norma-accent/40"
                   />
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="text-[10px] text-norma-textMuted">
-                      消息范围
-                    </div>
-                    <div className="text-[9px] text-norma-textDim">
-                      每条匹配消息前后的上下文范围
-                    </div>
+                    <div className="text-[12px] text-norma-textMuted">消息范围</div>
+                    <div className="text-[11px] text-norma-textDim">每条匹配消息前后的上下文范围</div>
                   </div>
                   <input
                     type="number"
                     min={1}
                     max={5}
                     value={config.semanticMessageRange}
-                    onChange={(e) =>
-                      setConfig({
-                        ...config,
-                        semanticMessageRange: Math.min(
-                          5,
-                          Math.max(1, parseInt(e.target.value) || 1),
-                        ),
-                      })
-                    }
-                    className="w-[50px] bg-white/[0.04] border border-white/[0.06] rounded px-2 py-1 text-[11px] text-norma-text text-center font-mono outline-none focus:border-norma-accent/40"
+                    onChange={(e) => updateConfig({ semanticMessageRange: Math.min(5, Math.max(1, parseInt(e.target.value) || 1)) })}
+                    className="w-[50px] bg-white/[0.04] border border-white/[0.06] rounded px-2 py-1 text-[13px] text-norma-text text-center font-mono outline-none focus:border-norma-accent/40"
                   />
                 </div>
               </div>
@@ -1274,16 +1261,8 @@ const AdvancedTab: React.FC = () => {
         </section>
 
         <section>
-          <h3 className="text-[11px] font-semibold text-norma-text mb-2 flex items-center gap-1.5">
-            <svg
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              className="text-norma-accent"
-            >
+          <h3 className="text-[13px] font-semibold text-norma-text mb-2 flex items-center gap-1.5">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-norma-accent">
               <path d="M12 2a8 8 0 0 0-8 8c0 6 8 12 8 12s8-6 8-12a8 8 0 0 0-8-8z" />
               <circle cx="12" cy="10" r="3" />
             </svg>
@@ -1292,32 +1271,17 @@ const AdvancedTab: React.FC = () => {
           <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] px-3 py-2">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-[10px] text-norma-textMuted">
-                  启用工作记忆
-                </div>
-                <div className="text-[9px] text-norma-textDim">
-                  Norma 自动记住你的偏好和习惯
-                </div>
+                <div className="text-[12px] text-norma-textMuted">启用工作记忆</div>
+                <div className="text-[11px] text-norma-textDim">Norma 自动记住你的偏好和习惯</div>
               </div>
-              <Toggle
-                value={config.workingMemory}
-                onChange={(v) => setConfig({ ...config, workingMemory: v })}
-              />
+              <Toggle value={config.workingMemory} onChange={(v) => updateConfig({ workingMemory: v })} />
             </div>
           </div>
         </section>
 
         <section>
-          <h3 className="text-[11px] font-semibold text-norma-text mb-2 flex items-center gap-1.5">
-            <svg
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              className="text-norma-accent"
-            >
+          <h3 className="text-[13px] font-semibold text-norma-text mb-2 flex items-center gap-1.5">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-norma-accent">
               <path d="M4 7V4h16v3" />
               <path d="M9 20h6" />
               <path d="M12 4v16" />
@@ -1326,28 +1290,15 @@ const AdvancedTab: React.FC = () => {
           </h3>
           <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] px-3 py-2">
             <div className="flex items-center justify-between">
-              <div className="text-[10px] text-norma-textMuted">
-                根据对话内容自动生成会话标题
-              </div>
-              <Toggle
-                value={config.generateTitle}
-                onChange={(v) => setConfig({ ...config, generateTitle: v })}
-              />
+              <div className="text-[12px] text-norma-textMuted">根据对话内容自动生成会话标题</div>
+              <Toggle value={config.generateTitle} onChange={(v) => updateConfig({ generateTitle: v })} />
             </div>
           </div>
         </section>
 
         <section>
-          <h3 className="text-[11px] font-semibold text-norma-text mb-2 flex items-center gap-1.5">
-            <svg
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              className="text-norma-accent"
-            >
+          <h3 className="text-[13px] font-semibold text-norma-text mb-2 flex items-center gap-1.5">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-norma-accent">
               <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
               <path d="M3 3v5h5" />
               <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
@@ -1358,58 +1309,36 @@ const AdvancedTab: React.FC = () => {
           <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] px-3 py-2 space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-[10px] text-norma-textMuted">压缩算法</div>
-                <div className="text-[9px] text-norma-textDim">
-                  上下文接近模型窗口限制时自动压缩历史消息
-                </div>
+                <div className="text-[12px] text-norma-textMuted">压缩算法</div>
+                <div className="text-[11px] text-norma-textDim">上下文接近模型窗口限制时自动压缩历史消息</div>
               </div>
             </div>
             <div className="grid grid-cols-3 gap-1.5">
               {(
                 [
-                  {
-                    id: "sliding",
-                    label: "滑动窗口",
-                    desc: "保留最近N条消息，丢弃更早的",
-                  },
-                  {
-                    id: "observational",
-                    label: "观察摘要",
-                    desc: "LLM自动提取关键信息并压缩历史",
-                  },
-                  {
-                    id: "hybrid",
-                    label: "混合模式",
-                    desc: "滑动窗口 + 观察摘要双保险",
-                  },
+                  { id: "sliding", label: "滑动窗口", desc: "保留最近N条消息" },
+                  { id: "observational", label: "观察摘要", desc: "LLM自动提取关键信息" },
+                  { id: "hybrid", label: "混合模式", desc: "滑动+摘要双保险" },
                 ] as const
               ).map((algo) => (
                 <button
                   key={algo.id}
-                  onClick={() =>
-                    setConfig({ ...config, compressAlgorithm: algo.id })
-                  }
-                  className={`px-2 py-1.5 rounded-lg text-[10px] text-left transition-colors ${
+                  onClick={() => updateConfig({ compressAlgorithm: algo.id })}
+                  className={`px-2 py-1.5 rounded-lg text-[12px] text-left transition-colors ${
                     config.compressAlgorithm === algo.id
                       ? "bg-norma-accent/20 border border-norma-accent/40 text-norma-accent"
                       : "bg-white/[0.03] border border-white/[0.06] text-norma-textMuted hover:border-white/[0.1]"
                   }`}
                 >
                   <div className="font-medium">{algo.label}</div>
-                  <div className="text-[8px] text-norma-textDim mt-0.5 leading-tight">
-                    {algo.desc}
-                  </div>
+                  <div className="text-[10px] text-norma-textDim mt-0.5 leading-tight">{algo.desc}</div>
                 </button>
               ))}
             </div>
             <div className="flex items-center justify-between pt-1">
               <div>
-                <div className="text-[10px] text-norma-textMuted">
-                  压缩触发阈值
-                </div>
-                <div className="text-[9px] text-norma-textDim">
-                  上下文使用量超过此比例时触发
-                </div>
+                <div className="text-[12px] text-norma-textMuted">压缩触发阈值</div>
+                <div className="text-[11px] text-norma-textDim">上下文使用量超过此比例时触发</div>
               </div>
               <div className="flex items-center gap-2">
                 <input
@@ -1417,37 +1346,351 @@ const AdvancedTab: React.FC = () => {
                   min={50}
                   max={95}
                   value={config.compressThreshold}
-                  onChange={(e) =>
-                    setConfig({
-                      ...config,
-                      compressThreshold: parseInt(e.target.value),
-                    })
-                  }
+                  onChange={(e) => updateConfig({ compressThreshold: parseInt(e.target.value) })}
                   className="w-[80px] accent-norma-accent"
                 />
-                <span className="text-[11px] text-norma-text font-mono w-[32px] text-right">
-                  {config.compressThreshold}%
-                </span>
+                <span className="text-[13px] text-norma-text font-mono w-[32px] text-right">{config.compressThreshold}%</span>
               </div>
             </div>
           </div>
         </section>
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="px-4 py-1.5 rounded-lg bg-norma-accent text-white text-[11px] hover:opacity-90 transition-opacity disabled:opacity-40"
-          >
-            {saving ? "保存中..." : "保存"}
-          </button>
-          {saved && (
-            <span className="text-[10px] text-emerald-400 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              已保存
-            </span>
-          )}
+        <section>
+          <h3 className="text-[13px] font-semibold text-norma-text mb-2 flex items-center gap-1.5">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-norma-accent">
+              <path d="M12 20h9" />
+              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+            </svg>
+            自定义系统提示
+          </h3>
+          <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] px-3 py-2">
+            <textarea
+              value={config.systemPrompt}
+              onChange={(e) => updateConfig({ systemPrompt: e.target.value })}
+              placeholder="添加自定义指令来定制 Norma 的行为..."
+              rows={4}
+              className="w-full bg-white/[0.02] border border-white/[0.04] rounded-lg px-3 py-2 text-[13px] text-norma-text placeholder-norma-textDim outline-none focus:border-norma-accent/40 resize-none leading-relaxed"
+            />
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+};
+
+interface KnowledgeSettings {
+  enabled: boolean;
+  embeddingMode: 'remote' | 'local';
+  chunkSize: number;
+  chunkOverlap: number;
+  autoRetrieve: boolean;
+  retrievalTopK: number;
+  scoreThreshold: number;
+}
+
+const DEFAULT_KNOWLEDGE_SETTINGS: KnowledgeSettings = {
+  enabled: true,
+  embeddingMode: 'remote',
+  chunkSize: 512,
+  chunkOverlap: 50,
+  autoRetrieve: true,
+  retrievalTopK: 5,
+  scoreThreshold: 0.5,
+};
+
+const KnowledgeSettingsTab: React.FC = () => {
+  const [settings, setSettings, loaded] = useDbState<KnowledgeSettings>("norma-knowledge-settings", DEFAULT_KNOWLEDGE_SETTINGS);
+  const [stats, setStats] = useState<{ docCount: number; chunkCount: number } | null>(null);
+  const [modelStatus, setModelStatus] = useState<{ ready: boolean; downloading: boolean; progress: number; modelPath: string } | null>(null);
+  const [modelLoading, setModelLoading] = useState(false);
+  const [downloadStatus, setDownloadStatus] = useState<string>('');
+
+  useEffect(() => {
+    window.electronAPI?.knowledgeList?.().then((res) => {
+      if (res?.success) {
+        const docs = res.documents || [];
+        setStats({
+          docCount: docs.length,
+          chunkCount: docs.reduce((s, d) => s + d.chunkCount, 0),
+        });
+      }
+    }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (settings.enabled && settings.embeddingMode === 'local') {
+      window.electronAPI?.knowledgeSetMode?.('local');
+    }
+  }, [settings.embeddingMode, settings.enabled]);
+
+  useEffect(() => {
+    window.electronAPI?.knowledgeModelStatus?.().then((s) => {
+      setModelStatus(s);
+    }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!window.electronAPI?.onKnowledgeDownloadProgress) return;
+    return window.electronAPI.onKnowledgeDownloadProgress((progress, status) => {
+      setModelStatus((prev) => prev ? { ...prev, progress, downloading: progress < 100 && status !== 'error' && status !== 'timeout' } : prev);
+      setDownloadStatus(status);
+      if (progress >= 100) {
+        setModelLoading(false);
+        window.electronAPI?.knowledgeModelStatus?.().then((s) => setModelStatus(s)).catch(() => {});
+      }
+      if (status === 'error' || status === 'timeout') {
+        setModelLoading(false);
+        setModelStatus((prev) => prev ? { ...prev, ready: false, downloading: false } : prev);
+      }
+    });
+  }, []);
+
+  const updateSettings = (patch: Partial<KnowledgeSettings>) => {
+    setSettings((prev) => ({ ...prev, ...patch }));
+  };
+
+  const handleDownloadModel = async () => {
+    setModelLoading(true);
+    setDownloadStatus('connecting');
+    setModelStatus((prev) => prev ? { ...prev, progress: 0, downloading: true, ready: false } : { ready: false, downloading: true, progress: 0, modelPath: '' });
+    try {
+      await window.electronAPI?.knowledgeLoadModel?.();
+    } catch (err: any) {
+      alert(`模型加载失败: ${err?.message || err}`);
+      setModelLoading(false);
+      setModelStatus((prev) => prev ? { ...prev, downloading: false } : prev);
+    }
+  };
+
+  const handleDeleteModel = async () => {
+    await window.electronAPI?.knowledgeDeleteModel?.();
+    setModelStatus((prev) => prev ? { ...prev, ready: false, progress: 0 } : null);
+  };
+
+  if (!loaded) {
+    return (
+      <div className="flex h-full min-h-0 items-center justify-center">
+        <div className="w-5 h-5 border-2 border-norma-accent/30 border-t-norma-accent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  const isLocal = settings.embeddingMode === 'local';
+  const isModelReady = modelStatus?.ready;
+  const isModelDownloading = modelStatus?.downloading;
+
+  return (
+    <div className="px-5 py-4">
+      <div className="space-y-5 max-w-[400px]">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-[13px] font-semibold text-norma-text">知识库配置</h3>
+            <div className="text-[11px] text-norma-textDim mt-0.5">
+              {stats ? `${stats.docCount} 个文档 · ${stats.chunkCount} 个分块` : "加载统计中..."}
+            </div>
+          </div>
+          <Toggle value={settings.enabled} onChange={(v) => updateSettings({ enabled: v })} />
         </div>
+
+        {settings.enabled && (
+          <>
+            <section>
+              <h3 className="text-[13px] font-semibold text-norma-text mb-2 flex items-center gap-1.5">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-norma-accent">
+                  <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2Z" />
+                  <path d="m8 12 3 3 5-5" />
+                </svg>
+                向量嵌入
+              </h3>
+              <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] px-3 py-2 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-[12px] text-norma-textMuted">嵌入模式</div>
+                    <div className="text-[11px] text-norma-textDim">
+                      {isLocal ? '使用本地模型，无需网络' : '使用当前模型供应商的 Embedding API'}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 bg-white/[0.04] rounded-lg p-0.5">
+                    <button
+                      onClick={() => updateSettings({ embeddingMode: 'remote' })}
+                      className={`px-2.5 py-1 rounded-md text-[12px] transition-colors ${
+                        !isLocal
+                          ? 'bg-norma-accent/20 text-norma-accent border border-norma-accent/30'
+                          : 'text-norma-textDim hover:text-norma-textMuted'
+                      }`}
+                    >
+                      在线
+                    </button>
+                    <button
+                      onClick={() => updateSettings({ embeddingMode: 'local' })}
+                      className={`px-2.5 py-1 rounded-md text-[12px] transition-colors ${
+                        isLocal
+                          ? 'bg-norma-accent/20 text-norma-accent border border-norma-accent/30'
+                          : 'text-norma-textDim hover:text-norma-textMuted'
+                      }`}
+                    >
+                      离线
+                    </button>
+                  </div>
+                </div>
+
+                {!isLocal && (
+                  <div className="text-[11px] text-norma-textDim bg-white/[0.02] rounded px-2 py-1.5 leading-relaxed">
+                    使用当前模型供应商的 Embedding API，请确保已配置支持 Embedding 的供应商（如 OpenAI、OpenRouter）。
+                  </div>
+                )}
+
+                {isLocal && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-[12px] text-norma-textMuted">
+                          {isModelReady ? '模型已就绪' : (isModelDownloading || modelLoading) ? `下载中 ${modelStatus?.progress || 0}%` : '本地嵌入模型'}
+                        </div>
+                        <div className="text-[11px] text-norma-textDim">
+                          paraphrase-multilingual-MiniLM-L12-v2 (384维, 支持中英文)
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        {isModelReady && (
+                          <button
+                            onClick={handleDeleteModel}
+                            className="px-2 py-0.5 rounded text-[11px] text-norma-textDim hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                          >
+                            删除
+                          </button>
+                        )}
+                        {!isModelReady && !isModelDownloading && !modelLoading && (
+                          <button
+                            onClick={handleDownloadModel}
+                            className="px-3 py-1 rounded-lg bg-norma-accent text-white text-[12px] hover:opacity-90"
+                          >
+                            {downloadStatus === 'timeout' || downloadStatus === 'error' ? '重试' : '下载模型'}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    {(isModelDownloading || modelLoading) && (
+                      <div className="space-y-1">
+                        <div className="w-full bg-white/[0.06] rounded-full h-2 overflow-hidden">
+                          <div
+                            className="bg-norma-accent h-full rounded-full transition-all duration-300 ease-out"
+                            style={{ width: `${modelStatus?.progress || 0}%` }}
+                          />
+                        </div>
+                        {downloadStatus && (
+                          <div className="text-[10px] text-norma-textDim truncate">
+                            {downloadStatus}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {isModelReady && modelStatus?.modelPath && (
+                      <div className="text-[10px] text-norma-textDim font-mono truncate">
+                        {modelStatus.modelPath}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </section>
+
+            <section>
+              <h3 className="text-[13px] font-semibold text-norma-text mb-2 flex items-center gap-1.5">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-norma-accent">
+                  <path d="M4 7V4h16v3" />
+                  <path d="M9 20h6" />
+                  <path d="M12 4v16" />
+                </svg>
+                文档分块
+              </h3>
+              <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] px-3 py-2 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-[12px] text-norma-textMuted">分块大小</div>
+                    <div className="text-[11px] text-norma-textDim">每个文本块的最大 token 数</div>
+                  </div>
+                  <input
+                    type="number"
+                    min={128}
+                    max={2048}
+                    step={64}
+                    value={settings.chunkSize}
+                    onChange={(e) => updateSettings({ chunkSize: Math.min(2048, Math.max(128, parseInt(e.target.value) || 512)) })}
+                    className="w-[70px] bg-white/[0.04] border border-white/[0.06] rounded px-2 py-1 text-[13px] text-norma-text text-center font-mono outline-none focus:border-norma-accent/40"
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-[12px] text-norma-textMuted">分块重叠</div>
+                    <div className="text-[11px] text-norma-textDim">相邻分块之间的重叠 token 数</div>
+                  </div>
+                  <input
+                    type="number"
+                    min={0}
+                    max={200}
+                    step={10}
+                    value={settings.chunkOverlap}
+                    onChange={(e) => updateSettings({ chunkOverlap: Math.min(200, Math.max(0, parseInt(e.target.value) || 50)) })}
+                    className="w-[70px] bg-white/[0.04] border border-white/[0.06] rounded px-2 py-1 text-[13px] text-norma-text text-center font-mono outline-none focus:border-norma-accent/40"
+                  />
+                </div>
+              </div>
+            </section>
+
+            <section>
+              <h3 className="text-[13px] font-semibold text-norma-text mb-2 flex items-center gap-1.5">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-norma-accent">
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.3-4.3" />
+                </svg>
+                检索设置
+              </h3>
+              <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] px-3 py-2 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-[12px] text-norma-textMuted">对话时自动检索</div>
+                    <div className="text-[11px] text-norma-textDim">在对话中自动从知识库检索相关内容注入上下文</div>
+                  </div>
+                  <Toggle value={settings.autoRetrieve} onChange={(v) => updateSettings({ autoRetrieve: v })} />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-[12px] text-norma-textMuted">检索数量 (Top K)</div>
+                    <div className="text-[11px] text-norma-textDim">每次检索返回的最大结果数</div>
+                  </div>
+                  <input
+                    type="number"
+                    min={1}
+                    max={20}
+                    value={settings.retrievalTopK}
+                    onChange={(e) => updateSettings({ retrievalTopK: Math.min(20, Math.max(1, parseInt(e.target.value) || 5)) })}
+                    className="w-[60px] bg-white/[0.04] border border-white/[0.06] rounded px-2 py-1 text-[13px] text-norma-text text-center font-mono outline-none focus:border-norma-accent/40"
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-[12px] text-norma-textMuted">相似度阈值</div>
+                    <div className="text-[11px] text-norma-textDim">低于此阈值的结果将被过滤</div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="range"
+                      min={0}
+                      max={100}
+                      value={Math.round(settings.scoreThreshold * 100)}
+                      onChange={(e) => updateSettings({ scoreThreshold: parseInt(e.target.value) / 100 })}
+                      className="w-[80px] accent-norma-accent"
+                    />
+                    <span className="text-[13px] text-norma-text font-mono w-[32px] text-right">
+                      {settings.scoreThreshold.toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </>
+        )}
       </div>
     </div>
   );
@@ -1525,21 +1768,21 @@ const DiagTab: React.FC = () => {
             className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform ${enabled ? "translate-x-[16px]" : "translate-x-[2px]"}`}
           />
         </button>
-        <span className="text-[11px] text-norma-text">
+        <span className="text-[13px] text-norma-text">
           {enabled ? "日志记录中" : "日志已关闭"}
         </span>
-        <span className="text-[9px] text-norma-textDim">
+        <span className="text-[11px] text-norma-textDim">
           {logs.length} 条记录
         </span>
         <button
           onClick={clearLogs}
           disabled={logs.length === 0}
-          className="ml-auto px-2.5 py-1 rounded-lg bg-white/[0.06] text-norma-textMuted text-[10px] hover:bg-white/[0.1] disabled:opacity-30 transition-colors"
+          className="ml-auto px-2.5 py-1 rounded-lg bg-white/[0.06] text-norma-textMuted text-[12px] hover:bg-white/[0.1] disabled:opacity-30 transition-colors"
         >
           清除
         </button>
       </div>
-      <div className="flex-1 overflow-y-auto scrollbar-show px-5 py-2 font-mono text-[10px] min-h-0">
+      <div className="flex-1 overflow-y-auto scrollbar-show px-5 py-2 font-mono text-[12px] min-h-0">
         {logs.length === 0 ? (
           <div className="text-norma-textDim text-center py-8">
             {enabled ? "等待日志..." : "打开日志开关后操作应用，日志会自动记录"}
@@ -1554,7 +1797,7 @@ const DiagTab: React.FC = () => {
                   })}
                 </span>
                 <span
-                  className={`flex-none w-[38px] uppercase text-[9px] font-bold ${levelColor(log.level)}`}
+                  className={`flex-none w-[38px] uppercase text-[11px] font-bold ${levelColor(log.level)}`}
                 >
                   {log.level}
                 </span>
@@ -1581,7 +1824,8 @@ const SettingsPage: React.FC = () => {
 
   const tabs = [
     { id: "basic", label: "基础" },
-    { id: "advanced", label: "高级" },
+    { id: "context", label: "上下文" },
+    { id: "knowledge", label: "知识库" },
     { id: "model", label: "模型" },
     { id: "diag", label: "诊断" },
     { id: "about", label: "关于" },
@@ -1589,12 +1833,12 @@ const SettingsPage: React.FC = () => {
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden">
-      <div className="flex-none flex items-center gap-1 px-5 pt-3 pb-2 border-b border-white/[0.06]">
+      <div className="flex-none flex items-center gap-1 px-5 pt-3 pb-2 border-b border-white/[0.06] flex-wrap">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`px-3 py-1.5 rounded-lg text-[11px] transition-colors ${
+            className={`px-3 py-1.5 rounded-lg text-[13px] transition-colors ${
               activeTab === tab.id
                 ? "bg-norma-accent/20 text-norma-accent"
                 : "text-norma-textMuted hover:text-norma-text hover:bg-white/[0.04]"
@@ -1608,7 +1852,8 @@ const SettingsPage: React.FC = () => {
         {activeTab === "basic" && (
           <BasicTab theme={theme} setTheme={setTheme} isMac={isMac} />
         )}
-        {activeTab === "advanced" && <AdvancedTab />}
+        {activeTab === "context" && <ContextTab />}
+        {activeTab === "knowledge" && <KnowledgeSettingsTab />}
         {activeTab === "model" && <ModelTab />}
         {activeTab === "diag" && <DiagTab />}
         {activeTab === "about" && <AboutTab />}

@@ -3,6 +3,7 @@ import { setupProviderIpc } from './provider';
 import { setupMemoryIpc } from './memory';
 import { setupKnowledgeIpc } from './knowledge';
 import { setupAutomationIpc } from './automation';
+import { reconfigureEmbedderWithProvider } from '../knowledge';
 import { setupDiagIpc, appendLog } from './diag';
 import { setupConfigIpc } from './config';
 import { getConfig, setConfig } from '../config';
@@ -63,6 +64,13 @@ export async function setupIpc() {
     const savedConfig = await getConfig('norma-active-provider-config');
     if (savedConfig && typeof savedConfig === 'object') {
       _providerConfig = savedConfig;
+      reconfigureEmbedderWithProvider(savedConfig);
+    }
+    const savedKnowledgeSettings = await getConfig('norma-knowledge-settings');
+    if (savedKnowledgeSettings && typeof savedKnowledgeSettings === 'object') {
+      const { setEmbedderMode } = await import('../knowledge');
+      const mode = (savedKnowledgeSettings as any).embeddingMode;
+      if (mode === 'local') setEmbedderMode('local');
     }
   } catch {}
 
@@ -153,6 +161,10 @@ export async function setupIpc() {
     return true;
   });
 
+  ipcMain.handle('system:getDefaultDataDir', () => {
+    return app.getPath('userData');
+  });
+
   const DEFAULT_MEMORY_CONFIG = {
     lastMessages: 20,
     semanticRecall: true,
@@ -160,6 +172,14 @@ export async function setupIpc() {
     semanticMessageRange: 2,
     workingMemory: true,
     generateTitle: true,
+    compressAlgorithm: 'sliding',
+    compressThreshold: 80,
+    systemPrompt: '',
+    maxSteps: 20,
+    temperature: 0.7,
+    knowledgeAutoRetrieve: true,
+    knowledgeTopK: 5,
+    knowledgeScoreThreshold: 0.5,
   };
 
   ipcMain.handle('config:getMemoryConfig', async () => {
@@ -254,6 +274,7 @@ export async function setupIpc() {
       await setConfig('norma-active-model', modelString);
       if (providerConfig) {
         await setConfig('norma-active-provider-config', providerConfig);
+        reconfigureEmbedderWithProvider(providerConfig);
       }
     } catch {}
     return { success: true };

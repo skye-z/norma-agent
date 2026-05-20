@@ -106,17 +106,17 @@ const AutomationPage: React.FC = () => {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowCreate(true)}
-              className="px-3 py-1.5 rounded-lg bg-norma-accent text-white text-[11px] hover:opacity-90 transition-opacity"
+              className="px-3 py-1.5 rounded-lg bg-norma-accent text-white text-[13px] hover:opacity-90 transition-opacity"
             >
               + 新建自动化
             </button>
             {workflows.length > 0 && (
-              <span className="text-[10px] text-norma-textDim">
+              <span className="text-[12px] text-norma-textDim">
                 {workflows.length} 个 Mastra 工作流可用
               </span>
             )}
           </div>
-          <span className="text-[11px] text-norma-textMuted">
+          <span className="text-[13px] text-norma-textMuted">
             {automations.length} 个自动化
           </span>
         </div>
@@ -125,7 +125,7 @@ const AutomationPage: React.FC = () => {
           <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => { setShowCreate(false); setNewName(""); setNewDesc(""); setNewTrigger(""); }}>
             <div className="w-[480px] max-h-[70vh] rounded-2xl bg-[#1c1c20] border border-white/[0.08] shadow-2xl flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center gap-2 px-4 py-3 border-b border-white/[0.06]">
-                <span className="text-[13px] font-medium text-norma-text flex-1">新建自动化任务</span>
+                <span className="text-[15px] font-medium text-norma-text flex-1">新建自动化任务</span>
                 <button
                   onClick={() => { setShowCreate(false); setNewName(""); setNewDesc(""); setNewTrigger(""); }}
                   className="p-1 rounded hover:bg-white/[0.06] text-norma-textMuted hover:text-norma-text transition-colors"
@@ -138,44 +138,44 @@ const AutomationPage: React.FC = () => {
               </div>
               <div className="flex-1 overflow-y-auto scrollbar-show p-4 space-y-3">
                 <div>
-                  <div className="text-[10px] text-norma-textDim mb-1">任务名称</div>
+                  <div className="text-[12px] text-norma-textDim mb-1">任务名称</div>
                   <input
                     value={newName}
                     onChange={(e) => setNewName(e.target.value)}
                     placeholder="输入任务名称"
-                    className="w-full bg-white/[0.04] border border-white/[0.06] rounded-lg px-3 py-1.5 text-[11px] text-norma-text placeholder-norma-textDim outline-none focus:border-norma-accent/40"
+                    className="w-full bg-white/[0.04] border border-white/[0.06] rounded-lg px-3 py-1.5 text-[13px] text-norma-text placeholder-norma-textDim outline-none focus:border-norma-accent/40"
                   />
                 </div>
                 <div>
-                  <div className="text-[10px] text-norma-textDim mb-1">任务描述</div>
+                  <div className="text-[12px] text-norma-textDim mb-1">任务描述</div>
                   <input
                     value={newDesc}
                     onChange={(e) => setNewDesc(e.target.value)}
                     placeholder="描述自动化任务的目标"
-                    className="w-full bg-white/[0.04] border border-white/[0.06] rounded-lg px-3 py-1.5 text-[11px] text-norma-text placeholder-norma-textDim outline-none focus:border-norma-accent/40"
+                    className="w-full bg-white/[0.04] border border-white/[0.06] rounded-lg px-3 py-1.5 text-[13px] text-norma-text placeholder-norma-textDim outline-none focus:border-norma-accent/40"
                   />
                 </div>
                 <div>
-                  <div className="text-[10px] text-norma-textDim mb-1">触发条件</div>
+                  <div className="text-[12px] text-norma-textDim mb-1">触发条件</div>
                   <input
                     value={newTrigger}
                     onChange={(e) => setNewTrigger(e.target.value)}
                     placeholder="如: 每天 09:00, 手动触发"
-                    className="w-full bg-white/[0.04] border border-white/[0.06] rounded-lg px-3 py-1.5 text-[11px] text-norma-text placeholder-norma-textDim outline-none focus:border-norma-accent/40"
+                    className="w-full bg-white/[0.04] border border-white/[0.06] rounded-lg px-3 py-1.5 text-[13px] text-norma-text placeholder-norma-textDim outline-none focus:border-norma-accent/40"
                   />
                 </div>
               </div>
               <div className="flex justify-end gap-2 px-4 py-3 border-t border-white/[0.06]">
                 <button
                   onClick={() => { setShowCreate(false); setNewName(""); setNewDesc(""); setNewTrigger(""); }}
-                  className="px-3 py-1.5 rounded-lg bg-white/[0.06] text-norma-textMuted text-[11px] hover:bg-white/[0.1] transition-colors"
+                  className="px-3 py-1.5 rounded-lg bg-white/[0.06] text-norma-textMuted text-[13px] hover:bg-white/[0.1] transition-colors"
                 >
                   取消
                 </button>
                 <button
                   onClick={addAutomation}
                   disabled={!newName.trim()}
-                  className="px-4 py-1.5 rounded-lg bg-norma-accent text-white text-[11px] hover:opacity-90 disabled:opacity-50 transition-opacity"
+                  className="px-4 py-1.5 rounded-lg bg-norma-accent text-white text-[13px] hover:opacity-90 disabled:opacity-50 transition-opacity"
                 >
                   创建
                 </button>
@@ -198,17 +198,17 @@ const AutomationPage: React.FC = () => {
                 >
                   <span className={`inline-block h-3 w-3 rounded-full bg-white transition-transform ${auto.status !== "idle" ? "translate-x-[14px]" : "translate-x-[2px]"}`} />
                 </button>
-                <span className="text-[12px] font-medium text-norma-text">
+                <span className="text-[14px] font-medium text-norma-text">
                   {auto.name}
                 </span>
-                <span className="ml-auto text-[9px] text-norma-textDim font-mono">
+                <span className="ml-auto text-[11px] text-norma-textDim font-mono">
                   {auto.lastRun}
                 </span>
               </div>
-              <div className="text-[10px] text-norma-textMuted mb-2">
+              <div className="text-[12px] text-norma-textMuted mb-2">
                 {auto.desc}
               </div>
-              <div className="flex items-center gap-3 text-[9px] text-norma-textDim">
+              <div className="flex items-center gap-3 text-[11px] text-norma-textDim">
                 <span className="px-1.5 py-0.5 rounded bg-white/[0.04] border border-white/[0.06]">
                   触发: {auto.trigger}
                 </span>
@@ -242,7 +242,7 @@ const AutomationPage: React.FC = () => {
             </div>
           ))}
           {automations.length === 0 && (
-            <div className="text-[11px] text-norma-textDim text-center py-8">
+            <div className="text-[13px] text-norma-textDim text-center py-8">
               暂无自动化任务，点击"新建自动化"创建
             </div>
           )}

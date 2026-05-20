@@ -9,9 +9,7 @@ import {
   useThreadRuntime,
   useThread,
 } from "@assistant-ui/react";
-import { MarkdownTextPrimitive } from "@assistant-ui/react-markdown";
-import remarkGfm from "remark-gfm";
-import { MarkdownComponents } from "../../lib/markdown";
+import { SimpleMarkdown } from "../../lib/markdown";
 import { lastMetadata, getMessageMeta } from "../../lib/ipc-chat";
 import {
   ReasoningBlock,
@@ -39,7 +37,7 @@ const MessageTimingBadge: React.FC = () => {
   const main = formatMs(timing.totalStreamTime);
   if (!main) return null;
   return (
-    <span className="text-[9px] text-norma-textDim font-mono">
+    <span className="text-[11px] text-norma-textDim font-mono">
       {main}
       {timing.firstTokenTime && !Number.isNaN(timing.firstTokenTime)
         ? ` · TTFT ${formatMs(timing.firstTokenTime)}`
@@ -122,7 +120,7 @@ const LoadingIndicator: React.FC = () => {
         className="w-1 h-1 rounded-full bg-norma-accent animate-bounce"
         style={{ animationDelay: "300ms" }}
       />
-      <span className="text-[10px] text-norma-textDim">思考中...</span>
+      <span className="text-[12px] text-norma-textDim">思考中...</span>
     </div>
   );
 };
@@ -155,7 +153,7 @@ const MessageMetaBadge: React.FC = () => {
   if (!hasContent) return null;
   const cached = meta.cachedTokens ?? 0;
   return (
-    <span className="text-[9px] text-norma-textDim font-mono">
+    <span className="text-[11px] text-norma-textDim font-mono">
       {meta.totalStreamMs > 0 && <span className="mr-1.5">{formatMs(meta.totalStreamMs)}</span>}
       {modelDisplay && <span>{modelDisplay}</span>}
       {(meta.totalTokens ?? 0) > 0 && (
@@ -230,7 +228,7 @@ const ErrorDisplay: React.FC = () => {
   const err = status?.error ?? (message as any)?.error;
   const text = extractErrorMessage(err);
   return (
-    <div className="px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-300 text-[11px]">
+    <div className="px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-300 text-[13px]">
       {text}
     </div>
   );
@@ -266,7 +264,7 @@ export const AssistantMessage: React.FC = () => {
     <MessagePrimitive.Root className="flex justify-start mb-3">
       <div className="max-w-[80%] relative">
         <SelectionToolbarPrimitive.Root className="absolute z-50 -top-10 left-1/2 -translate-x-1/2 glass-popover px-1.5 py-1 flex gap-0.5 shadow-xl">
-          <SelectionToolbarPrimitive.Quote className="win-btn !w-6 !h-5 text-[9px] text-norma-textMuted hover:text-norma-text">
+          <SelectionToolbarPrimitive.Quote className="win-btn !w-6 !h-5 text-[11px] text-norma-textMuted hover:text-norma-text">
             引用
           </SelectionToolbarPrimitive.Quote>
         </SelectionToolbarPrimitive.Root>
@@ -293,12 +291,10 @@ export const AssistantMessage: React.FC = () => {
                   }
                   if (segments.length === 0 || (segments.length === 1 && segments[0].type === 'text')) {
                     return (
-                      <div className="text-[12px] leading-relaxed break-words overflow-wrap-anywhere">
-                        <MarkdownTextPrimitive
-                          components={MarkdownComponents}
-                          remarkPlugins={[remarkGfm]}
-                          preprocess={(t: string) => t.replace(/<plan>[\s\S]*?<\/plan>/g, '').trim()}
-                        />
+                      <div className="text-[14px] leading-relaxed break-words overflow-wrap-anywhere">
+                        <SimpleMarkdown preprocess={(t: string) => t.replace(/<plan>[\s\S]*?<\/plan>/g, '').trim()}>
+                          {content}
+                        </SimpleMarkdown>
                       </div>
                     );
                   }
@@ -308,12 +304,8 @@ export const AssistantMessage: React.FC = () => {
                         seg.type === 'plan' ? (
                           <PlanBlock key={i}>{seg.content}</PlanBlock>
                         ) : (
-                          <div key={i} className="text-[12px] leading-relaxed break-words overflow-wrap-anywhere">
-                            <MarkdownTextPrimitive
-                              components={MarkdownComponents}
-                              remarkPlugins={[remarkGfm]}
-                              preprocess={() => seg.content}
-                            />
+                          <div key={i} className="text-[14px] leading-relaxed break-words overflow-wrap-anywhere">
+                            <SimpleMarkdown preprocess={() => seg.content} />
                           </div>
                         )
                       )}
@@ -333,7 +325,7 @@ export const AssistantMessage: React.FC = () => {
                     href={url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-[10px] text-norma-accent hover:underline mt-1"
+                    className="inline-flex items-center gap-1 text-[12px] text-norma-accent hover:underline mt-1"
                   >
                     <svg
                       width="10"
@@ -366,7 +358,7 @@ export const AssistantMessage: React.FC = () => {
           <SpeechButton />
           <BranchPickerPrimitive.Root
             hideWhenSingleBranch
-            className="inline-flex items-center gap-0.5 text-norma-textDim text-[10px]"
+            className="inline-flex items-center gap-0.5 text-norma-textDim text-[12px]"
           >
             <BranchPickerPrimitive.Previous className="win-btn !w-4 !h-4">
               <svg

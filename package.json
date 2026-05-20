@@ -1,125 +1,125 @@
 {
-  "name": "norma-agent",
-  "version": "1.0.0",
-  "description": "",
-  "main": "dist/main/index.js",
-  "type": "module",
-  "scripts": {
-    "dev:main": "cross-env NODE_ENV=development tsup --watch",
-    "dev:renderer": "vite build --watch",
-    "dev:electron": "wait-on dist/main/index.js && cross-env ELECTRON_DEV=1 electronmon .",
-    "dev": "concurrently \"pnpm dev:renderer\" \"pnpm dev:main\" \"pnpm dev:electron\"",
-    "build:main": "tsup",
-    "build:renderer": "vite build",
-    "build:ocr": "node scripts/build-ocr.mjs",
-    "build": "pnpm build:ocr && pnpm build:renderer && pnpm build:main",
-    "pack": "electron-builder --dir",
-    "dist": "pnpm build && electron-builder",
-    "dist:win": "pnpm build && electron-builder --win",
-    "dist:mac": "pnpm build && electron-builder --mac",
-    "start": "electron .",
-    "test:e2e": "playwright test --config tests/playwright.config.ts",
-    "test:e2e:headed": "playwright test --config tests/playwright.config.ts --headed"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "packageManager": "pnpm@10.22.0",
-  "devDependencies": {
-    "@playwright/mcp": "^0.0.75",
-    "@playwright/test": "^1.60.0",
-    "@testing-library/react": "^16.3.2",
-    "@types/node": "^25.7.0",
-    "@types/react": "^19.2.14",
-    "@types/react-dom": "^19.2.3",
-    "@types/react-syntax-highlighter": "^15.5.13",
-    "@vitejs/plugin-react": "^4.7.0",
-    "autoprefixer": "^10.5.0",
-    "concurrently": "^9.2.1",
-    "cross-env": "^10.1.0",
-    "electron": "^33.3.0",
-    "electron-builder": "^26.8.1",
-    "electronmon": "^2.0.4",
-    "jsdom": "^29.1.1",
-    "postcss": "^8.5.14",
-    "tailwindcss": "^3.4.19",
-    "tsup": "^8.5.1",
-    "typescript": "^6.0.3",
-    "vite": "^5.4.21",
-    "vitest": "^2.1.9",
-    "wait-on": "^9.0.10"
-  },
-  "dependencies": {
-    "@ai-sdk/openai": "^3.0.63",
-    "@assistant-ui/react": "^0.14.5",
-    "@assistant-ui/react-markdown": "^0.14.0",
-    "@jitsi/robotjs": "^0.6.22",
-    "@libsql/client": "^0.17.3",
-    "@mastra/core": "^1.35.0",
-    "@mastra/libsql": "^1.11.0",
-    "@mastra/mcp": "^1.7.0",
-    "@mastra/memory": "^1.18.2",
-    "@mastra/rag": "^2.2.1",
-    "@modelcontextprotocol/sdk": "^1.29.0",
-    "ai": "^6.0.184",
-    "clsx": "^2.1.1",
-    "dotenv": "^17.4.2",
-    "framer-motion": "^12.38.0",
-    "lucide-react": "^1.14.0",
-    "react": "^19.2.6",
-    "react-dom": "^19.2.6",
-    "react-syntax-highlighter": "^16.1.1",
-    "remark-gfm": "^4.0.1",
-    "tailwind-merge": "^3.6.0",
-    "zod": "^4.4.3"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "electron",
-      "@jitsi/robotjs"
-    ]
-  },
-  "build": {
-    "npmRebuild": false,
-    "appId": "com.norma.agent",
-    "productName": "Norma Agent",
-    "directories": {
-      "output": "release"
+    "name": "norma-agent",
+    "version": "1.0.0",
+    "description": "",
+    "main": "dist/main/index.js",
+    "type": "module",
+    "scripts": {
+        "dev:main": "cross-env NODE_ENV=development tsup --watch",
+        "dev:renderer": "vite build --watch",
+        "dev:electron": "wait-on dist/main/index.js && cross-env ELECTRON_DEV=1 electronmon .",
+        "dev": "concurrently \"pnpm dev:renderer\" \"pnpm dev:main\" \"pnpm dev:electron\"",
+        "build:main": "tsup",
+        "build:renderer": "vite build",
+        "build:ocr": "node scripts/build-ocr.mjs",
+        "build": "pnpm build:ocr && pnpm build:renderer && pnpm build:main",
+        "pack": "electron-builder --dir",
+        "dist": "pnpm build && electron-builder",
+        "dist:win": "pnpm build && electron-builder --win",
+        "dist:mac": "pnpm build && electron-builder --mac",
+        "start": "electron .",
+        "test:e2e": "playwright test --config tests/playwright.config.ts",
+        "test:e2e:headed": "playwright test --config tests/playwright.config.ts --headed"
     },
-    "files": [
-      "dist/**/*",
-      "package.json"
-    ],
-    "extraResources": [
-      {
-        "from": ".env",
-        "to": ".",
-        "filter": [
-          "**/*"
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "packageManager": "pnpm@10.22.0",
+    "devDependencies": {
+        "@playwright/mcp": "^0.0.75",
+        "@playwright/test": "^1.60.0",
+        "@testing-library/react": "^16.3.2",
+        "@types/node": "^25.7.0",
+        "@types/react": "^19.2.14",
+        "@types/react-dom": "^19.2.3",
+        "@types/react-syntax-highlighter": "^15.5.13",
+        "@vitejs/plugin-react": "^4.7.0",
+        "autoprefixer": "^10.5.0",
+        "concurrently": "^9.2.1",
+        "cross-env": "^10.1.0",
+        "electron": "^33.3.0",
+        "electron-builder": "^26.8.1",
+        "electronmon": "^2.0.4",
+        "jsdom": "^29.1.1",
+        "postcss": "^8.5.14",
+        "tailwindcss": "^3.4.19",
+        "tsup": "^8.5.1",
+        "typescript": "^6.0.3",
+        "vite": "^5.4.21",
+        "vitest": "^2.1.9",
+        "wait-on": "^9.0.10"
+    },
+    "dependencies": {
+        "@ai-sdk/openai": "^3.0.63",
+        "@assistant-ui/react": "^0.14.5",
+        "@jitsi/robotjs": "^0.6.22",
+        "@libsql/client": "^0.17.3",
+        "@mastra/core": "^1.35.0",
+        "@mastra/libsql": "^1.11.0",
+        "@mastra/mcp": "^1.7.0",
+        "@mastra/memory": "^1.18.2",
+        "@mastra/rag": "^2.2.1",
+        "@modelcontextprotocol/sdk": "^1.29.0",
+        "@xenova/transformers": "^2.17.2",
+        "ai": "^6.0.184",
+        "clsx": "^2.1.1",
+        "dotenv": "^17.4.2",
+        "framer-motion": "^12.38.0",
+        "lucide-react": "^1.14.0",
+        "react": "^19.2.6",
+        "react-dom": "^19.2.6",
+        "react-syntax-highlighter": "^16.1.1",
+        "sharp": "^0.34.5",
+        "tailwind-merge": "^3.6.0",
+        "zod": "^4.4.3"
+    },
+    "pnpm": {
+        "onlyBuiltDependencies": [
+            "sharp",
+            "protobufjs"
         ]
-      },
-      {
-        "from": "resources/logo.png",
-        "to": "."
-      },
-      {
-        "from": "resources/norma-ocr-macos",
-        "to": ".",
-        "filter": [
-          "norma-ocr-macos"
-        ]
-      }
-    ],
-    "mac": {
-      "target": "dmg",
-      "hardenedRuntime": true,
-      "gatekeeperAssess": false
     },
-    "win": {
-      "target": "nsis"
-    },
-    "linux": {
-      "target": "AppImage"
+    "build": {
+        "npmRebuild": false,
+        "appId": "com.norma.agent",
+        "productName": "Norma Agent",
+        "directories": {
+            "output": "release"
+        },
+        "files": [
+            "dist/**/*",
+            "package.json"
+        ],
+        "extraResources": [
+            {
+                "from": ".env",
+                "to": ".",
+                "filter": [
+                    "**/*"
+                ]
+            },
+            {
+                "from": "resources/logo.png",
+                "to": "."
+            },
+            {
+                "from": "resources/norma-ocr-macos",
+                "to": ".",
+                "filter": [
+                    "norma-ocr-macos"
+                ]
+            }
+        ],
+        "mac": {
+            "target": "dmg",
+            "hardenedRuntime": true,
+            "gatekeeperAssess": false
+        },
+        "win": {
+            "target": "nsis"
+        },
+        "linux": {
+            "target": "AppImage"
+        }
     }
-  }
 }

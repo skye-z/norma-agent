@@ -18,10 +18,10 @@ const SuggestionItem: React.FC = () => {
       send
       className="text-left rounded-xl border border-white/[0.06] bg-white/[0.03] px-3 py-2.5 hover:bg-white/[0.06] transition-colors"
     >
-      <div className="text-[11px] font-medium text-norma-text">
+      <div className="text-[13px] font-medium text-norma-text">
         <SuggestionPrimitive.Title />
       </div>
-      <div className="text-[10px] text-norma-textMuted mt-0.5">
+      <div className="text-[12px] text-norma-textMuted mt-0.5">
         <SuggestionPrimitive.Description />
       </div>
     </SuggestionPrimitive.Trigger>
@@ -54,7 +54,7 @@ const ContextDisplay: React.FC = () => {
   const fmtTok = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(1)}K` : String(n);
 
   return (
-    <div className="px-3 py-1 text-[9px] text-norma-textDim font-mono truncate border-b border-white/[0.04] flex items-center gap-2">
+    <div className="px-3 py-1 text-[11px] text-norma-textDim font-mono truncate border-b border-white/[0.04] flex items-center gap-2">
       {modelShort && <span>{modelShort}</span>}
       {usage.promptTokens > 0 && (
         <>

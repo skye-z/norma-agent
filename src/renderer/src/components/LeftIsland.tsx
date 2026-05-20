@@ -82,11 +82,11 @@ export const LeftIsland: React.FC<LeftIslandProps> = ({
 
       <div className="flex-1 overflow-y-auto scrollbar-show px-2 py-2 min-h-0">
         <div className="flex items-center justify-between px-1 mb-1.5">
-          <span className="text-[10px] font-medium text-norma-textMuted uppercase tracking-wider">
+          <span className="text-[12px] font-medium text-norma-textMuted uppercase tracking-wider">
             会话历史
           </span>
           <div className="flex items-center gap-1">
-            <span className="text-[10px] text-norma-textDim">
+            <span className="text-[12px] text-norma-textDim">
               {sessions.length}
             </span>
             <button
@@ -118,11 +118,11 @@ export const LeftIsland: React.FC<LeftIslandProps> = ({
                       {isUnread && !isSessionRunning && (
                         <span className="w-1.5 h-1.5 rounded-full bg-sky-400 flex-none" />
                       )}
-                      <span className="text-[12px] font-medium text-norma-text leading-tight truncate">
+                      <span className="text-[14px] font-medium text-norma-text leading-tight truncate">
                         {session.title}
                       </span>
                     </div>
-                    <div className="text-[9px] text-norma-textDim mt-0.5 font-mono">
+                    <div className="text-[11px] text-norma-textDim mt-0.5 font-mono">
                       {session.time}
                     </div>
                   </div>
@@ -161,7 +161,7 @@ export const LeftIsland: React.FC<LeftIslandProps> = ({
             );
           })}
           {sessions.length === 0 && (
-            <div className="text-[10px] text-norma-textDim px-1 py-3 text-center">
+            <div className="text-[12px] text-norma-textDim px-1 py-3 text-center">
               开始对话后将自动创建会话
             </div>
           )}

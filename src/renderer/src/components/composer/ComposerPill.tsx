@@ -78,7 +78,7 @@ const ComposerPill: React.FC = () => {
           </ComposerPrimitive.Attachments>
 
           <ComposerPrimitive.If dictation>
-            <div className="flex items-center gap-2 px-1 py-1 text-[11px] text-norma-textMuted">
+            <div className="flex items-center gap-2 px-1 py-1 text-[13px] text-norma-textMuted">
               <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse flex-none" />
               <ComposerPrimitive.DictationTranscript className="flex-1 text-norma-textDim italic" />
               <ComposerPrimitive.StopDictation className="text-norma-textDim hover:text-red-400 transition-colors cursor-pointer">
@@ -109,7 +109,7 @@ const ComposerPill: React.FC = () => {
                 rows={1}
                 disabled={false}
                 autoFocus
-                className="flex-1 min-w-0 break-words bg-transparent text-[12px] text-norma-text placeholder-norma-textMuted
+                className="flex-1 min-w-0 break-words bg-transparent text-[14px] text-norma-text placeholder-norma-textMuted
                            outline-none resize-none leading-relaxed min-h-[20px] max-h-[120px] py-1"
               />
 

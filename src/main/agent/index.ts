@@ -15,6 +15,7 @@ import {
   systemTrayTool,
   systemInfoTool,
 } from '../tools/system-management';
+import { knowledgeSearchTool } from '../tools/knowledge-search';
 import { initMcpClient } from '../mcp';
 import { initKnowledge } from '../knowledge';
 import { automationWorkflow } from '../automation';
@@ -30,6 +31,7 @@ const TOOL_DISPLAY_META: Record<string, { name: string; description: string; cat
   list_directory: { name: '目录浏览', description: '列出目录文件', category: '工具' },
   system_tray: { name: '系统托盘', description: '与系统托盘交互', category: '控制' },
   system_info: { name: '系统信息', description: '获取系统信息', category: '感知' },
+  knowledge_search: { name: '知识检索', description: '从知识库检索相关文档片段', category: '知识' },
 };
 
 const baseTools = {
@@ -41,6 +43,7 @@ const baseTools = {
   list_directory: listDirectoryTool,
   system_tray: systemTrayTool,
   system_info: systemInfoTool,
+  knowledge_search: knowledgeSearchTool,
 };
 
 let _agent: Agent | null = null;
@@ -50,10 +53,11 @@ let _activeModel: string | null = null;
 let _dbDir: string | undefined;
 let _embedder: any;
 
-const WORKING_MEMORY_TEMPLATE = `# User Profile
-- **Name**:
-- **Preferences**:
-- **Goals**:
+const WORKING_MEMORY_TEMPLATE = `# 用户档案
+- **姓名**:
+- **偏好**:
+- **目标**:
+- **当前任务**:
 
 # Norma 人设
 
@@ -144,6 +148,7 @@ export async function initAgent(dbDir?: string, defaultModel?: string) {
 - **read_screen**: 截屏 + 原生 OCR，提取屏幕文本和坐标（支持 targetWindow 参数截取特定窗口）
 - **execute_action**: 鼠标和键盘操作
 - **system_tray**: 与系统托盘交互
+- **knowledge_search**: 从用户知识库中检索相关文档片段
 
 ## 核心原则: 按需感知，精准操作
 
@@ -339,6 +344,12 @@ export async function reconfigureMemory(options: {
   generateTitle: boolean;
   compressAlgorithm: 'sliding' | 'observational' | 'hybrid';
   compressThreshold: number;
+  systemPrompt?: string;
+  maxSteps?: number;
+  temperature?: number;
+  knowledgeAutoRetrieve?: boolean;
+  knowledgeTopK?: number;
+  knowledgeScoreThreshold?: number;
 }) {
   const dbPath = _dbDir
     ? `file:${path.join(_dbDir, 'norma-memory.db')}`
@@ -454,6 +465,7 @@ const TOOL_TEST_DEFAULTS: Record<string, Record<string, any>> = {
   list_directory: { dirPath: process.cwd() },
   system_tray: { action: 'list' },
   system_info: {},
+  knowledge_search: { query: '测试查询', topK: 3 },
 };
 
 interface ToolInputField {

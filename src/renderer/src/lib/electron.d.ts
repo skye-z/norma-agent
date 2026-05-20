@@ -38,8 +38,14 @@ declare global {
       getSystemVersion: () => Promise<{ version: string; electron: string; node: string; chrome: string }>;
       selectDirectory: () => Promise<string | null>;
       moveDataDir: (newDir: string) => Promise<{ success: boolean; error?: string }>;
+      knowledgeStatus: () => Promise<{ configured: boolean; mode: 'remote' | 'local'; baseUrl?: string; localReady?: boolean }>;
+      knowledgeSetMode: (mode: 'remote' | 'local') => Promise<{ success: boolean }>;
+      knowledgeLoadModel: () => Promise<{ success: boolean; ready?: boolean; error?: string }>;
+      knowledgeModelStatus: () => Promise<{ ready: boolean; downloading: boolean; progress: number; modelPath: string }>;
+      knowledgeDeleteModel: () => Promise<{ success: boolean; error?: string }>;
       knowledgeIngest: (name: string, text: string) => Promise<{ success: boolean; docId?: string; chunks?: number; error?: string }>;
-      knowledgeIngestFile: () => Promise<{ success: boolean; documents?: Array<{ name: string; docId: string; chunks: number }>; error?: string }>;
+      knowledgeIngestFile: () => Promise<{ success: boolean; files?: Array<{ path: string; name: string; size: number; tooLarge: boolean }>; error?: string }>;
+      knowledgeIngestFilePath: (filePath: string, name: string) => Promise<{ success: boolean; docId?: string; chunks?: number; error?: string }>;
       knowledgeQuery: (query: string, topK?: number) => Promise<{ success: boolean; results?: Array<{ id: string; score: number; metadata: Record<string, any> }>; error?: string }>;
       knowledgeList: () => Promise<{ success: boolean; documents: Array<{ docId: string; name: string; date: string; chunkCount: number }>; error?: string }>;
       knowledgeDelete: (docId: string) => Promise<{ success: boolean; error?: string }>;
@@ -66,6 +72,7 @@ declare global {
       shortcutsSet: (shortcuts: Partial<{ commandBar: string; newSession: string; hideWindow: string }>) => Promise<{ success: boolean }>;
       onShortcutNewSession: (cb: (threadId: string) => void) => () => void;
       openExternal: (url: string) => Promise<boolean>;
+      getDefaultDataDir: () => Promise<string>;
       getMemoryConfig: () => Promise<{
         lastMessages: number;
         semanticRecall: boolean;
@@ -73,6 +80,14 @@ declare global {
         semanticMessageRange: number;
         workingMemory: boolean;
         generateTitle: boolean;
+        compressAlgorithm: string;
+        compressThreshold: number;
+        systemPrompt: string;
+        maxSteps: number;
+        temperature: number;
+        knowledgeAutoRetrieve: boolean;
+        knowledgeTopK: number;
+        knowledgeScoreThreshold: number;
       }>;
       setMemoryConfig: (config: {
         lastMessages: number;
@@ -81,7 +96,16 @@ declare global {
         semanticMessageRange: number;
         workingMemory: boolean;
         generateTitle: boolean;
+        compressAlgorithm: string;
+        compressThreshold: number;
+        systemPrompt?: string;
+        maxSteps?: number;
+        temperature?: number;
+        knowledgeAutoRetrieve?: boolean;
+        knowledgeTopK?: number;
+        knowledgeScoreThreshold?: number;
       }) => Promise<{ success: boolean }>;
+      onKnowledgeDownloadProgress: (cb: (progress: number, status: string) => void) => () => void;
     };
   }
 }

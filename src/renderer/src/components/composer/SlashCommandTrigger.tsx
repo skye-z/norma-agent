@@ -34,7 +34,7 @@ const SlashCommandTrigger: React.FC = () => {
                 key={item.id}
                 item={item}
                 index={i}
-                className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-norma-textMuted hover:bg-white/[0.06] data-[highlighted]:bg-white/[0.08] data-[highlighted]:text-norma-text transition-colors text-left"
+                className="w-full flex items-center gap-2 px-3 py-1.5 text-[13px] text-norma-textMuted hover:bg-white/[0.06] data-[highlighted]:bg-white/[0.08] data-[highlighted]:text-norma-text transition-colors text-left"
               >
                 <span className="font-mono text-norma-accent">{item.label}</span>
                 <span className="flex-1 text-norma-textDim">{item.description}</span>
@@ -77,9 +77,9 @@ const MentionTrigger: React.FC = () => {
                 key={item.id}
                 item={item}
                 index={i}
-                className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-norma-textMuted hover:bg-white/[0.06] data-[highlighted]:bg-white/[0.08] data-[highlighted]:text-norma-text transition-colors text-left"
+                className="w-full flex items-center gap-2 px-3 py-1.5 text-[13px] text-norma-textMuted hover:bg-white/[0.06] data-[highlighted]:bg-white/[0.08] data-[highlighted]:text-norma-text transition-colors text-left"
               >
-                <span className="w-4 h-4 rounded-full bg-norma-accentMuted flex items-center justify-center text-[8px] text-norma-accent font-bold">
+                <span className="w-4 h-4 rounded-full bg-norma-accentMuted flex items-center justify-center text-[10px] text-norma-accent font-bold">
                   {(item.label as string)[0]}
                 </span>
                 <span className="font-medium text-norma-text">{item.label}</span>

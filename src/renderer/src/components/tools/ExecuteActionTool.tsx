@@ -12,7 +12,7 @@ export const ExecuteActionTool = makeAssistantToolUI({
       return a.type;
     });
     return (
-      <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] overflow-hidden text-[11px]">
+      <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] overflow-hidden text-[13px]">
         <div className="flex items-center gap-2 px-3 py-2 border-b border-white/[0.04]">
           <div
             className={`w-1.5 h-1.5 rounded-full ${isRunning ? "bg-amber-400 animate-pulse" : result ? (result.success ? "bg-emerald-400" : "bg-red-400") : "bg-norma-textDim"}`}

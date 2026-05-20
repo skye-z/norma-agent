@@ -5,9 +5,7 @@ import {
   ComposerPrimitive,
   ThreadPrimitive,
 } from "@assistant-ui/react";
-import { MarkdownTextPrimitive } from "@assistant-ui/react-markdown";
-import remarkGfm from "remark-gfm";
-import { MarkdownComponents } from "../lib/markdown";
+import { SimpleMarkdown } from "../lib/markdown";
 import { SlashCommandTrigger, MentionTrigger } from "./composer/SlashCommandTrigger";
 
 const CommandBarMessage: React.FC = () => {
@@ -19,7 +17,7 @@ const CommandBarMessage: React.FC = () => {
           <MessagePrimitive.Content
             components={{
               Text: ({ text }: any) => (
-                <span className="whitespace-pre-wrap text-[12px] text-norma-text leading-relaxed">
+                <span className="whitespace-pre-wrap text-[14px] text-norma-text leading-relaxed">
                   {text}
                 </span>
               ),
@@ -35,12 +33,8 @@ const CommandBarMessage: React.FC = () => {
         <MessagePrimitive.Content
           components={{
             Text: (props: any) => (
-              <div className="text-[12px] leading-relaxed text-norma-text">
-                <MarkdownTextPrimitive
-                  {...props}
-                  components={MarkdownComponents}
-                  remarkPlugins={[remarkGfm]}
-                />
+              <div className="text-[14px] leading-relaxed text-norma-text">
+                <SimpleMarkdown {...props} />
               </div>
             ),
           }}
@@ -83,7 +77,7 @@ const CommandBarInner: React.FC = () => {
               placeholder="输入指令，Enter 发送..."
               rows={1}
               autoFocus
-              className="flex-1 w-full bg-transparent text-[15px] text-norma-text placeholder-norma-textMuted outline-none resize-none leading-none py-0"
+              className="flex-1 w-full bg-transparent text-[17px] text-norma-text placeholder-norma-textMuted outline-none resize-none leading-none py-0"
               onKeyDown={(e: any) => {
                 if (e.key === "Escape") {
                   window.electronAPI?.hideWindow?.();

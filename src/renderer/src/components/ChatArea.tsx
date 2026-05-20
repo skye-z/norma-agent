@@ -152,7 +152,7 @@ const WelcomeScreen = () => (
       <h2 className="text-base font-semibold text-norma-text mb-1.5">
         👋 Hi~ 我是 Norma
       </h2>
-      <p className="text-[12px] text-norma-textMuted max-w-[300px]">
+      <p className="text-[14px] text-norma-textMuted max-w-[300px]">
         你的桌面智能助手，我可以控制你的电脑完成复杂任务
       </p>
     </div>
@@ -196,8 +196,12 @@ const ChatAreaInner: React.FC = () => {
           const merged = prev.map((s) => {
             if (!s.threadId) return s;
             const thread = threads.find((t) => t.id === s.threadId);
-            if (thread && thread.title && thread.title !== "新会话") {
-              return { ...s, title: thread.title };
+            if (thread) {
+              return {
+                ...s,
+                ...(thread.title && thread.title !== "新会话" ? { title: thread.title } : {}),
+                time: formatTimeAgo(thread.createdAt),
+              };
             }
             return s;
           });

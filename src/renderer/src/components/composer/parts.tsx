@@ -12,7 +12,7 @@ const formatTokens = (n: number): string => {
 const ComposerAttachmentItem: React.FC = () => {
   return (
     <ComposerPrimitive.AttachmentByIndex>
-      <div className="flex items-center gap-2 rounded-lg bg-white/[0.04] border border-white/[0.06] px-2 py-1.5 text-[10px]">
+      <div className="flex items-center gap-2 rounded-lg bg-white/[0.04] border border-white/[0.06] px-2 py-1.5 text-[12px]">
         <svg
           width="12"
           height="12"
@@ -116,11 +116,11 @@ const ContextRing: React.FC = () => {
       </svg>
 
       <div className="absolute bottom-full left-0 mb-3 w-48 p-3 rounded-xl bg-[#1c1c20] border border-white/[0.08] shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-        <div className="flex items-center justify-between text-[11px] text-norma-text font-medium mb-2">
+        <div className="flex items-center justify-between text-[13px] text-norma-text font-medium mb-2">
           <span>Usage</span>
           <span>{promptTokens > 0 ? `${Math.round(percentage)}%` : "—"}</span>
         </div>
-        <div className="space-y-1.5 text-[10px]">
+        <div className="space-y-1.5 text-[12px]">
           <div className="flex justify-between text-norma-textMuted">
             <span>Input</span>
             <span className="text-norma-textDim">{promptTokens > 0 ? formatTokens(promptTokens) : "—"}</span>
@@ -134,7 +134,7 @@ const ContextRing: React.FC = () => {
             <span className="text-norma-textDim">{completionTokens > 0 ? formatTokens(completionTokens) : "—"}</span>
           </div>
         </div>
-        <div className="mt-2 pt-2 border-t border-white/[0.06] flex justify-between text-[10px] font-mono text-norma-textDim">
+        <div className="mt-2 pt-2 border-t border-white/[0.06] flex justify-between text-[12px] font-mono text-norma-textDim">
           <span>Total</span>
           <span>{totalUsed > 0 ? `${formatTokens(totalUsed)} / ${formatTokens(contextWindow)}` : "—"}</span>
         </div>

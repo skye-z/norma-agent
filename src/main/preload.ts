@@ -73,8 +73,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
   selectDirectory: () => ipcRenderer.invoke('system:selectDirectory'),
   moveDataDir: (newDir: string) => ipcRenderer.invoke('system:moveDataDir', newDir),
 
+  knowledgeStatus: () => ipcRenderer.invoke('knowledge:status'),
+  knowledgeSetMode: (mode: 'remote' | 'local') => ipcRenderer.invoke('knowledge:setMode', mode),
+  knowledgeLoadModel: () => ipcRenderer.invoke('knowledge:loadModel'),
+  knowledgeModelStatus: () => ipcRenderer.invoke('knowledge:modelStatus'),
+  knowledgeDeleteModel: () => ipcRenderer.invoke('knowledge:deleteModel'),
   knowledgeIngest: (name: string, text: string) => ipcRenderer.invoke('knowledge:ingest', { name, text }),
   knowledgeIngestFile: () => ipcRenderer.invoke('knowledge:ingestFile'),
+  knowledgeIngestFilePath: (filePath: string, name: string) => ipcRenderer.invoke('knowledge:ingestFilePath', { filePath, name }),
   knowledgeQuery: (query: string, topK?: number) => ipcRenderer.invoke('knowledge:query', { query, topK }),
   knowledgeList: () => ipcRenderer.invoke('knowledge:list'),
   knowledgeDelete: (docId: string) => ipcRenderer.invoke('knowledge:delete', { docId }),
@@ -123,6 +129,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => { ipcRenderer.removeListener('shortcut:newSession', handler); };
   },
   openExternal: (url: string) => ipcRenderer.invoke('system:openExternal', url),
+  getDefaultDataDir: () => ipcRenderer.invoke('system:getDefaultDataDir'),
   getMemoryConfig: () => ipcRenderer.invoke('config:getMemoryConfig'),
   setMemoryConfig: (config: any) => ipcRenderer.invoke('config:setMemoryConfig', config),
+  onKnowledgeDownloadProgress: (cb: (progress: number, status: string) => void) => {
+    const handler = (_e: any, data: { progress: number; status: string }) => cb(data.progress, data.status);
+    ipcRenderer.on('knowledge:downloadProgress', handler);
+    return () => { ipcRenderer.removeListener('knowledge:downloadProgress', handler); };
+  },
 });

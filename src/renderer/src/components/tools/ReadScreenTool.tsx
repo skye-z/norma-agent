@@ -9,7 +9,7 @@ export const ReadScreenTool = makeAssistantToolUI({
     const imageData = result?.image_base64;
 
     return (
-      <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] overflow-hidden text-[11px]">
+      <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] overflow-hidden text-[13px]">
         <div className="flex items-center gap-2 px-3 py-2 border-b border-white/[0.04]">
           <div
             className={`w-1.5 h-1.5 rounded-full ${isRunning ? "bg-amber-400 animate-pulse" : result ? (result.success ? "bg-emerald-400" : "bg-red-400") : "bg-norma-textDim"}`}
@@ -76,7 +76,7 @@ export const ReadScreenTool = makeAssistantToolUI({
                         </td>
                         <td className="px-3 py-1 text-right">
                           <span
-                            className={`text-[10px] ${m.confidence > 0.8 ? "text-emerald-400" : m.confidence > 0.5 ? "text-amber-400" : "text-red-400"}`}
+                            className={`text-[12px] ${m.confidence > 0.8 ? "text-emerald-400" : m.confidence > 0.5 ? "text-amber-400" : "text-red-400"}`}
                           >
                             {(m.confidence * 100).toFixed(0)}%
                           </span>

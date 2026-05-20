@@ -77,7 +77,7 @@ export const MessageMetaDisplay: React.FC = () => {
 
   return (
     <span className="inline-flex items-center gap-1 relative">
-      <span className="text-[9px] text-norma-textDim font-mono">
+      <span className="text-[11px] text-norma-textDim font-mono">
         {durationText}
       </span>
       <button
@@ -103,7 +103,7 @@ export const MessageMetaDisplay: React.FC = () => {
       </button>
       {showInfo && (
         <div
-          className="absolute left-0 bottom-full mb-1 rounded-lg bg-[#1a1a1f] border border-white/[0.08] shadow-xl px-3 py-2 z-50 text-[9px] font-mono space-y-1 min-w-[160px]"
+          className="absolute left-0 bottom-full mb-1 rounded-lg bg-[#1a1a1f] border border-white/[0.08] shadow-xl px-3 py-2 z-50 text-[11px] font-mono space-y-1 min-w-[160px]"
           onClick={(e) => e.stopPropagation()}
         >
           {modelShort && (
@@ -163,7 +163,7 @@ export const PlanBlock: React.FC<{ children: React.ReactNode }> = ({
     <div className="rounded-xl bg-white/[0.03] border border-norma-accent/30 overflow-hidden my-2">
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center gap-2 px-3 py-2 text-[11px] text-norma-accent hover:bg-white/[0.02] transition-colors whitespace-nowrap"
+        className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-norma-accent hover:bg-white/[0.02] transition-colors whitespace-nowrap"
       >
         <svg
           className={`w-3 h-3 transition-transform ${open ? "rotate-90" : ""}`}
@@ -189,7 +189,7 @@ export const PlanBlock: React.FC<{ children: React.ReactNode }> = ({
         </span>
       </button>
       {open && (
-        <div className="px-3 pb-2.5 text-[11px] text-norma-text/90 leading-relaxed whitespace-pre-wrap">
+        <div className="px-3 pb-2.5 text-[13px] text-norma-text/90 leading-relaxed whitespace-pre-wrap">
           {children}
         </div>
       )}
@@ -206,7 +206,7 @@ export const ReasoningBlock: React.FC<{
     <div className="rounded-xl bg-white/[0.02] border border-white/[0.04] overflow-hidden">
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center gap-2 px-3 py-2 text-[11px] text-norma-textMuted hover:text-norma-text transition-colors whitespace-nowrap"
+        className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-norma-textMuted hover:text-norma-text transition-colors whitespace-nowrap"
       >
         <svg
           className={`w-3 h-3 transition-transform ${open ? "rotate-90" : ""}`}
@@ -225,7 +225,7 @@ export const ReasoningBlock: React.FC<{
         </span>
       </button>
       {open && (
-        <div className="px-3 pb-2.5 text-[11px] text-norma-textMuted leading-relaxed whitespace-pre-wrap">
+        <div className="px-3 pb-2.5 text-[13px] text-norma-textMuted leading-relaxed whitespace-pre-wrap">
           {text}
         </div>
       )}
@@ -251,7 +251,7 @@ export const ReadScreenToolInline: React.FC<{
   const label = getToolLabel(toolName);
 
   return (
-    <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] overflow-hidden text-[11px] my-1">
+    <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] overflow-hidden text-[13px] my-1">
       <button
         onClick={() => setOpen(!open)}
         className="w-full flex items-center gap-2 px-3 py-2 border-b border-white/[0.04] whitespace-nowrap hover:bg-white/[0.02] transition-colors"
@@ -269,7 +269,7 @@ export const ReadScreenToolInline: React.FC<{
           className={`w-1.5 h-1.5 rounded-full ${isRunning ? "bg-amber-400 animate-pulse" : res ? (res.success ? "bg-emerald-400" : "bg-red-400") : "bg-norma-textDim"}`}
         />
         <span className="font-mono text-norma-textMuted">{label}</span>
-        <span className="text-norma-textDim ml-auto text-[10px]">
+        <span className="text-norma-textDim ml-auto text-[12px]">
           {isRunning
             ? "识别中..."
             : res
@@ -326,7 +326,7 @@ export const ReadScreenToolInline: React.FC<{
                       </td>
                       <td className="px-3 py-1 text-right">
                         <span
-                          className={`text-[10px] ${m.confidence > 0.8 ? "text-emerald-400" : m.confidence > 0.5 ? "text-amber-400" : "text-red-400"}`}
+                          className={`text-[12px] ${m.confidence > 0.8 ? "text-emerald-400" : m.confidence > 0.5 ? "text-amber-400" : "text-red-400"}`}
                         >
                           {(m.confidence * 100).toFixed(0)}%
                         </span>
@@ -374,7 +374,7 @@ export const ListWindowsToolInline: React.FC<{
   const label = getToolLabel(toolName);
 
   return (
-    <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] overflow-hidden text-[11px] my-1">
+    <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] overflow-hidden text-[13px] my-1">
       <button
         onClick={() => setOpen(!open)}
         className="w-full flex items-center gap-2 px-3 py-2 border-b border-white/[0.04] whitespace-nowrap hover:bg-white/[0.02] transition-colors"
@@ -392,7 +392,7 @@ export const ListWindowsToolInline: React.FC<{
           className={`w-1.5 h-1.5 rounded-full ${isRunning ? "bg-amber-400 animate-pulse" : res ? "bg-emerald-400" : "bg-norma-textDim"}`}
         />
         <span className="font-mono text-norma-textMuted">{label}</span>
-        <span className="text-norma-textDim ml-auto text-[10px]">
+        <span className="text-norma-textDim ml-auto text-[12px]">
           {isRunning ? "查询中..." : res ? `${windows.length} 窗口` : "等待中"}
         </span>
       </button>
@@ -403,7 +403,7 @@ export const ListWindowsToolInline: React.FC<{
         <div className="max-h-[200px] overflow-y-auto scrollbar-show">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-white/[0.06] text-norma-textDim text-[9px] uppercase tracking-wider">
+              <tr className="border-b border-white/[0.06] text-norma-textDim text-[11px] uppercase tracking-wider">
                 <th className="px-3 py-1 text-left font-medium">窗口</th>
                 <th className="px-3 py-1 text-left font-medium">进程</th>
                 <th className="px-3 py-1 text-right font-medium">尺寸</th>
@@ -426,14 +426,14 @@ export const ListWindowsToolInline: React.FC<{
                       </span>
                     </div>
                   </td>
-                  <td className="px-3 py-1 text-norma-textDim font-mono text-[10px]">
+                  <td className="px-3 py-1 text-norma-textDim font-mono text-[12px]">
                     {w.processName || (w.pid ? `PID:${w.pid}` : "")}
                   </td>
-                  <td className="px-3 py-1 text-norma-textDim text-right whitespace-nowrap text-[10px]">
+                  <td className="px-3 py-1 text-norma-textDim text-right whitespace-nowrap text-[12px]">
                     {w.bounds ? `${w.bounds.width}×${w.bounds.height}` : "—"}
                   </td>
                   <td className="px-3 py-1 text-center">
-                    <span className={`text-[9px] px-1 py-0.5 rounded ${w.isActive ? "bg-norma-accent/20 text-norma-accent" : w.isMinimized ? "bg-white/[0.04] text-norma-textDim" : "bg-white/[0.04] text-norma-textDim"}`}>
+                    <span className={`text-[11px] px-1 py-0.5 rounded ${w.isActive ? "bg-norma-accent/20 text-norma-accent" : w.isMinimized ? "bg-white/[0.04] text-norma-textDim" : "bg-white/[0.04] text-norma-textDim"}`}>
                       {w.isActive ? "活跃" : w.isMinimized ? "最小化" : ""}
                     </span>
                   </td>
@@ -512,7 +512,7 @@ export const ToolFallbackDisplay: React.FC<{
   };
 
   return (
-    <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] overflow-hidden text-[11px] my-1">
+    <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] overflow-hidden text-[13px] my-1">
       <button
         onClick={() => setOpen(!open)}
         className="w-full flex items-center gap-2 px-3 py-2 border-b border-white/[0.04] whitespace-nowrap hover:bg-white/[0.02] transition-colors"
@@ -532,19 +532,19 @@ export const ToolFallbackDisplay: React.FC<{
         >
           {isSubAgent ? `派发: ${displayName}` : label}
         </span>
-        <span className="text-norma-textDim ml-auto text-[10px]">
+        <span className="text-norma-textDim ml-auto text-[12px]">
           {getStatusText()}
         </span>
       </button>
       {open && result && (
-        <div className="px-3 py-2 text-norma-text/80 leading-relaxed font-mono whitespace-pre-wrap text-[10px] bg-black/20 max-h-[200px] overflow-y-auto scrollbar-show">
+        <div className="px-3 py-2 text-norma-text/80 leading-relaxed font-mono whitespace-pre-wrap text-[12px] bg-black/20 max-h-[200px] overflow-y-auto scrollbar-show">
           {typeof result === "string"
             ? result
             : (result as any)?.text || extractErrorMessage(result)}
         </div>
       )}
       {open && isRunning && (
-        <div className="px-3 py-2 flex items-center gap-2 text-norma-textDim text-[10px] bg-black/10">
+        <div className="px-3 py-2 flex items-center gap-2 text-norma-textDim text-[12px] bg-black/10">
           <div className="flex gap-0.5">
             <span
               className="w-1 h-1 rounded-full bg-norma-accent animate-bounce"
@@ -563,7 +563,7 @@ export const ToolFallbackDisplay: React.FC<{
         </div>
       )}
       {open && !result && !isRunning && args && (
-        <div className="px-3 py-2 text-norma-textDim leading-relaxed font-mono whitespace-pre-wrap text-[10px] bg-black/10">
+        <div className="px-3 py-2 text-norma-textDim leading-relaxed font-mono whitespace-pre-wrap text-[12px] bg-black/10">
           {JSON.stringify(args, null, 2)}
         </div>
       )}
@@ -574,7 +574,7 @@ export const ToolFallbackDisplay: React.FC<{
 export const FilePartView: React.FC = () => {
   const file = useMessagePartFile();
   return (
-    <AttachmentPrimitive.Root className="flex items-center gap-2 rounded-lg bg-white/[0.03] border border-white/[0.06] px-2.5 py-1.5 text-[10px]">
+    <AttachmentPrimitive.Root className="flex items-center gap-2 rounded-lg bg-white/[0.03] border border-white/[0.06] px-2.5 py-1.5 text-[12px]">
       <svg
         width="12"
         height="12"

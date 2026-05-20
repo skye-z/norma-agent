@@ -6,7 +6,7 @@ const RESOURCE_ID = 'norma-user';
 export function setupMemoryIpc() {
   ipcMain.handle('memory:createThread', async (_event, title?: string) => {
     const memory = getMemory();
-    if (!memory) throw new Error('Memory not initialized');
+    if (!memory) return { id: `temp_${Date.now()}`, title: title || '新会话', resourceId: RESOURCE_ID, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
     const thread = await memory.createThread({
       resourceId: RESOURCE_ID,
       title: title || '新会话',
@@ -16,7 +16,7 @@ export function setupMemoryIpc() {
 
   ipcMain.handle('memory:listThreads', async () => {
     const memory = getMemory();
-    if (!memory) throw new Error('Memory not initialized');
+    if (!memory) return [];
     const result = await memory.listThreads({
       filter: { resourceId: RESOURCE_ID },
       perPage: false,
@@ -32,7 +32,7 @@ export function setupMemoryIpc() {
 
   ipcMain.handle('memory:getThread', async (_event, threadId: string) => {
     const memory = getMemory();
-    if (!memory) throw new Error('Memory not initialized');
+    if (!memory) return null;
     const thread = await memory.getThreadById({ threadId });
     if (!thread) return null;
     return { id: thread.id, title: thread.title, resourceId: thread.resourceId, createdAt: thread.createdAt, updatedAt: thread.updatedAt };
@@ -40,14 +40,14 @@ export function setupMemoryIpc() {
 
   ipcMain.handle('memory:deleteThread', async (_event, threadId: string) => {
     const memory = getMemory();
-    if (!memory) throw new Error('Memory not initialized');
+    if (!memory) return false;
     await memory.deleteThread(threadId);
     return true;
   });
 
   ipcMain.handle('memory:getThreadMessages', async (_event, threadId: string) => {
     const memory = getMemory();
-    if (!memory) throw new Error('Memory not initialized');
+    if (!memory) return [];
     const { messages } = await memory.recall({ threadId, perPage: 100 });
     return messages;
   });

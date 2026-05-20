@@ -55,7 +55,7 @@ export const UserMessage: React.FC = () => {
                         return (
                           <span
                             key={i}
-                            className="inline-flex items-center px-1.5 py-0.5 rounded bg-black/20 text-white/90 font-mono text-[11px] align-bottom mx-0.5 border border-black/10 shadow-sm leading-none mt-0.5"
+                            className="inline-flex items-center px-1.5 py-0.5 rounded bg-black/20 text-white/90 font-mono text-[13px] align-bottom mx-0.5 border border-black/10 shadow-sm leading-none mt-0.5"
                           >
                             <svg
                               width="10"
@@ -78,7 +78,7 @@ export const UserMessage: React.FC = () => {
                         return (
                           <span
                             key={i}
-                            className="inline-flex items-center px-1.5 py-0.5 rounded bg-white/20 text-white font-medium text-[11px] align-bottom mx-0.5 border border-white/20 shadow-sm leading-none mt-0.5"
+                            className="inline-flex items-center px-1.5 py-0.5 rounded bg-white/20 text-white font-medium text-[13px] align-bottom mx-0.5 border border-white/20 shadow-sm leading-none mt-0.5"
                           >
                             <svg
                               width="10"
@@ -102,7 +102,7 @@ export const UserMessage: React.FC = () => {
                   };
 
                   return (
-                    <span className="whitespace-pre-wrap text-[12px] leading-relaxed">
+                    <span className="whitespace-pre-wrap text-[14px] leading-relaxed">
                       {renderHighlightedText(text)}
                     </span>
                   );
@@ -115,7 +115,7 @@ export const UserMessage: React.FC = () => {
         </div>
         <div className="flex items-center gap-1 mt-1 px-1 justify-end">
           {timeStr && (
-            <span className="text-[9px] text-norma-textDim font-mono">
+            <span className="text-[11px] text-norma-textDim font-mono">
               {timeStr}
             </span>
           )}
