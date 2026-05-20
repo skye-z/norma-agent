@@ -243,14 +243,29 @@ const CapabilitiesPage: React.FC = () => {
   const [disabledTools, setDisabledTools] = useState<Set<string>>(new Set());
 
   const [showMcpModal, setShowMcpModal] = useState(false);
-  const [mcpForm, setMcpForm] = useState({ name: "", command: "", args: "", env: "" });
-  const [mcpServers, setMcpServers, mcpLoaded] = useDbState<Array<{
-    id: string; name: string; command: string; args: string[]; env: Record<string, string>; enabled: boolean;
-  }>>("norma-mcp-servers", []);
-
-  const [skillEnabled, setSkillEnabled] = useDbState<Record<string, boolean>>("norma-skill-enabled", {
-    knowledge_search: true,
+  const [mcpForm, setMcpForm] = useState({
+    name: "",
+    command: "",
+    args: "",
+    env: "",
   });
+  const [mcpServers, setMcpServers, mcpLoaded] = useDbState<
+    Array<{
+      id: string;
+      name: string;
+      command: string;
+      args: string[];
+      env: Record<string, string>;
+      enabled: boolean;
+    }>
+  >("norma-mcp-servers", []);
+
+  const [skillEnabled, setSkillEnabled] = useDbState<Record<string, boolean>>(
+    "norma-skill-enabled",
+    {
+      knowledge_search: true,
+    },
+  );
 
   useEffect(() => {
     window.electronAPI
@@ -435,7 +450,17 @@ const CapabilitiesPage: React.FC = () => {
                     onClick={() => setShowMcpModal(true)}
                     className="ml-auto px-2.5 py-1 rounded-lg bg-norma-accent/15 text-norma-accent text-[12px] hover:bg-norma-accent hover:text-white transition-all flex items-center gap-1"
                   >
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14" /><path d="M5 12h14" /></svg>
+                    <svg
+                      width="10"
+                      height="10"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path d="M12 5v14" />
+                      <path d="M5 12h14" />
+                    </svg>
                     安装工具
                   </button>
                 )}
@@ -720,56 +745,87 @@ const CapabilitiesPage: React.FC = () => {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-2 px-4 py-3 border-b border-white/[0.06]">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-sky-400">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                className="text-sky-400"
+              >
                 <circle cx="12" cy="12" r="10" />
                 <line x1="2" y1="12" x2="22" y2="12" />
                 <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
               </svg>
-              <span className="text-[15px] font-medium text-norma-text flex-1">安装 MCP 工具</span>
+              <span className="text-[15px] font-medium text-norma-text flex-1">
+                安装 MCP 工具
+              </span>
               <button
                 onClick={() => setShowMcpModal(false)}
                 className="p-1 rounded hover:bg-white/[0.06] text-norma-textMuted hover:text-norma-text transition-colors"
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
               </button>
             </div>
 
             <div className="flex-1 overflow-y-auto scrollbar-show p-4 space-y-3">
-              <div className="text-[12px] text-norma-textDim bg-white/[0.03] rounded-lg px-3 py-2 border border-white/[0.06]">
-                MCP (Model Context Protocol) 允许接入外部工具服务器。配置后 Norma 会自动加载并使用这些工具。
-              </div>
               <div>
                 <div className="text-[12px] text-norma-textDim mb-1">名称</div>
                 <input
                   value={mcpForm.name}
-                  onChange={(e) => setMcpForm({ ...mcpForm, name: e.target.value })}
+                  onChange={(e) =>
+                    setMcpForm({ ...mcpForm, name: e.target.value })
+                  }
                   placeholder="My MCP Server"
                   className="w-full bg-white/[0.04] border border-white/[0.06] rounded-lg px-3 py-1.5 text-[13px] text-norma-text placeholder-norma-textDim outline-none focus:border-norma-accent/40"
                 />
               </div>
               <div>
-                <div className="text-[12px] text-norma-textDim mb-1">启动命令</div>
+                <div className="text-[12px] text-norma-textDim mb-1">
+                  启动命令
+                </div>
                 <input
                   value={mcpForm.command}
-                  onChange={(e) => setMcpForm({ ...mcpForm, command: e.target.value })}
+                  onChange={(e) =>
+                    setMcpForm({ ...mcpForm, command: e.target.value })
+                  }
                   placeholder="npx @example/mcp-server"
                   className="w-full bg-white/[0.04] border border-white/[0.06] rounded-lg px-3 py-1.5 text-[13px] text-norma-text placeholder-norma-textDim outline-none focus:border-norma-accent/40 font-mono"
                 />
               </div>
               <div>
-                <div className="text-[12px] text-norma-textDim mb-1">参数（空格分隔）</div>
+                <div className="text-[12px] text-norma-textDim mb-1">
+                  参数（空格分隔）
+                </div>
                 <input
                   value={mcpForm.args}
-                  onChange={(e) => setMcpForm({ ...mcpForm, args: e.target.value })}
+                  onChange={(e) =>
+                    setMcpForm({ ...mcpForm, args: e.target.value })
+                  }
                   placeholder="--port 3000"
                   className="w-full bg-white/[0.04] border border-white/[0.06] rounded-lg px-3 py-1.5 text-[13px] text-norma-text placeholder-norma-textDim outline-none focus:border-norma-accent/40 font-mono"
                 />
               </div>
               <div>
-                <div className="text-[12px] text-norma-textDim mb-1">环境变量（KEY=VAL，逗号分隔）</div>
+                <div className="text-[12px] text-norma-textDim mb-1">
+                  环境变量（KEY=VAL，逗号分隔）
+                </div>
                 <input
                   value={mcpForm.env}
-                  onChange={(e) => setMcpForm({ ...mcpForm, env: e.target.value })}
+                  onChange={(e) =>
+                    setMcpForm({ ...mcpForm, env: e.target.value })
+                  }
                   placeholder="API_KEY=xxx"
                   className="w-full bg-white/[0.04] border border-white/[0.06] rounded-lg px-3 py-1.5 text-[13px] text-norma-text placeholder-norma-textDim outline-none focus:border-norma-accent/40 font-mono"
                 />
@@ -777,26 +833,59 @@ const CapabilitiesPage: React.FC = () => {
 
               {mcpServers.length > 0 && (
                 <div className="pt-2 border-t border-white/[0.06]">
-                  <div className="text-[12px] text-norma-textDim mb-2">已安装的工具服务器</div>
+                  <div className="text-[12px] text-norma-textDim mb-2">
+                    已安装的工具服务器
+                  </div>
                   <div className="space-y-1.5">
                     {mcpServers.map((s) => (
-                      <div key={s.id} className="flex items-center gap-2 rounded-lg bg-white/[0.03] border border-white/[0.06] px-3 py-2 group">
-                        <span className={`w-1.5 h-1.5 rounded-full flex-none ${s.enabled ? "bg-emerald-400" : "bg-white/20"}`} />
+                      <div
+                        key={s.id}
+                        className="flex items-center gap-2 rounded-lg bg-white/[0.03] border border-white/[0.06] px-3 py-2 group"
+                      >
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full flex-none ${s.enabled ? "bg-emerald-400" : "bg-white/20"}`}
+                        />
                         <div className="flex-1 min-w-0">
-                          <div className="text-[13px] text-norma-text truncate">{s.name}</div>
-                          <div className="text-[11px] text-norma-textDim font-mono truncate">{s.command}</div>
+                          <div className="text-[13px] text-norma-text truncate">
+                            {s.name}
+                          </div>
+                          <div className="text-[11px] text-norma-textDim font-mono truncate">
+                            {s.command}
+                          </div>
                         </div>
                         <button
-                          onClick={() => setMcpServers((prev) => prev.map((x) => x.id === s.id ? { ...x, enabled: !x.enabled } : x))}
+                          onClick={() =>
+                            setMcpServers((prev) =>
+                              prev.map((x) =>
+                                x.id === s.id
+                                  ? { ...x, enabled: !x.enabled }
+                                  : x,
+                              ),
+                            )
+                          }
                           className={`text-[10px] px-1.5 py-0.5 rounded ${s.enabled ? "bg-emerald-500/20 text-emerald-300" : "bg-white/[0.06] text-norma-textDim"}`}
                         >
                           {s.enabled ? "启用" : "禁用"}
                         </button>
                         <button
-                          onClick={() => setMcpServers((prev) => prev.filter((x) => x.id !== s.id))}
+                          onClick={() =>
+                            setMcpServers((prev) =>
+                              prev.filter((x) => x.id !== s.id),
+                            )
+                          }
                           className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-white/[0.08] text-norma-textDim hover:text-red-400 transition-all"
                         >
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                          <svg
+                            width="10"
+                            height="10"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                          >
+                            <line x1="18" y1="6" x2="6" y2="18" />
+                            <line x1="6" y1="6" x2="18" y2="18" />
+                          </svg>
                         </button>
                       </div>
                     ))}
@@ -807,7 +896,10 @@ const CapabilitiesPage: React.FC = () => {
 
             <div className="flex justify-end gap-2 px-4 py-3 border-t border-white/[0.06]">
               <button
-                onClick={() => { setShowMcpModal(false); setMcpForm({ name: "", command: "", args: "", env: "" }); }}
+                onClick={() => {
+                  setShowMcpModal(false);
+                  setMcpForm({ name: "", command: "", args: "", env: "" });
+                }}
                 className="px-3 py-1.5 rounded-lg bg-white/[0.06] text-norma-textMuted text-[13px] hover:bg-white/[0.1] transition-colors"
               >
                 取消
@@ -822,21 +914,36 @@ const CapabilitiesPage: React.FC = () => {
                       if (k.trim()) envPairs[k.trim()] = v.join("=").trim();
                     });
                   }
-                  setMcpServers((prev) => [...prev, {
-                    id: `mcp_${Date.now()}`,
-                    name: mcpForm.name.trim(),
-                    command: mcpForm.command.trim(),
-                    args: mcpForm.args.trim() ? mcpForm.args.split(/\s+/) : [],
-                    env: envPairs,
-                    enabled: true,
-                  }]);
+                  setMcpServers((prev) => [
+                    ...prev,
+                    {
+                      id: `mcp_${Date.now()}`,
+                      name: mcpForm.name.trim(),
+                      command: mcpForm.command.trim(),
+                      args: mcpForm.args.trim()
+                        ? mcpForm.args.split(/\s+/)
+                        : [],
+                      env: envPairs,
+                      enabled: true,
+                    },
+                  ]);
                   setMcpForm({ name: "", command: "", args: "", env: "" });
                   setShowMcpModal(false);
                 }}
                 disabled={!mcpForm.name.trim() || !mcpForm.command.trim()}
                 className="px-4 py-1.5 rounded-lg bg-norma-accent text-white text-[13px] hover:opacity-90 disabled:opacity-40 transition-opacity flex items-center gap-1.5"
               >
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14" /><path d="M5 12h14" /></svg>
+                <svg
+                  width="11"
+                  height="11"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path d="M12 5v14" />
+                  <path d="M5 12h14" />
+                </svg>
                 安装
               </button>
             </div>
