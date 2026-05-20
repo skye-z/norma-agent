@@ -54,6 +54,7 @@ async function checkAndLoadLocalModel() {
   try {
     await fs.promises.access(modelDir);
     console.log(`[Knowledge] Found cached local model at ${modelDir}, auto-loading...`);
+    _mode = 'local';
     loadLocalModel().catch(err => {
       console.warn(`[Knowledge] Auto-load local model failed: ${err.message}`);
     });

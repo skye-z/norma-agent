@@ -47,6 +47,7 @@ export const knowledgeSearchTool = createTool({
 
     try {
       const raw = await queryKnowledge(inputData.query, topK);
+      console.log(`[KnowledgeSearch] query="${inputData.query}" mode=${require('../knowledge').getEmbedderMode()} raw=${raw.length} filtered(threshold>=${threshold})=${raw.filter(r => r.score >= threshold).length}`);
       const filtered = raw.filter((r) => r.score >= threshold);
       const results = filtered.map((r) => ({
         text: (r.metadata?.text || '').slice(0, 500),
@@ -56,7 +57,8 @@ export const knowledgeSearchTool = createTool({
       }));
 
       return { results, total: results.length };
-    } catch {
+    } catch (err: any) {
+      console.error(`[KnowledgeSearch] query failed: ${err?.message}`);
       return { results: [], total: 0 };
     }
   },
