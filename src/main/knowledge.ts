@@ -42,6 +42,24 @@ export function initKnowledge(dbDir?: string) {
   if (process.env.OPENAI_API_KEY && !_remoteEmbedder) {
     reconfigureRemoteEmbedder();
   }
+
+  checkAndLoadLocalModel();
+}
+
+async function checkAndLoadLocalModel() {
+  const modelsDir = _dataDir ? path.join(_dataDir, '.models') : '';
+  if (!modelsDir) return;
+
+  const modelDir = path.join(modelsDir, LOCAL_MODEL_ID.split('/').pop()!);
+  try {
+    await fs.promises.access(modelDir);
+    console.log(`[Knowledge] Found cached local model at ${modelDir}, auto-loading...`);
+    loadLocalModel().catch(err => {
+      console.warn(`[Knowledge] Auto-load local model failed: ${err.message}`);
+    });
+  } catch {
+    // model not cached, skip
+  }
 }
 
 export function setEmbedderMode(mode: EmbedderMode) {
