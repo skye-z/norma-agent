@@ -38,7 +38,8 @@ export async function parseFile(filePath: string): Promise<string> {
 }
 
 async function parsePdf(filePath: string): Promise<string> {
-  const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
+  const mod = await import('pdfjs-dist/legacy/build/pdf.mjs');
+  const pdfjs = mod.default || mod;
   const buffer = await fs.readFile(filePath);
   const data = new Uint8Array(buffer);
   const doc = await pdfjs.getDocument({ data }).promise;
@@ -56,7 +57,8 @@ async function parsePdf(filePath: string): Promise<string> {
 }
 
 async function parseDocx(filePath: string): Promise<string> {
-  const mammoth = await import('mammoth');
+  const mod = await import('mammoth');
+  const mammoth = mod.default || mod;
   const buffer = await fs.readFile(filePath);
   const result = await mammoth.extractRawText({ buffer });
   if (!result.value || result.value.trim().length === 0) {
@@ -66,7 +68,8 @@ async function parseDocx(filePath: string): Promise<string> {
 }
 
 async function parseXlsx(filePath: string): Promise<string> {
-  const XLSX = await import('xlsx');
+  const mod = await import('xlsx');
+  const XLSX = mod.default || mod;
   const workbook = XLSX.readFile(filePath);
   const parts: string[] = [];
 

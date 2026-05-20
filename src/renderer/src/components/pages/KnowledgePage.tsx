@@ -490,22 +490,20 @@ const KnowledgeTab: React.FC = () => {
         setImportTasks((prev) => prev.map((t) => t.id === task.id ? { ...t, status: 'processing', progress: 30 } : t));
         try {
           const ingestRes = await window.electronAPI?.knowledgeIngestFilePath?.(task.filePath!, task.name, task.id);
-          setImportTasks((prev) => prev.map((t) =>
-            t.id === task.id
-              ? { ...t, status: ingestRes?.success ? 'done' : 'error', progress: 100, chunks: ingestRes?.chunks, error: ingestRes?.error, docId: ingestRes?.docId }
-              : t
-          ));
-          if (ingestRes?.success) await fetchDocs();
+          if (ingestRes?.success) {
+            await fetchDocs();
+          }
+          setImportTasks((prev) =>
+            ingestRes?.success
+              ? prev.filter((t) => t.id !== task.id)
+              : prev.map((t) => t.id === task.id ? { ...t, status: 'error', progress: 100, error: ingestRes?.error } : t)
+          );
         } catch (err: any) {
           setImportTasks((prev) => prev.map((t) =>
             t.id === task.id ? { ...t, status: 'error', error: err?.message || String(err) } : t
           ));
         }
       }
-
-      setTimeout(() => {
-        setImportTasks((prev) => prev.filter((t) => t.status !== 'done'));
-      }, 3000);
     } catch (err: any) {
       alert(`选择文件失败: ${err?.message || err}`);
     }
@@ -527,26 +525,19 @@ const KnowledgeTab: React.FC = () => {
         uploadText.trim(),
         task.id,
       );
-      setImportTasks((prev) =>
-        prev.map((t) =>
-          t.id === task.id
-            ? {
-                ...t,
-                status: res?.success ? "done" : "error",
-                progress: 100,
-                chunks: res?.chunks,
-                error: res?.error,
-              }
-            : t,
-        ),
-      );
       if (res?.success) {
         setUploadName("");
         setUploadText("");
         await fetchDocs();
-        setTimeout(() => {
-          setImportTasks((prev) => prev.filter((t) => t.id !== task.id));
-        }, 3000);
+        setImportTasks((prev) => prev.filter((t) => t.id !== task.id));
+      } else {
+        setImportTasks((prev) =>
+          prev.map((t) =>
+            t.id === task.id
+              ? { ...t, status: "error", progress: 100, error: res?.error }
+              : t,
+          ),
+        );
       }
     } catch (err: any) {
       setImportTasks((prev) =>
