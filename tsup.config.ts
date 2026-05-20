@@ -22,6 +22,7 @@ export default [
       'sharp',
       'onnxruntime-node',
       'pdf-parse',
+      'pdfjs-dist',
       'mammoth',
       'xlsx',
     ],

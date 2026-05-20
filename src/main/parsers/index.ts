@@ -38,13 +38,21 @@ export async function parseFile(filePath: string): Promise<string> {
 }
 
 async function parsePdf(filePath: string): Promise<string> {
-  const pdfParse = (await import('pdf-parse')).default;
+  const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
   const buffer = await fs.readFile(filePath);
-  const data = await pdfParse(buffer);
-  if (!data.text || data.text.trim().length === 0) {
+  const data = new Uint8Array(buffer);
+  const doc = await pdfjs.getDocument({ data }).promise;
+  const parts: string[] = [];
+  for (let i = 1; i <= doc.numPages; i++) {
+    const page = await doc.getPage(i);
+    const content = await page.getTextContent();
+    const text = content.items.map((item: any) => item.str).join(' ');
+    if (text.trim()) parts.push(text);
+  }
+  if (parts.length === 0) {
     throw new Error('PDF 文件无法提取文本内容，可能是扫描件');
   }
-  return data.text;
+  return parts.join('\n\n');
 }
 
 async function parseDocx(filePath: string): Promise<string> {
