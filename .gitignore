@@ -51,3 +51,9 @@ playwright/.cache/
 resources/norma-ocr-win.exe
 resources/norma-ocr-macos
 resources/norma-speech-win.exe
+
+# Model cache
+.models/
+
+# Electron
+.electron/

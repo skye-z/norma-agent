@@ -18,7 +18,9 @@ export const knowledgeSearchTool = createTool({
     total: z.number(),
   }),
   execute: async (inputData: { query?: string; topK?: number }) => {
-    const { queryKnowledge } = await import('../knowledge');
+    console.log(`[KnowledgeSearch] EXECUTE called with:`, JSON.stringify(inputData));
+    const { queryKnowledge, getEmbedderMode, getLocalModelStatus } = await import('../knowledge');
+    console.log(`[KnowledgeSearch] mode=${getEmbedderMode()} localReady=${getLocalModelStatus().ready}`);
     const { getConfig } = await import('../config');
 
     if (!inputData?.query) {
