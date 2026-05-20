@@ -65,13 +65,18 @@ export function setupKnowledgeIpc() {
     }
   });
 
-  ipcMain.handle('knowledge:ingest', async (event, { name, text }: { name: string; text: string }) => {
+  ipcMain.handle('knowledge:ingest', async (event, { name, text, taskId }: { name: string; text: string; taskId?: string }) => {
     try {
       const { ingestDocument } = await import('../knowledge');
       const docId = `doc_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      const win = BrowserWindow.fromWebContents(event.sender);
       const result = await ingestDocument(docId, text, {
         name,
         date: new Date().toISOString(),
+      }, (progress) => {
+        if (taskId && win && !win.isDestroyed()) {
+          win.webContents.send('knowledge:ingestProgress', { taskId, progress });
+        }
       });
       return { success: true, docId, chunks: result.chunks };
     } catch (err: any) {
@@ -108,14 +113,19 @@ export function setupKnowledgeIpc() {
     }
   });
 
-  ipcMain.handle('knowledge:ingestFilePath', async (_event, { filePath, name }: { filePath: string; name: string }) => {
+  ipcMain.handle('knowledge:ingestFilePath', async (event, { filePath, name, taskId }: { filePath: string; name: string; taskId?: string }) => {
     try {
       const { ingestDocument } = await import('../knowledge');
       const text = await fs.readFile(filePath, 'utf-8');
       const docId = `doc_${Date.now()}_${Math.random().toString(36).slice(2, 8)}_${path.basename(filePath, path.extname(filePath))}`;
+      const win = BrowserWindow.fromWebContents(event.sender);
       const result = await ingestDocument(docId, text, {
         name,
         date: new Date().toISOString(),
+      }, (progress) => {
+        if (taskId && win && !win.isDestroyed()) {
+          win.webContents.send('knowledge:ingestProgress', { taskId, progress });
+        }
       });
       return { success: true, docId, chunks: result.chunks };
     } catch (err: any) {

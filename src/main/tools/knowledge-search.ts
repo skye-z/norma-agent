@@ -17,9 +17,13 @@ export const knowledgeSearchTool = createTool({
     })),
     total: z.number(),
   }),
-  execute: async ({ context }) => {
+  execute: async (inputData: { query?: string; topK?: number }) => {
     const { queryKnowledge } = await import('../knowledge');
     const { getConfig } = await import('../config');
+
+    if (!inputData?.query) {
+      return { results: [], total: 0 };
+    }
 
     let settings: any = {
       enabled: true,
@@ -38,11 +42,11 @@ export const knowledgeSearchTool = createTool({
       return { results: [], total: 0 };
     }
 
-    const topK = context.topK || settings.retrievalTopK || 5;
+    const topK = inputData.topK || settings.retrievalTopK || 5;
     const threshold = settings.scoreThreshold ?? 0.5;
 
     try {
-      const raw = await queryKnowledge(context.query, topK);
+      const raw = await queryKnowledge(inputData.query, topK);
       const filtered = raw.filter((r) => r.score >= threshold);
       const results = filtered.map((r) => ({
         text: (r.metadata?.text || '').slice(0, 500),

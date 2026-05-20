@@ -43,9 +43,10 @@ declare global {
       knowledgeLoadModel: () => Promise<{ success: boolean; ready?: boolean; error?: string }>;
       knowledgeModelStatus: () => Promise<{ ready: boolean; downloading: boolean; progress: number; modelPath: string }>;
       knowledgeDeleteModel: () => Promise<{ success: boolean; error?: string }>;
-      knowledgeIngest: (name: string, text: string) => Promise<{ success: boolean; docId?: string; chunks?: number; error?: string }>;
+      knowledgeIngest: (name: string, text: string, taskId?: string) => Promise<{ success: boolean; docId?: string; chunks?: number; error?: string }>;
       knowledgeIngestFile: () => Promise<{ success: boolean; files?: Array<{ path: string; name: string; size: number; tooLarge: boolean }>; error?: string }>;
-      knowledgeIngestFilePath: (filePath: string, name: string) => Promise<{ success: boolean; docId?: string; chunks?: number; error?: string }>;
+      knowledgeIngestFilePath: (filePath: string, name: string, taskId?: string) => Promise<{ success: boolean; docId?: string; chunks?: number; error?: string }>;
+      onKnowledgeIngestProgress: (callback: (taskId: string, progress: number) => void) => () => void;
       knowledgeQuery: (query: string, topK?: number) => Promise<{ success: boolean; results?: Array<{ id: string; score: number; metadata: Record<string, any> }>; error?: string }>;
       knowledgeList: () => Promise<{ success: boolean; documents: Array<{ docId: string; name: string; date: string; chunkCount: number }>; error?: string }>;
       knowledgeDelete: (docId: string) => Promise<{ success: boolean; error?: string }>;

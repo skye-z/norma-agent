@@ -185,18 +185,30 @@ async function localEmbed(texts: string[]): Promise<number[][]> {
   if (!_localModelReady) {
     await loadLocalModel();
   }
-  const output = await _localPipeline(texts, { pooling: 'mean', normalize: true });
-  const tensorData = output.tolist ? output.tolist() : output.data;
-  if (Array.isArray(tensorData) && Array.isArray(tensorData[0])) {
-    return tensorData;
+  
+  const BATCH_SIZE = 8;
+  const allResults: number[][] = [];
+  
+  for (let i = 0; i < texts.length; i += BATCH_SIZE) {
+    const batch = texts.slice(i, i + BATCH_SIZE);
+    const output = await _localPipeline(batch, { pooling: 'mean', normalize: true });
+    
+    const tensorData = output.tolist ? output.tolist() : output.data;
+    if (Array.isArray(tensorData) && Array.isArray(tensorData[0])) {
+      allResults.push(...tensorData);
+    } else {
+      const dim = LOCAL_DIMENSION;
+      const flat = Array.isArray(tensorData) ? tensorData.flat() : Array.from(tensorData as Iterable<number>);
+      for (let j = 0; j < batch.length; j++) {
+        allResults.push(flat.slice(j * dim, (j + 1) * dim));
+      }
+    }
+    
+    // 让出主线程，防止 Electron 卡死
+    await new Promise(resolve => setTimeout(resolve, 10));
   }
-  const dim = LOCAL_DIMENSION;
-  const flat = Array.isArray(tensorData) ? tensorData.flat() : Array.from(tensorData);
-  const result: number[][] = [];
-  for (let i = 0; i < texts.length; i++) {
-    result.push(flat.slice(i * dim, (i + 1) * dim));
-  }
-  return result;
+  
+  return allResults;
 }
 
 export function reconfigureRemoteEmbedder() {
@@ -286,6 +298,7 @@ export async function ingestDocument(
   docId: string,
   text: string,
   metadata: Record<string, any>,
+  onProgress?: (progress: number) => void
 ): Promise<{ chunks: number }> {
   if (!_vector) throw new Error('Knowledge not initialized');
 
@@ -316,32 +329,47 @@ export async function ingestDocument(
   const indexName = getIndexName();
 
   try {
-    let embeddings: number[][];
+    const BATCH_SIZE = 50;
+    const totalChunks = chunks.length;
+    
+    for (let i = 0; i < totalChunks; i += BATCH_SIZE) {
+      const batchChunks = chunks.slice(i, i + BATCH_SIZE);
+      const batchTexts = batchChunks.map(c => c.text);
+      let embeddings: number[][];
 
-    if (_mode === 'local') {
-      embeddings = await localEmbed(chunks.map((c) => c.text));
-    } else {
-      const res = await embedMany({
-        model: _remoteEmbedder,
-        values: chunks.map((c) => c.text),
+      if (_mode === 'local') {
+        embeddings = await localEmbed(batchTexts);
+      } else {
+        const res = await embedMany({
+          model: _remoteEmbedder,
+          values: batchTexts,
+        });
+        embeddings = res.embeddings;
+      }
+
+      const ids = batchChunks.map((_, idx) => `${docId}_${i + idx}`);
+
+      await _vector.upsert({
+        indexName,
+        vectors: embeddings,
+        metadata: batchChunks.map((c, idx) => ({
+          ...metadata,
+          text: c.text,
+          docId,
+          chunkIndex: i + idx,
+        })),
+        ids,
       });
-      embeddings = res.embeddings;
+
+      if (onProgress) {
+        onProgress(Math.min(99, Math.round(((i + batchChunks.length) / totalChunks) * 100)));
+      }
+
+      // 让出事件循环，防止卡死
+      await new Promise(resolve => setTimeout(resolve, 10));
     }
 
-    const ids = chunks.map((_, i) => `${docId}_${i}`);
-
-    await _vector.upsert({
-      indexName,
-      vectors: embeddings,
-      metadata: chunks.map((c, i) => ({
-        ...metadata,
-        text: c.text,
-        docId,
-        chunkIndex: i,
-      })),
-      ids,
-    });
-
+    if (onProgress) onProgress(100);
     return { chunks: chunks.length };
   } catch (err: any) {
     if (_mode === 'remote') {

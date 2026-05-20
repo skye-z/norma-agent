@@ -222,6 +222,15 @@ const KnowledgeTab: React.FC = () => {
 
   useEffect(() => { fetchDocs(); }, [fetchDocs]);
 
+  useEffect(() => {
+    if (!window.electronAPI?.onKnowledgeIngestProgress) return;
+    return window.electronAPI.onKnowledgeIngestProgress((taskId, progress) => {
+      setImportTasks((prev) => prev.map((t) =>
+        t.id === taskId ? { ...t, progress } : t
+      ));
+    });
+  }, []);
+
   const handleIngestFile = async () => {
     try {
       const res = await window.electronAPI?.knowledgeIngestFile?.();
@@ -241,7 +250,7 @@ const KnowledgeTab: React.FC = () => {
         if (task.error) continue;
         setImportTasks((prev) => prev.map((t) => t.id === task.id ? { ...t, status: 'processing', progress: 30 } : t));
         try {
-          const ingestRes = await window.electronAPI?.knowledgeIngestFilePath?.(task.filePath!, task.name);
+          const ingestRes = await window.electronAPI?.knowledgeIngestFilePath?.(task.filePath!, task.name, task.id);
           setImportTasks((prev) => prev.map((t) =>
             t.id === task.id
               ? { ...t, status: ingestRes?.success ? 'done' : 'error', progress: 100, chunks: ingestRes?.chunks, error: ingestRes?.error, docId: ingestRes?.docId }
@@ -274,7 +283,7 @@ const KnowledgeTab: React.FC = () => {
     setImportTasks((prev) => [...prev, task]);
     setShowUpload(false);
     try {
-      const res = await window.electronAPI?.knowledgeIngest?.(uploadName.trim(), uploadText.trim());
+      const res = await window.electronAPI?.knowledgeIngest?.(uploadName.trim(), uploadText.trim(), task.id);
       setImportTasks((prev) => prev.map((t) =>
         t.id === task.id
           ? { ...t, status: res?.success ? 'done' : 'error', progress: 100, chunks: res?.chunks, error: res?.error }
@@ -500,7 +509,7 @@ const KnowledgeTab: React.FC = () => {
               </div>
               {task.status === 'processing' && (
                 <div className="w-full bg-white/[0.06] rounded-full h-1 mt-1.5 overflow-hidden">
-                  <div className="bg-norma-accent h-full rounded-full animate-pulse" style={{ width: '60%' }} />
+                  <div className="bg-norma-accent h-full rounded-full transition-all duration-300" style={{ width: `${task.progress}%` }} />
                 </div>
               )}
             </div>

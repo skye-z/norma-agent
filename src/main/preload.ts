@@ -78,9 +78,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
   knowledgeLoadModel: () => ipcRenderer.invoke('knowledge:loadModel'),
   knowledgeModelStatus: () => ipcRenderer.invoke('knowledge:modelStatus'),
   knowledgeDeleteModel: () => ipcRenderer.invoke('knowledge:deleteModel'),
-  knowledgeIngest: (name: string, text: string) => ipcRenderer.invoke('knowledge:ingest', { name, text }),
+  knowledgeIngest: (name: string, text: string, taskId?: string) => ipcRenderer.invoke('knowledge:ingest', { name, text, taskId }),
   knowledgeIngestFile: () => ipcRenderer.invoke('knowledge:ingestFile'),
-  knowledgeIngestFilePath: (filePath: string, name: string) => ipcRenderer.invoke('knowledge:ingestFilePath', { filePath, name }),
+  knowledgeIngestFilePath: (filePath: string, name: string, taskId?: string) => ipcRenderer.invoke('knowledge:ingestFilePath', { filePath, name, taskId }),
+  onKnowledgeIngestProgress: (cb: (taskId: string, progress: number) => void) => {
+    const handler = (_e: any, data: { taskId: string; progress: number }) => cb(data.taskId, data.progress);
+    ipcRenderer.on('knowledge:ingestProgress', handler);
+    return () => { ipcRenderer.removeListener('knowledge:ingestProgress', handler); };
+  },
   knowledgeQuery: (query: string, topK?: number) => ipcRenderer.invoke('knowledge:query', { query, topK }),
   knowledgeList: () => ipcRenderer.invoke('knowledge:list'),
   knowledgeDelete: (docId: string) => ipcRenderer.invoke('knowledge:delete', { docId }),
